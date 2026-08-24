@@ -35,21 +35,18 @@ function NavLink({
   );
 }
 
-export function Nav({ role }: { role: UserRole }) {
+/**
+ * RA向けの管理系リンク（イベント作成・管理ダッシュボード・RA管理・寮生管理）は
+ * あえてこのグローバルナビには出さない。RAは代わりにヘッダーの小さいアイコン
+ * （非RAには表示されない）から管理ダッシュボードに入り、そこから各管理画面へ
+ * 遷移する。寮生ディレクトリは全ログインユーザー共通の機能なので常に表示する。
+ */
+export function Nav({ role: _role }: { role: UserRole }) {
   const dict = useDict();
   return (
     <nav className="flex items-center gap-1">
       <NavLink href="/">{dict.nav.events}</NavLink>
-      {role === "ra" && (
-        <>
-          <NavLink href="/events/new">{dict.nav.newEvent}</NavLink>
-          <NavLink href="/dashboard" exact>
-            {dict.nav.dashboard}
-          </NavLink>
-          <NavLink href="/dashboard/ra-rooms">{dict.nav.raRooms}</NavLink>
-          <NavLink href="/dashboard/residents">{dict.nav.residents}</NavLink>
-        </>
-      )}
+      <NavLink href="/directory">{dict.nav.directory}</NavLink>
     </nav>
   );
 }

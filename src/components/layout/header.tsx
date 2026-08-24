@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { SignOutButton } from "@/components/layout/sign-out-button";
@@ -41,6 +42,19 @@ export async function Header() {
         <div className="flex items-center gap-3 text-sm">
           <LocaleToggle />
           {profile.role === "ra" && <Badge variant="default">RA</Badge>}
+          {profile.role === "ra" && (
+            // RA用の管理画面への入り口。あえてラベルを付けず、目立たない
+            // アイコンボタンとしてのみ表示する（residentには最初からこの
+            // ブロック自体が描画されない）。
+            <Link
+              href="/dashboard"
+              title={dict.nav.dashboard}
+              aria-label={dict.nav.dashboard}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+            </Link>
+          )}
           <Link
             href="/profile/edit"
             className="hidden items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent sm:flex"

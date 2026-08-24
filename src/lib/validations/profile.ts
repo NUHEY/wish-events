@@ -1,34 +1,9 @@
 import { z } from "zod";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/locales";
+import { FLOORS } from "@/lib/constants";
 
-/**
- * 実際にドアに表示されている部屋番号（例: 3階なら "301A"、11階なら "1122C"、
- * RA個室なら "1107" のようにユニット文字なし）をそのまま入力してもらい、
- * 階(floor_number)と号室(room_number)に分解する。
- *
- * 3〜9階: 1桁の階 + 2桁の号室 + 任意のユニット文字(A-D)
- * 10〜11階: 2桁の階 + 2桁の号室 + 任意のユニット文字(A-D)
- *
- * 1桁の階の候補(3-9)と2桁の階の候補(10-11)のどちらにも「1」始まりの階は
- * 存在しないため、この2パターンの間で解釈が曖昧になることはない
- * （例: "1107" は 11階07号室としてのみ解釈できる）。
- */
-const FULL_ROOM_NUMBER_REGEX = /^(3|4|5|6|7|8|9|10|11)([0-9]{2})([A-D])?$/;
-
-export type ParsedRoomNumber = {
-  floorNumber: number;
-  roomNumber: string;
-};
-
-export function parseFullRoomNumber(input: string): ParsedRoomNumber | null {
-  const trimmed = input.trim().toUpperCase();
-  const match = FULL_ROOM_NUMBER_REGEX.exec(trimmed);
-  if (!match) return null;
-  const floorNumber = Number(match[1]);
-  const roomNumber = `${match[2]}${match[3] ?? ""}`;
-  return { floorNumber, roomNumber };
-}
+const ROOM_NUMBER_REGEX = /^[0-9]{2}[A-D]?$/;
 
 const INSTAGRAM_REGEX = /^[A-Za-z0-9._]{1,30}$/;
 
@@ -50,6 +25,11 @@ const optionalArray = () =>
 /**
  * バリデーションメッセージは表示ロケールに合わせて出し分ける。
  * Server Action側で `getLocale()` の結果を渡して呼び出す。
+ *
+ * 部屋番号は「階」と「号室（ユニット記号含む・階を含まない）」を別入力にしている。
+ * ドアの表示（例: 3階なら301A）から自分でパースして入力してもらう方式は
+ * 使い方が分かりにくいという指摘を受け、RA個室一覧の登録フォームと同じ
+ * 「階のプルダウン + 号室の入力欄」という分離した形式に統一した。
  */
 export function getProfileSchema(locale: Locale) {
   const t = dictionaries[locale].validation;
@@ -64,11 +44,16 @@ export function getProfileSchema(locale: Locale) {
       .string()
       .trim()
       .regex(/^[A-Za-z0-9]{8}$/, t.studentIdFormat),
+    floor_number: z.coerce
+      .number()
+      .int()
+      .refine((v) => (FLOORS as readonly number[]).includes(v), t.floorRequired),
     room_number: z
       .string()
       .trim()
       .min(1, t.roomNumberRequired)
-      .refine((v) => parseFullRoomNumber(v) !== null, t.roomNumberFormat),
+      .transform((v) => v.toUpperCase())
+      .refine((v) => ROOM_NUMBER_REGEX.test(v), t.roomNumberFormat),
     faculty: optionalSelect(),
     grade_level: optionalSelect(),
     languages: optionalArray(),
@@ -80,6 +65,12 @@ export function getProfileSchema(locale: Locale) {
       .optional()
       .transform((v) => (v ? v.replace(/^@/, "") : null))
       .refine((v) => v === null || INSTAGRAM_REGEX.test(v), t.instagramFormat),
+    self_intro: z
+      .string()
+      .trim()
+      .max(500, t.selfIntroTooLong)
+      .optional()
+      .transform((v) => (v ? v : null)),
   });
 }
 

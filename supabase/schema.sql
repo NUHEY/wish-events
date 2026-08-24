@@ -36,6 +36,7 @@ create table public.users (
   lived_countries  text[],            -- 居住経験のある国・地域（同上、複数選択可）
   instagram_handle text,              -- Instagramユーザーネーム（@なし）
   line_qr_path     text,              -- 非公開Storageバケット(line-qr)内のパス
+  self_intro       text,              -- 自由記述の自己紹介文（寮生ディレクトリに表示、500文字以内）
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
@@ -64,6 +65,9 @@ create table public.users (
   constraint users_instagram_handle_check
     check (instagram_handle is null or instagram_handle ~ '^[A-Za-z0-9._]{1,30}$'),
 
+  constraint users_self_intro_length_check
+    check (self_intro is null or char_length(self_intro) <= 500),
+
   -- 同じ部屋番号を複数ユーザーが同時に名乗れないようにする
   -- （自己申告のroom_numberを悪用したRAなりすまし対策も兼ねる）
   constraint users_floor_room_unique
@@ -80,6 +84,7 @@ comment on column public.users.nationalities is '国籍（ISO 3166-1 alpha-2コ�
 comment on column public.users.lived_countries is '居住経験のある国・地域（同上、任意回答・複数選択可）。未回答はNULL。';
 comment on column public.users.instagram_handle is 'Instagramユーザーネーム（@なし、任意回答）。未回答はNULL。';
 comment on column public.users.line_qr_path is '非公開Storageバケット(line-qr)内の画像パス。本人とRAのみ閲覧可（RLSで制御）。未アップロードはNULL。';
+comment on column public.users.self_intro is '自由記述の自己紹介文（任意、500文字以内）。寮生ディレクトリのプロフィールページに表示される。';
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -358,7 +363,7 @@ revoke update on public.users from authenticated;
 grant update (
   full_name, student_id, floor_number, room_number,
   faculty, grade_level, languages, nationalities, lived_countries,
-  instagram_handle, line_qr_path
+  instagram_handle, line_qr_path, self_intro
 ) on public.users to authenticated;
 grant select, insert on public.users to authenticated;
 
@@ -765,6 +770,52 @@ $$;
 revoke all on function public.reset_all_room_assignments(text) from public;
 revoke execute on function public.reset_all_room_assignments(text) from anon;
 grant execute on function public.reset_all_room_assignments(text) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 16. 寮生ディレクトリ（自己紹介ページ一覧）用の関数
+-- ---------------------------------------------------------------------
+-- email/student_id/line_qr_pathのような機微情報は含めない
+-- （line_qr_pathは本人・RAのみ /directory/[id] 側で別途 users テーブルから参照する）。
+-- ビューではなく関数にしているのは、Supabaseのdatabase linterが
+-- SECURITY DEFINERビューをERRORレベルで検知するため（関数ならWARNのみで、
+-- このプロジェクトの他のSECURITY DEFINER関数群と同じ扱いにできる）。
+-- p_user_idを省略すると全件、指定すると1件のみ返す。
+create or replace function public.directory_profiles(p_user_id uuid default null)
+returns table (
+  id uuid,
+  full_name text,
+  role text,
+  floor_number integer,
+  room_number text,
+  faculty text,
+  grade_level text,
+  languages text[],
+  nationalities text[],
+  lived_countries text[],
+  instagram_handle text,
+  self_intro text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    u.id, u.full_name, u.role, u.floor_number, u.room_number,
+    u.faculty, u.grade_level, u.languages, u.nationalities, u.lived_countries,
+    u.instagram_handle, u.self_intro
+  from public.users u
+  where p_user_id is null or u.id = p_user_id
+  order by u.floor_number nulls last, u.room_number nulls last, u.full_name nulls last;
+$$;
+
+comment on function public.directory_profiles(uuid) is
+  '寮生ディレクトリ表示用（email/student_id/line_qr_pathは含めない）。p_user_id省略で全件、指定で1件のみ。全dormログインユーザーが実行可。';
+
+revoke all on function public.directory_profiles(uuid) from public;
+revoke execute on function public.directory_profiles(uuid) from anon;
+grant execute on function public.directory_profiles(uuid) to authenticated;
 
 
 -- =====================================================================

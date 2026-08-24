@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, postLoginPath } from "@/lib/auth";
-import { getProfileSchema, parseFullRoomNumber } from "@/lib/validations/profile";
+import { getProfileSchema } from "@/lib/validations/profile";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { UserRole } from "@/types/database";
 
@@ -22,6 +22,7 @@ export async function submitProfile(
   const parsed = schema.safeParse({
     full_name: formData.get("full_name"),
     student_id: formData.get("student_id"),
+    floor_number: formData.get("floor_number"),
     room_number: formData.get("room_number"),
     faculty: formData.get("faculty"),
     grade_level: formData.get("grade_level"),
@@ -29,15 +30,11 @@ export async function submitProfile(
     nationalities: formData.getAll("nationalities"),
     lived_countries: formData.getAll("lived_countries"),
     instagram_handle: formData.get("instagram_handle"),
+    self_intro: formData.get("self_intro"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? dict.validation.genericError };
-  }
-
-  const room = parseFullRoomNumber(parsed.data.room_number);
-  if (!room) {
-    return { error: dict.validation.roomNumberFormat };
   }
 
   const supabase = await createClient();
@@ -46,14 +43,15 @@ export async function submitProfile(
     .update({
       full_name: parsed.data.full_name,
       student_id: parsed.data.student_id,
-      floor_number: room.floorNumber,
-      room_number: room.roomNumber,
+      floor_number: parsed.data.floor_number,
+      room_number: parsed.data.room_number,
       faculty: parsed.data.faculty,
       grade_level: parsed.data.grade_level,
       languages: parsed.data.languages.length ? parsed.data.languages : null,
       nationalities: parsed.data.nationalities.length ? parsed.data.nationalities : null,
       lived_countries: parsed.data.lived_countries.length ? parsed.data.lived_countries : null,
       instagram_handle: parsed.data.instagram_handle,
+      self_intro: parsed.data.self_intro,
     })
     .eq("id", profile.id);
 
@@ -73,5 +71,6 @@ export async function submitProfile(
   const { data: newRole } = await supabase.rpc("sync_own_role");
 
   revalidatePath("/", "layout");
+  revalidatePath("/directory");
   redirect(postLoginPath((newRole as UserRole | null) ?? profile.role));
 }

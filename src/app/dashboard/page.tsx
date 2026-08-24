@@ -21,11 +21,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{dict.dashboard.title}</h1>
-        <Link href="/events/new" className={buttonVariants({ size: "sm" })}>
-          {dict.dashboard.newEventButton}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/ra-rooms" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {dict.nav.raRooms}
+          </Link>
+          <Link href="/dashboard/residents" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {dict.nav.residents}
+          </Link>
+          <Link href="/events/new" className={buttonVariants({ size: "sm" })}>
+            {dict.dashboard.newEventButton}
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">

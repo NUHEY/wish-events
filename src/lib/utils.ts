@@ -15,6 +15,25 @@ export function formatRoomNumber(
 }
 
 /**
+ * "301A"（3階）や "1122C"（11階）のようにドア表示のまま入力された文字列を
+ * floor_number + room_number に分解する（寮生管理画面の検索ショートカット用）。
+ * 1桁の階(3-9)と2桁の階(10-11)のどちらも「1」始まりの階が存在しないため、
+ * 2パターンの間で解釈が曖昧になることはない（例: "1107" は11階07号室のみ）。
+ */
+const FULL_ROOM_NUMBER_REGEX = /^(3|4|5|6|7|8|9|10|11)([0-9]{2})([A-D])?$/;
+
+export function parseFullRoomNumber(
+  input: string
+): { floorNumber: number; roomNumber: string } | null {
+  const trimmed = input.trim().toUpperCase();
+  const match = FULL_ROOM_NUMBER_REGEX.exec(trimmed);
+  if (!match) return null;
+  const floorNumber = Number(match[1]);
+  const roomNumber = `${match[2]}${match[3] ?? ""}`;
+  return { floorNumber, roomNumber };
+}
+
+/**
  * 日時を整形する。
  * ja: "2026年8月24日(月) 18:00"
  * en: "Aug 24, 2026 (Mon) 18:00"

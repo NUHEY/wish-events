@@ -34,8 +34,25 @@ export interface UserRow {
   lived_countries: string[] | null;
   instagram_handle: string | null;
   line_qr_path: string | null;
+  self_intro: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** 寮生ディレクトリ表示用（directory_profiles()関数の返り値）。email/student_id/line_qr_pathは含まない。 */
+export interface DirectoryProfileRow {
+  id: string;
+  full_name: string | null;
+  role: UserRole;
+  floor_number: number | null;
+  room_number: string | null;
+  faculty: string | null;
+  grade_level: string | null;
+  languages: string[] | null;
+  nationalities: string[] | null;
+  lived_countries: string[] | null;
+  instagram_handle: string | null;
+  self_intro: string | null;
 }
 
 export interface EventRow {
@@ -210,6 +227,10 @@ export interface Database {
       reset_all_room_assignments: {
         Args: { p_confirm: string };
         Returns: number;
+      };
+      directory_profiles: {
+        Args: { p_user_id?: string | null };
+        Returns: DirectoryProfileRow[];
       };
     };
     Enums: Record<string, never>;

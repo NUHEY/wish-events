@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
-import { FACULTIES, GRADE_LEVELS } from "@/lib/constants";
+import { FACULTIES, GRADE_LEVELS, FLOORS } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
-import { formatRoomNumber } from "@/lib/utils";
 import { submitProfile } from "@/actions/profile";
 import type { UserRow } from "@/types/database";
 
@@ -27,6 +27,7 @@ type InitialProfile = Pick<
   | "lived_countries"
   | "instagram_handle"
   | "line_qr_path"
+  | "self_intro"
 >;
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -50,10 +51,6 @@ export function ProfileForm({
   const dict = useDict();
   const locale = useLocale();
   const [state, formAction] = useFormState(submitProfile, undefined);
-  const initialRoomDisplay =
-    initialProfile?.floor_number != null && initialProfile?.room_number
-      ? formatRoomNumber(initialProfile.floor_number, initialProfile.room_number)
-      : "";
 
   const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l[locale] }));
   const countryOptions = COUNTRIES.map((c) => ({ code: c.code, label: c[locale] }));
@@ -83,17 +80,40 @@ export function ProfileForm({
         />
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
-        <Input
-          id="room_number"
-          name="room_number"
-          required
-          placeholder={dict.profile.roomNumberPlaceholder}
-          defaultValue={initialRoomDisplay}
-        />
-        <p className="text-xs text-muted-foreground">{dict.profile.roomNumberHint}</p>
+      <div className="grid grid-cols-[auto_1fr] gap-3">
+        <div className="grid gap-2">
+          <Label htmlFor="floor_number">{dict.profile.floorLabel}</Label>
+          <Select
+            id="floor_number"
+            name="floor_number"
+            required
+            defaultValue={initialProfile?.floor_number ?? ""}
+            className="w-24"
+          >
+            <option value="" disabled>
+              {dict.profile.floorPlaceholder}
+            </option>
+            {FLOORS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+                {dict.event.floorUnit}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
+          <Input
+            id="room_number"
+            name="room_number"
+            required
+            maxLength={3}
+            placeholder={dict.profile.roomNumberPlaceholder}
+            defaultValue={initialProfile?.room_number ?? ""}
+          />
+        </div>
       </div>
+      <p className="-mt-2 text-xs text-muted-foreground">{dict.profile.roomNumberHint}</p>
 
       <div className="grid gap-3 border-t border-border pt-4">
         <div>
@@ -157,6 +177,19 @@ export function ProfileForm({
           />
           <p className="text-xs text-muted-foreground">{dict.profile.livedCountriesHint}</p>
         </div>
+      </div>
+
+      <div className="grid gap-2 border-t border-border pt-4">
+        <Label htmlFor="self_intro">{dict.profile.selfIntroLabel}</Label>
+        <Textarea
+          id="self_intro"
+          name="self_intro"
+          rows={4}
+          maxLength={500}
+          placeholder={dict.profile.selfIntroPlaceholder}
+          defaultValue={initialProfile?.self_intro ?? ""}
+        />
+        <p className="text-xs text-muted-foreground">{dict.profile.selfIntroHint}</p>
       </div>
 
       <div className="grid gap-3 border-t border-border pt-4">
