@@ -1,0 +1,55 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { Nav } from "@/components/layout/nav";
+import { SignOutButton } from "@/components/layout/sign-out-button";
+import { formatRoomNumber } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+export async function Header() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("full_name, role, floor_number, room_number")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile) return null;
+
+  return (
+    <header className="sticky top-0 z-10 border-b border-border bg-card/85 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-5">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+              W
+            </span>
+            <span className="text-lg font-bold tracking-tight">WISH Events</span>
+          </Link>
+          <Nav role={profile.role} />
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          {profile.role === "ra" && <Badge variant="default">RA</Badge>}
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+              {profile.full_name?.charAt(0) ?? "?"}
+            </span>
+            <span className="text-muted-foreground">
+              {profile.full_name}
+              <span className="text-xs">
+                {" "}
+                ({formatRoomNumber(profile.floor_number, profile.room_number)})
+              </span>
+            </span>
+          </div>
+          <SignOutButton />
+        </div>
+      </div>
+    </header>
+  );
+}

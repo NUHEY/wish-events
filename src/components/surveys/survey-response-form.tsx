@@ -1,0 +1,144 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { submitSurveyResponse, type AnswerInput } from "@/actions/surveys";
+import type { SurveyQuestionRow } from "@/types/database";
+
+export function SurveyResponseForm({
+  surveyId,
+  questions,
+}: {
+  surveyId: string;
+  questions: SurveyQuestionRow[];
+}) {
+  const sorted = [...questions].sort((a, b) => a.position - b.position);
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const router = useRouter();
+
+  function setText(questionId: string, value: string) {
+    setAnswers((a) => ({ ...a, [questionId]: value }));
+  }
+
+  function toggleOption(questionId: string, option: string, multi: boolean) {
+    setAnswers((a) => {
+      if (multi) {
+        const current = (a[questionId] as string[] | undefined) ?? [];
+        const next = current.includes(option)
+          ? current.filter((o) => o !== option)
+          : [...current, option];
+        return { ...a, [questionId]: next };
+      }
+      return { ...a, [questionId]: option };
+    });
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const missing = sorted.find((q) => {
+      if (!q.is_required) return false;
+      const v = answers[q.id];
+      return !v || (Array.isArray(v) && v.length === 0);
+    });
+    if (missing) {
+      setError(`「${missing.question_text}」は必須項目です`);
+      return;
+    }
+
+    const payload: AnswerInput[] = sorted.map((q) => {
+      const v = answers[q.id];
+      if (Array.isArray(v)) return { question_id: q.id, answer_options: v };
+      return { question_id: q.id, answer_text: v };
+    });
+
+    startTransition(async () => {
+      const result = await submitSurveyResponse(surveyId, payload);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setDone(true);
+        router.refresh();
+      }
+    });
+  }
+
+  if (done) {
+    return <p className="rounded-md border border-border bg-secondary p-4 text-sm">ご回答ありがとうございました！</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {sorted.map((q) => (
+        <div key={q.id} className="flex flex-col gap-2">
+          <Label>
+            {q.question_text}
+            {q.is_required && <span className="ml-1 text-destructive">*</span>}
+          </Label>
+
+          {q.question_type === "text" && (
+            <Textarea
+              value={(answers[q.id] as string) ?? ""}
+              onChange={(e) => setText(q.id, e.target.value)}
+            />
+          )}
+
+          {q.question_type === "rating" && (
+            <div className="flex gap-2">
+              {["1", "2", "3", "4", "5"].map((n) => (
+                <label key={n} className="flex flex-col items-center gap-1 text-sm">
+                  <input
+                    type="radio"
+                    name={`rating-${q.id}`}
+                    checked={answers[q.id] === n}
+                    onChange={() => setText(q.id, n)}
+                  />
+                  {n}
+                </label>
+              ))}
+            </div>
+          )}
+
+          {q.question_type === "single_choice" &&
+            (q.options ?? []).map((opt) => (
+              <label key={opt} className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={`choice-${q.id}`}
+                  checked={answers[q.id] === opt}
+                  onChange={() => toggleOption(q.id, opt, false)}
+                />
+                {opt}
+              </label>
+            ))}
+
+          {q.question_type === "multiple_choice" &&
+            (q.options ?? []).map((opt) => (
+              <label key={opt} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={((answers[q.id] as string[]) ?? []).includes(opt)}
+                  onCheckedChange={() => toggleOption(q.id, opt, true)}
+                />
+                {opt}
+              </label>
+            ))}
+        </div>
+      ))}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <Button type="submit" disabled={pending} className="w-fit">
+        {pending ? "送信中..." : "回答を送信する"}
+      </Button>
+    </form>
+  );
+}
