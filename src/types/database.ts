@@ -27,6 +27,13 @@ export interface UserRow {
   floor_number: number | null;
   room_number: string | null;
   role: UserRole;
+  faculty: string | null;
+  grade_level: string | null;
+  languages: string[] | null;
+  nationalities: string[] | null;
+  lived_countries: string[] | null;
+  instagram_handle: string | null;
+  line_qr_path: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,11 +41,15 @@ export interface UserRow {
 export interface EventRow {
   id: string;
   title: string;
+  title_en: string | null;
   category: EventCategory;
   description: string | null;
+  description_en: string | null;
   poster_url: string | null;
   location: string | null;
+  location_en: string | null;
   target_audience: string | null;
+  target_audience_en: string | null;
   event_date: string;
   requires_registration: boolean;
   capacity: number | null;
@@ -90,6 +101,15 @@ export interface SurveyAnswerRow {
   question_id: string;
   answer_text: string | null;
   answer_options: string[] | null;
+}
+
+export interface RaRoomRow {
+  id: string;
+  floor_number: number;
+  room_number: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface Database {
@@ -159,9 +179,39 @@ export interface Database {
         Update: Partial<SurveyAnswerRow>;
         Relationships: [];
       };
+      ra_rooms: {
+        Row: RaRoomRow;
+        Insert: Partial<RaRoomRow> & {
+          floor_number: number;
+          room_number: string;
+        };
+        Update: Partial<RaRoomRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      sync_own_role: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      resync_room_role: {
+        Args: { p_floor: number; p_room: string };
+        Returns: undefined;
+      };
+      demote_to_resident: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      release_room: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      reset_all_room_assignments: {
+        Args: { p_confirm: string };
+        Returns: number;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

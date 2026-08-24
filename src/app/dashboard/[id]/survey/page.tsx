@@ -6,6 +6,7 @@ import { SurveyActiveToggle } from "@/components/surveys/survey-active-toggle";
 import { saveSurvey } from "@/actions/surveys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function ManageSurveyPage({
   params,
@@ -15,6 +16,8 @@ export default async function ManageSurveyPage({
   await requireRa();
   const { id } = await params;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   const { data: event } = await supabase
     .from("events")
@@ -50,21 +53,26 @@ export default async function ManageSurveyPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <h1 className="text-xl font-bold">アンケート管理: {event.title}</h1>
+      <h1 className="text-xl font-bold">
+        {dict.surveys.manageTitle}: {event.title}
+      </h1>
 
       {event.survey_type === "external" && (
         <p className="rounded-md border border-border bg-secondary p-3 text-sm">
-          このイベントは外部アンケート（{event.survey_external_url}）に設定されています。
-          サイト内蔵アンケートを使う場合はイベント編集画面で「サイト内蔵アンケート」に切り替えてください。
+          {dict.surveys.externalNotice}
+          {event.survey_external_url ? ` (${event.survey_external_url})` : ""}
         </p>
       )}
 
       {survey && (
         <div className="flex items-center gap-2">
           <Badge variant={survey.is_active ? "default" : "secondary"}>
-            {survey.is_active ? "回答受付中" : "回答受付停止中"}
+            {survey.is_active ? dict.surveys.activeBadge : dict.surveys.inactiveBadge}
           </Badge>
-          <span className="text-sm text-muted-foreground">回答数: {responseCount}件</span>
+          <span className="text-sm text-muted-foreground">
+            {dict.surveys.responseCount}: {responseCount}
+            {dict.surveys.responseCountUnit}
+          </span>
           <SurveyActiveToggle surveyId={survey.id} isActive={survey.is_active} />
         </div>
       )}
@@ -72,7 +80,7 @@ export default async function ManageSurveyPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {survey ? "質問を編集する" : "質問を作成する"}
+            {survey ? dict.surveys.editQuestionsTitle : dict.surveys.createQuestionsTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>

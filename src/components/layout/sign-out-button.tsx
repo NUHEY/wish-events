@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export function SignOutButton() {
   const router = useRouter();
   const supabase = createClient();
+  const dict = useDict();
 
   return (
     <Button
@@ -18,7 +20,7 @@ export function SignOutButton() {
         router.refresh();
       }}
     >
-      ログアウト
+      {dict.header.signOut}
     </Button>
   );
 }

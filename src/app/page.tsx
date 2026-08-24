@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
 import { EventFilter } from "@/components/events/event-filter";
 import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
+import { getLocale, getDictionary } from "@/lib/i18n";
 import type { EventCategory } from "@/types/database";
 
 export default async function HomePage({
@@ -13,6 +14,8 @@ export default async function HomePage({
   const profile = await getCurrentProfile();
   const { category } = await searchParams;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   let query = supabase
     .from("events")
@@ -31,22 +34,22 @@ export default async function HomePage({
 
       <div className="flex flex-col gap-3 border-b border-border pb-5">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">イベント一覧</h1>
-          <p className="text-sm text-muted-foreground">WISHで開催予定・開催中のイベントをチェックしよう</p>
+          <h1 className="text-2xl font-bold tracking-tight">{dict.home.title}</h1>
+          <p className="text-sm text-muted-foreground">{dict.home.subtitle}</p>
         </div>
         <EventFilter />
       </div>
 
       {error && (
         <p className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-          読み込みに失敗しました: {error.message}
+          {dict.home.loadError}: {error.message}
         </p>
       )}
 
       {events && events.length === 0 && (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border py-16 text-center">
-          <p className="text-sm font-medium">該当するイベントはありません</p>
-          <p className="text-xs text-muted-foreground">条件を変えて再度お試しください</p>
+          <p className="text-sm font-medium">{dict.home.empty}</p>
+          <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
         </div>
       )}
 

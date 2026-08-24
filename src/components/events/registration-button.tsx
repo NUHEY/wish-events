@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export function RegistrationButton({
   eventId,
@@ -17,6 +18,7 @@ export function RegistrationButton({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const dict = useDict();
 
   function handleClick() {
     setError(null);
@@ -42,12 +44,12 @@ export function RegistrationButton({
         className="w-full sm:w-auto"
       >
         {pending
-          ? "処理中..."
+          ? dict.event.processing
           : isRegistered
-          ? "キャンセルする"
+          ? dict.event.cancelRegistration
           : isFull
-          ? "定員に達しました"
-          : "申し込む"}
+          ? dict.event.full
+          : dict.event.register}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

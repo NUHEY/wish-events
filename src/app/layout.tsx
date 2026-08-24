@@ -3,6 +3,8 @@ import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { cn } from "@/lib/utils";
+import { getLocale } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/i18n/locale-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,19 +21,23 @@ const notoSansJP = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   title: "WISH Events",
-  description: "早稲田大学国際学生寮 WISH のイベント一覧・申込サイト",
+  description: "早稲田大学国際学生寮 WISH のイベント一覧・申込サイト / Event site for Waseda's WISH international dorm",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="ja" className={cn(inter.variable, notoSansJP.variable)}>
+    <html lang={locale} className={cn(inter.variable, notoSansJP.variable)}>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <Header />
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <LocaleProvider locale={locale}>
+          <Header />
+          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        </LocaleProvider>
       </body>
     </html>
   );

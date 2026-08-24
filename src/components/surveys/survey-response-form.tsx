@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { submitSurveyResponse, type AnswerInput } from "@/actions/surveys";
+import { useDict } from "@/lib/i18n/locale-provider";
 import type { SurveyQuestionRow } from "@/types/database";
 
 export function SurveyResponseForm({
@@ -17,6 +18,7 @@ export function SurveyResponseForm({
   surveyId: string;
   questions: SurveyQuestionRow[];
 }) {
+  const dict = useDict();
   const sorted = [...questions].sort((a, b) => a.position - b.position);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [pending, startTransition] = useTransition();
@@ -51,7 +53,7 @@ export function SurveyResponseForm({
       return !v || (Array.isArray(v) && v.length === 0);
     });
     if (missing) {
-      setError(`「${missing.question_text}」は必須項目です`);
+      setError(`「${missing.question_text}」${dict.surveys.requiredError}`);
       return;
     }
 
@@ -73,7 +75,7 @@ export function SurveyResponseForm({
   }
 
   if (done) {
-    return <p className="rounded-md border border-border bg-secondary p-4 text-sm">ご回答ありがとうございました！</p>;
+    return <p className="rounded-md border border-border bg-secondary p-4 text-sm">{dict.surveys.thanks}</p>;
   }
 
   return (
@@ -137,7 +139,7 @@ export function SurveyResponseForm({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? "送信中..." : "回答を送信する"}
+        {pending ? dict.surveys.submitting : dict.surveys.submitButton}
       </Button>
     </form>
   );

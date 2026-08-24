@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toggleSurveyActive } from "@/actions/surveys";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export function SurveyActiveToggle({
   surveyId,
@@ -14,6 +15,7 @@ export function SurveyActiveToggle({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const dict = useDict();
 
   return (
     <Button
@@ -27,7 +29,7 @@ export function SurveyActiveToggle({
         })
       }
     >
-      {isActive ? "回答受付を停止する" : "回答受付を再開する"}
+      {isActive ? dict.surveys.pauseButton : dict.surveys.resumeButton}
     </Button>
   );
 }

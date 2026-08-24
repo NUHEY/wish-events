@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatEventDateTime } from "@/lib/utils";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 type PendingItem = {
   eventId: string;
@@ -20,6 +21,8 @@ type PendingItem = {
  */
 export async function PendingSurveyBanner({ userId }: { userId: string }) {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   const now = new Date().toISOString();
 
   const { data: regs } = await supabase
@@ -92,7 +95,10 @@ export async function PendingSurveyBanner({ userId }: { userId: string }) {
     <Card className="border-primary/30 bg-secondary/60">
       <CardContent className="flex flex-col gap-3 p-4">
         <p className="text-sm font-semibold">
-          参加したイベントのアンケートにご協力ください（{items.length}件）
+          {dict.pendingSurvey.title}
+          {dict.pendingSurvey.countOpen}
+          {items.length}
+          {dict.pendingSurvey.countClose}
         </p>
         <div className="flex flex-col gap-2">
           {items.map((item) => (
@@ -103,7 +109,7 @@ export async function PendingSurveyBanner({ userId }: { userId: string }) {
               <div>
                 <p className="text-sm font-medium">{item.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatEventDateTime(item.eventDate)} 開催
+                  {formatEventDateTime(item.eventDate, locale)} {dict.pendingSurvey.heldOn}
                 </p>
               </div>
               {item.external ? (
@@ -113,14 +119,14 @@ export async function PendingSurveyBanner({ userId }: { userId: string }) {
                   rel="noreferrer"
                   className={buttonVariants({ size: "sm", variant: "outline" })}
                 >
-                  アンケートに回答する
+                  {dict.pendingSurvey.answerButton}
                 </a>
               ) : (
                 <Link
                   href={item.href}
                   className={buttonVariants({ size: "sm", variant: "outline" })}
                 >
-                  アンケートに回答する
+                  {dict.pendingSurvey.answerButton}
                 </Link>
               )}
             </div>

@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
 import { formatEventDateTime } from "@/lib/utils";
+import { getLocale, getDictionary } from "@/lib/i18n";
 import { deleteEvent } from "@/actions/events";
+import type { EventCategory } from "@/types/database";
 
 export default async function EventDetailPage({
   params,
@@ -19,6 +21,8 @@ export default async function EventDetailPage({
   const { id } = await params;
   const profile = await getCurrentProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
@@ -39,54 +43,68 @@ export default async function EventDetailPage({
   const isFull = event.capacity != null && registeredCount >= event.capacity;
   const isPast = new Date(event.event_date).getTime() < Date.now();
 
+  const isEn = locale === "en";
+  const title = (isEn && event.title_en) || event.title;
+  const description = (isEn && event.description_en) || event.description;
+  const location = (isEn && event.location_en) || event.location;
+  const audience = (isEn && event.target_audience_en) || event.target_audience;
+  const categoryLabel = dict.categories[event.category as EventCategory] ?? event.category;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-muted">
         {event.poster_url ? (
-          <Image src={event.poster_url} alt={event.title} fill className="object-cover" />
+          <Image src={event.poster_url} alt={title} fill className="object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">No Image</div>
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            {dict.event.noImage}
+          </div>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{event.category}</Badge>
+          <Badge variant="secondary">{categoryLabel}</Badge>
           {event.target_floors && event.target_floors.length > 0 && (
-            <Badge variant="outline">{event.target_floors.map((f: number) => `${f}階`).join("・")}限定</Badge>
+            <Badge variant="outline">
+              {event.target_floors.map((f: number) => `${f}${dict.event.floorUnit}`).join("・")}
+              {dict.event.limitedFloors}
+            </Badge>
           )}
         </div>
-        <h1 className="text-2xl font-bold">{event.title}</h1>
+        <h1 className="text-2xl font-bold">{title}</h1>
         <dl className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
           <div>
-            <dt className="inline font-medium text-foreground">開催日時: </dt>
-            <dd className="inline">{formatEventDateTime(event.event_date)}</dd>
+            <dt className="inline font-medium text-foreground">{dict.event.dateLabel}: </dt>
+            <dd className="inline">{formatEventDateTime(event.event_date, locale)}</dd>
           </div>
-          {event.location && (
+          {location && (
             <div>
-              <dt className="inline font-medium text-foreground">開催場所: </dt>
-              <dd className="inline">{event.location}</dd>
+              <dt className="inline font-medium text-foreground">{dict.event.locationLabel}: </dt>
+              <dd className="inline">{location}</dd>
             </div>
           )}
-          {event.target_audience && (
+          {audience && (
             <div>
-              <dt className="inline font-medium text-foreground">対象者: </dt>
-              <dd className="inline">{event.target_audience}</dd>
+              <dt className="inline font-medium text-foreground">{dict.event.audienceLabel}: </dt>
+              <dd className="inline">{audience}</dd>
             </div>
           )}
         </dl>
       </div>
 
-      {event.description && (
+      {description && (
         <div className="prose prose-sm max-w-none rounded-md border border-border p-4">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.description}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
         </div>
       )}
 
       {event.requires_registration && (
         <div className="flex flex-col gap-2 rounded-md border border-border p-4">
           <p className="text-sm">
-            申込状況: <span className="font-semibold">{registeredCount}</span> / {event.capacity}名
+            {dict.event.registrationStatus}: <span className="font-semibold">{registeredCount}</span> /{" "}
+            {event.capacity}
+            {dict.event.peopleUnit}
           </p>
           {!isPast && (
             <RegistrationButton
@@ -100,7 +118,7 @@ export default async function EventDetailPage({
 
       {isPast && event.survey_type !== "none" && (
         <div className="rounded-md border border-border p-4">
-          <p className="mb-2 text-sm font-medium">イベント後アンケート</p>
+          <p className="mb-2 text-sm font-medium">{dict.event.surveyTitle}</p>
           {event.survey_type === "external" ? (
             <a
               href={event.survey_external_url ?? "#"}
@@ -108,14 +126,14 @@ export default async function EventDetailPage({
               rel="noreferrer"
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              アンケートに回答する
+              {dict.event.surveyAnswer}
             </a>
           ) : (
             <Link
               href={`/events/${event.id}/survey`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              アンケートに回答する
+              {dict.event.surveyAnswer}
             </Link>
           )}
         </div>
@@ -124,19 +142,19 @@ export default async function EventDetailPage({
       {profile.role === "ra" && (
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <Link href={`/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            編集する
+            {dict.event.editButton}
           </Link>
           <Link
             href={`/dashboard/${event.id}/participants`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            参加者一覧
+            {dict.event.participantsButton}
           </Link>
           <Link
             href={`/dashboard/${event.id}/survey`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            アンケート管理
+            {dict.event.surveyManageButton}
           </Link>
           <form
             action={async () => {
@@ -145,7 +163,7 @@ export default async function EventDetailPage({
             }}
           >
             <Button type="submit" variant="destructive" size="sm">
-              削除する
+              {dict.event.deleteButton}
             </Button>
           </form>
         </div>

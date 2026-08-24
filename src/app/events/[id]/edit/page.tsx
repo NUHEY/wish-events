@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EventForm } from "@/components/events/event-form";
 import { updateEvent } from "@/actions/events";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function EditEventPage({
   params,
@@ -13,6 +14,8 @@ export default async function EditEventPage({
   await requireRa();
   const { id } = await params;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
@@ -23,10 +26,10 @@ export default async function EditEventPage({
     <div className="mx-auto max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>イベントを編集</CardTitle>
+          <CardTitle>{dict.eventForm.editTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <EventForm action={updateWithId} initialEvent={event} submitLabel="更新する" />
+          <EventForm action={updateWithId} initialEvent={event} submitLabel={dict.eventForm.editSubmit} />
         </CardContent>
       </Card>
     </div>

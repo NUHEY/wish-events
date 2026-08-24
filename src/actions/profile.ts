@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, postLoginPath } from "@/lib/auth";
-import { profileSchema, validateRoomNumberForRole } from "@/lib/validations/profile";
+import { getProfileSchema, parseFullRoomNumber } from "@/lib/validations/profile";
+import { getLocale, getDictionary } from "@/lib/i18n";
+import type { UserRole } from "@/types/database";
 
 export type ActionResult = { error?: string } | void;
 
@@ -13,25 +15,29 @@ export async function submitProfile(
   formData: FormData
 ): Promise<ActionResult> {
   const profile = await getCurrentProfile();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+  const schema = getProfileSchema(locale);
 
-  const parsed = profileSchema.safeParse({
+  const parsed = schema.safeParse({
     full_name: formData.get("full_name"),
     student_id: formData.get("student_id"),
-    floor_number: formData.get("floor_number"),
     room_number: formData.get("room_number"),
+    faculty: formData.get("faculty"),
+    grade_level: formData.get("grade_level"),
+    languages: formData.getAll("languages"),
+    nationalities: formData.getAll("nationalities"),
+    lived_countries: formData.getAll("lived_countries"),
+    instagram_handle: formData.get("instagram_handle"),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "入力内容を確認してください" };
+    return { error: parsed.error.issues[0]?.message ?? dict.validation.genericError };
   }
 
-  if (!validateRoomNumberForRole(parsed.data.room_number, profile.role)) {
-    return {
-      error:
-        profile.role === "ra"
-          ? "RAの部屋番号は数字2桁で入力してください（例: 01）"
-          : "部屋番号は数字2桁 + ユニット記号(A〜D)で入力してください（例: 01A）",
-    };
+  const room = parseFullRoomNumber(parsed.data.room_number);
+  if (!room) {
+    return { error: dict.validation.roomNumberFormat };
   }
 
   const supabase = await createClient();
@@ -40,15 +46,32 @@ export async function submitProfile(
     .update({
       full_name: parsed.data.full_name,
       student_id: parsed.data.student_id,
-      floor_number: parsed.data.floor_number,
-      room_number: parsed.data.room_number,
+      floor_number: room.floorNumber,
+      room_number: room.roomNumber,
+      faculty: parsed.data.faculty,
+      grade_level: parsed.data.grade_level,
+      languages: parsed.data.languages.length ? parsed.data.languages : null,
+      nationalities: parsed.data.nationalities.length ? parsed.data.nationalities : null,
+      lived_countries: parsed.data.lived_countries.length ? parsed.data.lived_countries : null,
+      instagram_handle: parsed.data.instagram_handle,
     })
     .eq("id", profile.id);
 
   if (error) {
-    return { error: `保存に失敗しました: ${error.message}` };
+    return {
+      error:
+        error.code === "23505"
+          ? dict.profile.roomNumberDuplicate
+          : `${dict.profile.saveFailed}: ${error.message}`,
+    };
   }
 
+  // ra_rooms（RA個室一覧）に登録されている部屋番号であれば自動的にRAへ昇格し、
+  // そうでなければresidentのままになる。role列は自己申告では直接書き換えら
+  // れないため、この同期はDB側のSECURITY DEFINER関数(sync_own_role)経由で
+  // 行っている（詳細はschema.sql参照）。
+  const { data: newRole } = await supabase.rpc("sync_own_role");
+
   revalidatePath("/", "layout");
-  redirect(postLoginPath(profile.role));
+  redirect(postLoginPath((newRole as UserRole | null) ?? profile.role));
 }

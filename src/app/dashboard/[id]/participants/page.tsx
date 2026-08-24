@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ParticipantTable } from "@/components/participants/participant-table";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function ParticipantsPage({
   params,
@@ -11,9 +12,16 @@ export default async function ParticipantsPage({
   await requireRa();
   const { id } = await params;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
-  const { data: event } = await supabase.from("events").select("id, title").eq("id", id).maybeSingle();
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, title, title_en")
+    .eq("id", id)
+    .maybeSingle();
   if (!event) notFound();
+  const title = (locale === "en" && event.title_en) || event.title;
 
   const { data: registrations } = await supabase
     .from("registrations")
@@ -32,8 +40,10 @@ export default async function ParticipantsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold">参加者一覧: {event.title}</h1>
-      <ParticipantTable eventId={id} eventTitle={event.title} participants={participants} />
+      <h1 className="text-xl font-bold">
+        {dict.participants.title}: {title}
+      </h1>
+      <ParticipantTable eventId={id} eventTitle={title} participants={participants} />
     </div>
   );
 }

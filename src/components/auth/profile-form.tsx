@@ -5,65 +5,192 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { FLOORS } from "@/lib/constants";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { LineQrUploader } from "@/components/profile/line-qr-uploader";
+import { FACULTIES, GRADE_LEVELS } from "@/lib/constants";
+import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import { formatRoomNumber } from "@/lib/utils";
 import { submitProfile } from "@/actions/profile";
-import type { UserRole } from "@/types/database";
+import type { UserRow } from "@/types/database";
 
-function SubmitButton() {
+type InitialProfile = Pick<
+  UserRow,
+  | "full_name"
+  | "student_id"
+  | "floor_number"
+  | "room_number"
+  | "faculty"
+  | "grade_level"
+  | "languages"
+  | "nationalities"
+  | "lived_countries"
+  | "instagram_handle"
+  | "line_qr_path"
+>;
+
+function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "送信中..." : "登録する"}
+      {pending ? pendingLabel : label}
     </Button>
   );
 }
 
-export function ProfileForm({ role }: { role: UserRole }) {
+export function ProfileForm({
+  initialProfile,
+  initialLineQrSignedUrl = null,
+  submitLabel,
+}: {
+  initialProfile?: InitialProfile;
+  initialLineQrSignedUrl?: string | null;
+  submitLabel?: string;
+}) {
+  const dict = useDict();
+  const locale = useLocale();
   const [state, formAction] = useFormState(submitProfile, undefined);
+  const initialRoomDisplay =
+    initialProfile?.floor_number != null && initialProfile?.room_number
+      ? formatRoomNumber(initialProfile.floor_number, initialProfile.room_number)
+      : "";
+
+  const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l[locale] }));
+  const countryOptions = COUNTRIES.map((c) => ({ code: c.code, label: c[locale] }));
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="full_name">氏名</Label>
-        <Input id="full_name" name="full_name" required placeholder="例: 早稲田 太郎" />
+        <Label htmlFor="full_name">{dict.profile.fullNameLabel}</Label>
+        <Input
+          id="full_name"
+          name="full_name"
+          required
+          placeholder={dict.profile.fullNamePlaceholder}
+          defaultValue={initialProfile?.full_name ?? ""}
+        />
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="student_id">学籍番号（英数字8桁）</Label>
-        <Input id="student_id" name="student_id" required maxLength={8} placeholder="例: 1A23B456" />
+        <Label htmlFor="student_id">{dict.profile.studentIdLabel}</Label>
+        <Input
+          id="student_id"
+          name="student_id"
+          required
+          maxLength={8}
+          placeholder={dict.profile.studentIdPlaceholder}
+          defaultValue={initialProfile?.student_id ?? ""}
+        />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid gap-2">
+        <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
+        <Input
+          id="room_number"
+          name="room_number"
+          required
+          placeholder={dict.profile.roomNumberPlaceholder}
+          defaultValue={initialRoomDisplay}
+        />
+        <p className="text-xs text-muted-foreground">{dict.profile.roomNumberHint}</p>
+      </div>
+
+      <div className="grid gap-3 border-t border-border pt-4">
+        <div>
+          <p className="text-sm font-medium">{dict.profile.extraSectionTitle}</p>
+          <p className="text-xs text-muted-foreground">{dict.profile.extraSectionHint}</p>
+        </div>
+
         <div className="grid gap-2">
-          <Label htmlFor="floor_number">階</Label>
-          <Select id="floor_number" name="floor_number" required defaultValue="">
-            <option value="" disabled>
-              選択
-            </option>
-            {FLOORS.map((f) => (
+          <Label htmlFor="faculty">{dict.profile.facultyLabel}</Label>
+          <Select id="faculty" name="faculty" defaultValue={initialProfile?.faculty ?? ""}>
+            <option value="">{dict.common.notSelected}</option>
+            {FACULTIES.map((f) => (
               <option key={f} value={f}>
-                {f}階
+                {dict.faculties[f]}
               </option>
             ))}
           </Select>
         </div>
+
         <div className="grid gap-2">
-          <Label htmlFor="room_number">部屋番号</Label>
-          <Input
-            id="room_number"
-            name="room_number"
-            required
-            placeholder={role === "ra" ? "例: 01" : "例: 01A"}
+          <Label htmlFor="grade_level">{dict.profile.gradeLevelLabel}</Label>
+          <Select id="grade_level" name="grade_level" defaultValue={initialProfile?.grade_level ?? ""}>
+            <option value="">{dict.common.notSelected}</option>
+            {GRADE_LEVELS.map((g) => (
+              <option key={g} value={g}>
+                {dict.gradeLevels[g]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="languages">{dict.profile.languagesLabel}</Label>
+          <MultiSelect
+            name="languages"
+            options={languageOptions}
+            defaultValues={initialProfile?.languages ?? []}
+            placeholder={dict.common.notSelected}
           />
-          <p className="text-xs text-muted-foreground">
-            {role === "ra" ? "数字2桁のみ（例: 01）" : "数字2桁＋ユニット記号A〜D（例: 01A）"}
-          </p>
+          <p className="text-xs text-muted-foreground">{dict.profile.languagesHint}</p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="nationalities">{dict.profile.nationalitiesLabel}</Label>
+          <MultiSelect
+            name="nationalities"
+            options={countryOptions}
+            defaultValues={initialProfile?.nationalities ?? []}
+            placeholder={dict.common.notSelected}
+          />
+          <p className="text-xs text-muted-foreground">{dict.profile.nationalitiesHint}</p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="lived_countries">{dict.profile.livedCountriesLabel}</Label>
+          <MultiSelect
+            name="lived_countries"
+            options={countryOptions}
+            defaultValues={initialProfile?.lived_countries ?? []}
+            placeholder={dict.common.notSelected}
+          />
+          <p className="text-xs text-muted-foreground">{dict.profile.livedCountriesHint}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-t border-border pt-4">
+        <div>
+          <p className="text-sm font-medium">{dict.profile.snsSectionTitle}</p>
+          <p className="text-xs text-muted-foreground">{dict.profile.snsSectionHint}</p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="instagram_handle">{dict.profile.instagramLabel}</Label>
+          <Input
+            id="instagram_handle"
+            name="instagram_handle"
+            placeholder={dict.profile.instagramPlaceholder}
+            defaultValue={initialProfile?.instagram_handle ?? ""}
+          />
+          <p className="text-xs text-muted-foreground">{dict.profile.instagramHint}</p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label>{dict.profile.lineLabel}</Label>
+          <LineQrUploader
+            hasQr={!!initialProfile?.line_qr_path}
+            initialSignedUrl={initialLineQrSignedUrl}
+          />
         </div>
       </div>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-      <SubmitButton />
+      <SubmitButton
+        label={submitLabel ?? dict.profile.submitSetup}
+        pendingLabel={dict.profile.sending}
+      />
     </form>
   );
 }

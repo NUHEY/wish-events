@@ -3,12 +3,14 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { EVENT_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export function EventFilter() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const active = searchParams.get("category");
+  const dict = useDict();
 
   function setCategory(category: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -32,7 +34,7 @@ export function EventFilter() {
             : "bg-secondary text-secondary-foreground hover:bg-accent"
         )}
       >
-        すべて
+        {dict.home.all}
       </button>
       {EVENT_CATEGORIES.map((c) => (
         <button
@@ -46,7 +48,7 @@ export function EventFilter() {
               : "bg-secondary text-secondary-foreground hover:bg-accent"
           )}
         >
-          {c}
+          {dict.categories[c] ?? c}
         </button>
       ))}
     </div>

@@ -11,8 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { downloadCsv, formatRoomNumber, toCsv } from "@/lib/utils";
+import { downloadCsv, formatEventDateTime, formatRoomNumber, toCsv } from "@/lib/utils";
 import { removeRegistrationAsRa } from "@/actions/registrations";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 
 export type ParticipantRow = {
   user_id: string;
@@ -34,6 +35,8 @@ export function ParticipantTable({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const dict = useDict();
+  const locale = useLocale();
 
   function handleDownload() {
     const csv = toCsv(
@@ -41,16 +44,16 @@ export function ParticipantTable({
         full_name: p.full_name ?? "",
         student_id: p.student_id ?? "",
         room: formatRoomNumber(p.floor_number, p.room_number),
-        registered_at: new Date(p.registered_at).toLocaleString("ja-JP"),
+        registered_at: formatEventDateTime(p.registered_at, locale),
       })),
       [
-        { key: "full_name", label: "氏名" },
-        { key: "student_id", label: "学籍番号" },
-        { key: "room", label: "部屋番号" },
-        { key: "registered_at", label: "申込日時" },
+        { key: "full_name", label: dict.participants.nameColumn },
+        { key: "student_id", label: dict.participants.studentIdColumn },
+        { key: "room", label: dict.participants.roomColumn },
+        { key: "registered_at", label: dict.participants.dateColumn },
       ]
     );
-    downloadCsv(`${eventTitle}_参加者一覧.csv`, csv);
+    downloadCsv(`${eventTitle}_${dict.participants.title}.csv`, csv);
   }
 
   function handleRemove(userId: string) {
@@ -64,19 +67,20 @@ export function ParticipantTable({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          申込者数: {participants.length}名
+          {dict.participants.count}: {participants.length}
+          {dict.participants.countUnit}
         </p>
         <Button size="sm" variant="outline" onClick={handleDownload} disabled={!participants.length}>
-          CSVダウンロード
+          {dict.participants.downloadCsv}
         </Button>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>氏名</TableHead>
-            <TableHead>学籍番号</TableHead>
-            <TableHead>部屋番号</TableHead>
-            <TableHead>申込日時</TableHead>
+            <TableHead>{dict.participants.nameColumn}</TableHead>
+            <TableHead>{dict.participants.studentIdColumn}</TableHead>
+            <TableHead>{dict.participants.roomColumn}</TableHead>
+            <TableHead>{dict.participants.dateColumn}</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -86,7 +90,7 @@ export function ParticipantTable({
               <TableCell>{p.full_name}</TableCell>
               <TableCell>{p.student_id}</TableCell>
               <TableCell>{formatRoomNumber(p.floor_number, p.room_number)}</TableCell>
-              <TableCell>{new Date(p.registered_at).toLocaleString("ja-JP")}</TableCell>
+              <TableCell>{formatEventDateTime(p.registered_at, locale)}</TableCell>
               <TableCell>
                 <Button
                   size="sm"
@@ -94,7 +98,7 @@ export function ParticipantTable({
                   disabled={pending}
                   onClick={() => handleRemove(p.user_id)}
                 >
-                  取消
+                  {dict.participants.removeButton}
                 </Button>
               </TableCell>
             </TableRow>
@@ -102,7 +106,7 @@ export function ParticipantTable({
           {participants.length === 0 && (
             <TableRow>
               <TableCell colSpan={5} className="text-center text-muted-foreground">
-                まだ申込者はいません
+                {dict.participants.noParticipants}
               </TableCell>
             </TableRow>
           )}

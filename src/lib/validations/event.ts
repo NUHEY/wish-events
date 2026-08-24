@@ -4,11 +4,15 @@ import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 export const eventSchema = z
   .object({
     title: z.string().trim().min(1, "タイトルを入力してください").max(200),
+    title_en: z.string().trim().optional().default(""),
     category: z.enum(EVENT_CATEGORIES),
     description: z.string().trim().optional().default(""),
+    description_en: z.string().trim().optional().default(""),
     poster_url: z.string().url().optional().or(z.literal("")).default(""),
     location: z.string().trim().optional().default(""),
+    location_en: z.string().trim().optional().default(""),
     target_audience: z.string().trim().optional().default(""),
+    target_audience_en: z.string().trim().optional().default(""),
     event_date: z.string().min(1, "開催日時を入力してください"),
     requires_registration: z.boolean().default(false),
     capacity: z.coerce.number().int().positive().optional().nullable(),

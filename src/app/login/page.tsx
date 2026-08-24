@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LocaleToggle } from "@/components/layout/locale-toggle";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 function GoogleIcon() {
   return (
@@ -33,6 +35,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const supabase = createClient();
+  const dict = useDict();
 
   async function handleLogin() {
     await supabase.auth.signInWithOAuth({
@@ -49,29 +52,30 @@ function LoginContent() {
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-0 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
       />
+      <div className="absolute right-0 top-0 p-2">
+        <LocaleToggle />
+      </div>
       <Card className="relative w-full max-w-sm">
         <CardHeader className="items-center gap-3 pt-8 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
             W
           </span>
           <div className="flex flex-col gap-1">
-            <CardTitle className="text-xl">WISH Events</CardTitle>
-            <CardDescription>早稲田大学国際学生寮のイベント情報サイト</CardDescription>
+            <CardTitle className="text-xl">{dict.login.title}</CardTitle>
+            <CardDescription>{dict.login.subtitle}</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pb-8">
           {error === "invalid_domain" && (
             <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
-              waseda.jp のメールアドレスでログインしてください。
+              {dict.login.invalidDomain}
             </p>
           )}
           <Button onClick={handleLogin} variant="outline" className="w-full gap-2.5">
             <GoogleIcon />
-            Googleアカウントでログイン
+            {dict.login.googleButton}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            @waseda.jp（学生用Google Workspace）のアカウントのみログインできます
-          </p>
+          <p className="text-center text-xs text-muted-foreground">{dict.login.domainNote}</p>
         </CardContent>
       </Card>
     </div>

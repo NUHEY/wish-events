@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SurveyResponseForm } from "@/components/surveys/survey-response-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function EventSurveyPage({
   params,
@@ -12,6 +13,8 @@ export default async function EventSurveyPage({
   const { id } = await params;
   const profile = await getCurrentProfile();
   const supabase = await createClient();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   const { data: event } = await supabase
     .from("events")
@@ -29,7 +32,7 @@ export default async function EventSurveyPage({
   if (!survey || !survey.is_active) {
     return (
       <div className="mx-auto max-w-xl">
-        <p className="text-sm text-muted-foreground">現在回答を受け付けているアンケートはありません。</p>
+        <p className="text-sm text-muted-foreground">{dict.event.surveyNoneOpen}</p>
       </div>
     );
   }
@@ -57,7 +60,7 @@ export default async function EventSurveyPage({
         <CardContent>
           {existingResponse ? (
             <p className="rounded-md border border-border bg-secondary p-4 text-sm">
-              このアンケートには既に回答済みです。ご協力ありがとうございました。
+              {dict.event.surveyAlreadyAnswered}
             </p>
           ) : (
             <SurveyResponseForm surveyId={survey.id} questions={questions ?? []} />

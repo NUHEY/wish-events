@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { QUESTION_TYPES, QUESTION_TYPE_LABELS, type QuestionType } from "@/lib/constants";
+import { QUESTION_TYPES, type QuestionType } from "@/lib/constants";
 import type { SurveyQuestionRow, SurveyRow } from "@/types/database";
 import type { ActionResult } from "@/actions/surveys";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 type DraftQuestion = {
   question_text: string;
@@ -22,9 +23,10 @@ type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResu
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const dict = useDict();
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? "保存中..." : "アンケートを保存"}
+      {pending ? dict.surveys.saving : dict.surveys.saveButton}
     </Button>
   );
 }
@@ -47,8 +49,9 @@ export function SurveyBuilder({
   initialSurvey?: SurveyRow;
   initialQuestions?: SurveyQuestionRow[];
 }) {
+  const dict = useDict();
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
-  const [title, setTitle] = useState(initialSurvey?.title ?? "イベント後アンケート");
+  const [title, setTitle] = useState(initialSurvey?.title ?? dict.event.surveyTitle);
   const [questions, setQuestions] = useState<DraftQuestion[]>(
     initialQuestions?.length
       ? initialQuestions.sort((a, b) => a.position - b.position).map(toDraft)
@@ -75,7 +78,7 @@ export function SurveyBuilder({
       <input type="hidden" name="questions_json" value={JSON.stringify(questions)} />
 
       <div className="grid gap-2 sm:w-2/3">
-        <Label htmlFor="survey_title">アンケートのタイトル</Label>
+        <Label htmlFor="survey_title">{dict.surveys.surveyTitleLabel}</Label>
         <Input id="survey_title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
       </div>
 
@@ -83,13 +86,15 @@ export function SurveyBuilder({
         {questions.map((q, index) => (
           <div key={index} className="flex flex-col gap-3 rounded-md border border-border p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">質問 {index + 1}</span>
+              <span className="text-sm font-medium">
+                {dict.surveys.questionLabel} {index + 1}
+              </span>
               <Button type="button" size="sm" variant="ghost" onClick={() => removeQuestion(index)}>
-                削除
+                {dict.surveys.removeQuestion}
               </Button>
             </div>
             <Input
-              placeholder="質問文を入力"
+              placeholder={dict.surveys.questionPlaceholder}
               value={q.question_text}
               onChange={(e) => updateQuestion(index, { question_text: e.target.value })}
               required
@@ -103,7 +108,7 @@ export function SurveyBuilder({
               >
                 {QUESTION_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {QUESTION_TYPE_LABELS[t]}
+                    {dict.surveys.questionTypes[t]}
                   </option>
                 ))}
               </Select>
@@ -114,14 +119,14 @@ export function SurveyBuilder({
                     updateQuestion(index, { is_required: checked === true })
                   }
                 />
-                回答必須
+                {dict.surveys.requiredLabel}
               </label>
             </div>
             {(q.question_type === "single_choice" || q.question_type === "multiple_choice") && (
               <div className="grid gap-2">
-                <Label>選択肢（カンマ区切り）</Label>
+                <Label>{dict.surveys.optionsLabel}</Label>
                 <Input
-                  placeholder="例: とても良かった, 良かった, ふつう, いまいち"
+                  placeholder={dict.surveys.optionsPlaceholder}
                   value={q.options.join(", ")}
                   onChange={(e) =>
                     updateQuestion(index, {
@@ -139,7 +144,7 @@ export function SurveyBuilder({
       </div>
 
       <Button type="button" variant="outline" onClick={addQuestion} className="w-fit">
-        + 質問を追加
+        {dict.surveys.addQuestion}
       </Button>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}

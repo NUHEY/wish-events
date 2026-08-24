@@ -2,8 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { SignOutButton } from "@/components/layout/sign-out-button";
+import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { formatRoomNumber } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { getLocale, getDictionary } from "@/lib/i18n";
 
 export async function Header() {
   const supabase = await createClient();
@@ -21,6 +23,9 @@ export async function Header() {
 
   if (!profile) return null;
 
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-card/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -34,8 +39,13 @@ export async function Header() {
           <Nav role={profile.role} />
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <LocaleToggle />
           {profile.role === "ra" && <Badge variant="default">RA</Badge>}
-          <div className="hidden items-center gap-2 sm:flex">
+          <Link
+            href="/profile/edit"
+            className="hidden items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent sm:flex"
+            title={dict.header.editProfile}
+          >
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
               {profile.full_name?.charAt(0) ?? "?"}
             </span>
@@ -46,7 +56,7 @@ export async function Header() {
                 ({formatRoomNumber(profile.floor_number, profile.room_number)})
               </span>
             </span>
-          </div>
+          </Link>
           <SignOutButton />
         </div>
       </div>

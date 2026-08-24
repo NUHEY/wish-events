@@ -3,11 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useDict } from "@/lib/i18n/locale-provider";
 import type { UserRole } from "@/types/database";
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+  exact,
+}: {
+  href: string;
+  children: React.ReactNode;
+  /** trueの場合、この配下のサブパス（例: /dashboard/ra-rooms）ではアクティブ扱いにしない */
+  exact?: boolean;
+}) {
   const pathname = usePathname();
-  const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive =
+    href === "/" || exact ? pathname === href : pathname.startsWith(href);
 
   return (
     <Link
@@ -25,13 +36,18 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 export function Nav({ role }: { role: UserRole }) {
+  const dict = useDict();
   return (
     <nav className="flex items-center gap-1">
-      <NavLink href="/">イベント一覧</NavLink>
+      <NavLink href="/">{dict.nav.events}</NavLink>
       {role === "ra" && (
         <>
-          <NavLink href="/events/new">イベント作成</NavLink>
-          <NavLink href="/dashboard">管理ダッシュボード</NavLink>
+          <NavLink href="/events/new">{dict.nav.newEvent}</NavLink>
+          <NavLink href="/dashboard" exact>
+            {dict.nav.dashboard}
+          </NavLink>
+          <NavLink href="/dashboard/ra-rooms">{dict.nav.raRooms}</NavLink>
+          <NavLink href="/dashboard/residents">{dict.nav.residents}</NavLink>
         </>
       )}
     </nav>

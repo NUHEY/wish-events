@@ -28,6 +28,14 @@ create table public.users (
   floor_number  integer,           -- 3〜11
   room_number   text,              -- 号室部分のみ（階は含まない）
   role          text not null default 'resident',
+  -- 以下はRA活動用の任意プロフィール項目。すべて未回答可（NULL）。
+  faculty          text,              -- 所属学部・研究科
+  grade_level      text,              -- 学年区分（学部1年〜、修士、博士、交換留学生 等）
+  languages        text[],            -- 話せる言語（ISO 639-1コードの配列、複数選択可）
+  nationalities    text[],            -- 国籍（ISO 3166-1 alpha-2コードの配列、複数選択可）
+  lived_countries  text[],            -- 居住経験のある国・地域（同上、複数選択可）
+  instagram_handle text,              -- Instagramユーザーネーム（@なし）
+  line_qr_path     text,              -- 非公開Storageバケット(line-qr)内のパス
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
@@ -43,20 +51,35 @@ create table public.users (
   constraint users_floor_number_check
     check (floor_number is null or (floor_number between 3 and 11)),
 
-  -- room_number は階を含まない号室部分のみ。
-  -- 一般寮生: 2桁数字 + ユニット文字(A-D)  例: "01A"（3階なら実際の部屋は301A相当）
-  -- RA        : 2桁数字のみ                例: "01"（3階なら実際の部屋は301相当）
+  -- room_number は階を含まない号室部分のみ（例: "01A" や RA個室なら "07"）。
+  -- ユニット文字(A-D)の有無はroleに関わらず任意とする。role自体は自己申告の
+  -- room_numberでは変更できず、ra_roomsテーブルとの突き合わせによって
+  -- sync_own_role()/resync_room_role()が自動的に判定する（下記参照）。
   constraint users_room_number_check
     check (
       room_number is null
-      or (role = 'resident' and room_number ~ '^[0-9]{2}[A-D]$')
-      or (role = 'ra'       and room_number ~ '^[0-9]{2}$')
-    )
+      or room_number ~ '^[0-9]{2}[A-D]?$'
+    ),
+
+  constraint users_instagram_handle_check
+    check (instagram_handle is null or instagram_handle ~ '^[A-Za-z0-9._]{1,30}$'),
+
+  -- 同じ部屋番号を複数ユーザーが同時に名乗れないようにする
+  -- （自己申告のroom_numberを悪用したRAなりすまし対策も兼ねる）
+  constraint users_floor_room_unique
+    unique (floor_number, room_number)
 );
 
 comment on table public.users is 'WISH寮生ユーザー。auth.usersと1:1。';
-comment on column public.users.floor_number is '居住階（3〜11）。プロフィール登録画面でセレクトボックスにより入力。';
+comment on column public.users.floor_number is '居住階（3〜11）。プロフィール登録画面で部屋番号から自動判定される。';
 comment on column public.users.room_number is '居住階を除いた号室部分。表示時は floor_number と結合して "301A" のように組み立てる。';
+comment on column public.users.faculty is '所属学部・研究科（任意回答）。未回答はNULL。';
+comment on column public.users.grade_level is '学年区分（学部1年〜、修士、博士、交換留学生 等。任意回答）。未回答はNULL。';
+comment on column public.users.languages is '話せる言語（ISO 639-1コード配列、任意回答・複数選択可）。未回答はNULL。';
+comment on column public.users.nationalities is '国籍（ISO 3166-1 alpha-2コード配列、任意回答・複数選択可。二重国籍等に対応）。未回答はNULL。';
+comment on column public.users.lived_countries is '居住経験のある国・地域（同上、任意回答・複数選択可）。未回答はNULL。';
+comment on column public.users.instagram_handle is 'Instagramユーザーネーム（@なし、任意回答）。未回答はNULL。';
+comment on column public.users.line_qr_path is '非公開Storageバケット(line-qr)内の画像パス。本人とRAのみ閲覧可（RLSで制御）。未アップロードはNULL。';
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -126,11 +149,15 @@ as $$ select floor_number from public.users where id = auth.uid(); $$;
 create table public.events (
   id                    uuid primary key default gen_random_uuid(),
   title                 text not null,
+  title_en              text,               -- 英語タイトル（任意、未入力時は日本語表示にフォールバック）
   category              text not null,
   description           text,               -- Markdown本文
+  description_en        text,               -- 英語本文（任意、Markdown、未入力時は日本語表示にフォールバック）
   poster_url            text,
   location              text,
+  location_en           text,               -- 英語の開催場所（任意、未入力時は日本語表示にフォールバック）
   target_audience       text,
+  target_audience_en    text,               -- 英語の対象者（任意、未入力時は日本語表示にフォールバック）
   event_date            timestamptz not null,
   requires_registration boolean not null default false,
   capacity              integer,
@@ -173,6 +200,10 @@ create table public.events (
 
 comment on table public.events is 'WISH寮イベント。RA全員が作成・編集・削除できる。';
 comment on column public.events.target_floors is 'NULL/空 = 全フロア対象。値がある場合はそのフロアの寮生のみ閲覧可（RAは常に全件閲覧可）。';
+comment on column public.events.title_en is '英語タイトル（任意）。NULLまたは空文字の場合、英語表示時も title をそのまま表示する。';
+comment on column public.events.description_en is '英語本文（任意、Markdown）。NULLまたは空文字の場合、英語表示時も description をそのまま表示する。';
+comment on column public.events.location_en is '英語の開催場所（任意）。NULLまたは空文字の場合、英語表示時も location をそのまま表示する。';
+comment on column public.events.target_audience_en is '英語の対象者（任意）。NULLまたは空文字の場合、英語表示時も target_audience をそのまま表示する。';
 
 create index events_event_date_idx on public.events (event_date);
 create index events_category_idx on public.events (category);
@@ -324,7 +355,11 @@ with check (id = auth.uid());
 
 -- role列は一般ユーザーが自分で書き換えられないようにする（RAへの昇格はSQLから手動）
 revoke update on public.users from authenticated;
-grant update (full_name, student_id, floor_number, room_number) on public.users to authenticated;
+grant update (
+  full_name, student_id, floor_number, room_number,
+  faculty, grade_level, languages, nationalities, lived_countries,
+  instagram_handle, line_qr_path
+) on public.users to authenticated;
 grant select, insert on public.users to authenticated;
 
 
@@ -483,7 +518,259 @@ on storage.objects for delete
 using (bucket_id = 'event-posters' and public.is_ra());
 
 
+-- ---------------------------------------------------------------------
+-- 13b. Storage バケット（LINE QRコード、非公開）
+-- ---------------------------------------------------------------------
+-- LINEのQRコードは氏名・部屋番号などと違い個人が能動的に交換するための連絡先
+-- 情報であり、寮生全員には公開しない（本人とRAのみ閲覧可）。ファイルパスは
+-- "{user_id}/qr.{ext}" の形式で保存し、フォルダ名(=user_id)をRLSで照合する。
+insert into storage.buckets (id, name, public)
+values ('line-qr', 'line-qr', false)
+on conflict (id) do nothing;
+
+create policy "line_qr_select_own_or_ra"
+on storage.objects for select
+using (
+  bucket_id = 'line-qr'
+  and (
+    (storage.foldername(name))[1] = auth.uid()::text
+    or public.is_ra()
+  )
+);
+
+create policy "line_qr_insert_own"
+on storage.objects for insert
+with check (
+  bucket_id = 'line-qr'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "line_qr_update_own"
+on storage.objects for update
+using (
+  bucket_id = 'line-qr'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "line_qr_delete_own"
+on storage.objects for delete
+using (
+  bucket_id = 'line-qr'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+
+-- ---------------------------------------------------------------------
+-- 14. ra_rooms: RA個室として登録されている部屋番号の一覧（学期ごとに更新）
+--     この一覧に載っている floor_number + room_number でプロフィール登録
+--     すると自動的にRA権限が付与される。RAが自分たちでこの一覧を管理する
+--     ことで、開発者がSQLを直接叩かなくても学期ごとのRA交代に対応できる。
+-- ---------------------------------------------------------------------
+create table public.ra_rooms (
+  id            uuid primary key default gen_random_uuid(),
+  floor_number  integer not null,
+  room_number   text not null,   -- RA個室はユニット文字なし。例: "07" "08" "21" "22"
+  note          text,            -- 任意メモ（例: "2026秋学期"）
+  created_by    uuid references public.users(id),
+  created_at    timestamptz not null default now(),
+
+  constraint ra_rooms_floor_check check (floor_number between 3 and 11),
+  constraint ra_rooms_room_format_check check (room_number ~ '^[0-9]{2}$'),
+  constraint ra_rooms_unique unique (floor_number, room_number)
+);
+
+comment on table public.ra_rooms is
+  'RA個室として登録されている部屋番号の一覧。この一覧に載っている部屋番号で登録すると自動的にRA権限が付与される。RAのみ閲覧・追加・削除可能。';
+
+alter table public.ra_rooms enable row level security;
+
+create policy "ra_rooms_select_ra"
+on public.ra_rooms for select
+using (public.is_ra());
+
+create policy "ra_rooms_insert_ra"
+on public.ra_rooms for insert
+with check (public.is_ra());
+
+create policy "ra_rooms_delete_ra"
+on public.ra_rooms for delete
+using (public.is_ra());
+
+
+-- ---------------------------------------------------------------------
+-- 15. role自動同期関数
+-- ---------------------------------------------------------------------
+
+-- 自分自身の floor_number/room_number が ra_rooms に登録されているかどうかで
+-- 自分自身のroleを同期する。usersテーブルのrole列はauthenticatedへの
+-- update権限が無い（上記8.のgrant参照）ため、SECURITY DEFINERかつ
+-- 「呼び出し本人(auth.uid())の行のみ」を対象にすることで、権限昇格の
+-- 抜け道を作らずに自己同期を許可する。
+create or replace function public.sync_own_role()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_floor integer;
+  v_room  text;
+  v_new_role text;
+begin
+  select floor_number, room_number into v_floor, v_room
+    from public.users where id = auth.uid();
+
+  if v_floor is null or v_room is null then
+    return (select role from public.users where id = auth.uid());
+  end if;
+
+  if exists (
+    select 1 from public.ra_rooms
+    where floor_number = v_floor and room_number = v_room
+  ) then
+    v_new_role := 'ra';
+  else
+    v_new_role := 'resident';
+  end if;
+
+  update public.users set role = v_new_role where id = auth.uid();
+
+  return v_new_role;
+end;
+$$;
+
+revoke all on function public.sync_own_role() from public;
+revoke execute on function public.sync_own_role() from anon;
+grant execute on function public.sync_own_role() to authenticated;
+
+
+-- RAがra_roomsを追加/削除した直後に呼び出し、該当部屋番号を自己申告して
+-- いるユーザーがいれば即座にroleを一覧の状態へ同期する（新規追加なら
+-- 昇格、削除なら降格）。is_ra()チェックを関数内でも行うことで、一般寮生が
+-- 直接この関数を呼んでも他人のroleを書き換えられないようにしている。
+create or replace function public.resync_room_role(p_floor integer, p_room text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_ra() then
+    raise exception 'permission denied';
+  end if;
+
+  if exists (
+    select 1 from public.ra_rooms
+    where floor_number = p_floor and room_number = p_room
+  ) then
+    update public.users
+      set role = 'ra'
+      where floor_number = p_floor and room_number = p_room and role <> 'ra';
+  else
+    update public.users
+      set role = 'resident'
+      where floor_number = p_floor and room_number = p_room and role <> 'resident';
+  end if;
+end;
+$$;
+
+revoke all on function public.resync_room_role(integer, text) from public;
+revoke execute on function public.resync_room_role(integer, text) from anon;
+grant execute on function public.resync_room_role(integer, text) to authenticated;
+
+
+-- RAが個別ユーザーを手動でresidentへ戻す（ra_roomsとは無関係の個別対応用）
+create or replace function public.demote_to_resident(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_ra() then
+    raise exception 'permission denied';
+  end if;
+
+  update public.users set role = 'resident' where id = p_user_id;
+end;
+$$;
+
+revoke all on function public.demote_to_resident(uuid) from public;
+revoke execute on function public.demote_to_resident(uuid) from anon;
+grant execute on function public.demote_to_resident(uuid) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 16. 学期ごとの入退寮に対応する関数
+--     部屋番号のユニーク制約（なりすまし対策）を維持したまま、退寮者の
+--     住居情報をRAがクリアできるようにする。floor_number/room_numberを
+--     NULLに戻すだけで、profileComplete判定がfalseになり、対象ユーザーは
+--     次回ログイン時に自動的に /profile/setup へ再度案内される。
+-- ---------------------------------------------------------------------
+
+-- 個別の退寮処理
+create or replace function public.release_room(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_ra() then
+    raise exception 'permission denied';
+  end if;
+
+  update public.users
+    set floor_number = null,
+        room_number = null,
+        role = 'resident'
+    where id = p_user_id;
+end;
+$$;
+
+revoke all on function public.release_room(uuid) from public;
+revoke execute on function public.release_room(uuid) from anon;
+grant execute on function public.release_room(uuid) to authenticated;
+
+
+-- 学期の変わり目用の一括リセット。誤操作対策として p_confirm = 'RESET' を要求する。
+create or replace function public.reset_all_room_assignments(p_confirm text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  if not public.is_ra() then
+    raise exception 'permission denied';
+  end if;
+
+  if p_confirm is distinct from 'RESET' then
+    raise exception 'confirmation text mismatch';
+  end if;
+
+  update public.users
+    set floor_number = null,
+        room_number = null,
+        role = 'resident'
+    where floor_number is not null or room_number is not null;
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.reset_all_room_assignments(text) from public;
+revoke execute on function public.reset_all_room_assignments(text) from anon;
+grant execute on function public.reset_all_room_assignments(text) to authenticated;
+
+
 -- =====================================================================
--- RAへの昇格例:
---   update public.users set role = 'ra' where email = 'xxxx@toki.waseda.jp';
+-- RAへの昇格/降格:
+--   通常は /dashboard/ra-rooms （RA管理画面）からRA個室の部屋番号を
+--   追加・削除することで行う（学期ごとのRA交代を想定）。
+--   緊急時・個別対応用に直接SQLで昇格させたい場合は以下でも可能:
+--     update public.users set role = 'ra' where email = 'xxxx@toki.waseda.jp';
 -- =====================================================================

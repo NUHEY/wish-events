@@ -14,15 +14,25 @@ export function formatRoomNumber(
   return `${floorNumber}${roomNumber}`;
 }
 
-/** 日時を "2026年8月24日(月) 18:00" のような表示に整形 */
-export function formatEventDateTime(iso: string): string {
+/**
+ * 日時を整形する。
+ * ja: "2026年8月24日(月) 18:00"
+ * en: "Aug 24, 2026 (Mon) 18:00"
+ */
+export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): string {
   const d = new Date(iso);
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  if (locale === "en") {
+    const weekdaysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthsEn = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    return `${monthsEn[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} (${weekdaysEn[d.getDay()]}) ${time}`;
+  }
+
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${
-    weekdays[d.getDay()]
-  }) ${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes()
-  ).padStart(2, "0")}`;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${weekdays[d.getDay()]}) ${time}`;
 }
 
 /** オブジェクトの配列をCSV文字列に変換する（Excel対応のためUTF-8 BOM付き） */
