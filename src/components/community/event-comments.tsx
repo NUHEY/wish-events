@@ -37,10 +37,16 @@ export function EventComments({
   const [pending, startTransition] = useTransition();
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [expandedRoots, setExpandedRoots] = useState<Set<string>>(new Set());
+  // いいねは即時反映するため、サーバーの再取得を待たずにこのオーバーライドで表示を上書きする。
+  const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
   const sendingRef = useRef(false);
   const router = useRouter();
 
-  const visibleComments = useMemo(() => comments.filter((comment) => !deletedIds.has(comment.id)), [comments, deletedIds]);
+  const visibleComments = useMemo(() => {
+    return comments
+      .filter((comment) => !deletedIds.has(comment.id))
+      .map((comment) => (likeOverrides[comment.id] ? { ...comment, ...likeOverrides[comment.id] } : comment));
+  }, [comments, deletedIds, likeOverrides]);
   const roots = visibleComments.filter((comment) => !comment.parent_id);
   const repliesByParent = new Map<string, Comment[]>();
   visibleComments
@@ -69,8 +75,13 @@ export function EventComments({
     });
   }
 
-  function like(commentId: string, likedByMe: boolean) {
-    startTransition(() => toggleEventCommentLike(commentId, eventId, likedByMe).then(() => router.refresh()));
+  function like(commentId: string, likedByMe: boolean, likeCount: number) {
+    const nextLiked = !likedByMe;
+    const nextCount = Math.max(0, likeCount + (nextLiked ? 1 : -1));
+    setLikeOverrides((current) => ({ ...current, [commentId]: { likedByMe: nextLiked, likeCount: nextCount } }));
+    toggleEventCommentLike(commentId, eventId, likedByMe).catch(() => {
+      setLikeOverrides((current) => ({ ...current, [commentId]: { likedByMe, likeCount } }));
+    });
   }
 
   function toggleExpanded(rootId: string) {
@@ -159,7 +170,7 @@ export function EventComments({
                   setReplyTo(comment);
                   setBody("");
                 }}
-                onLike={() => like(comment.id, comment.likedByMe)}
+                onLike={() => like(comment.id, comment.likedByMe, comment.likeCount)}
                 onDelete={() => handleDelete(comment)}
               />
               {replies.length > 0 && (
@@ -173,7 +184,7 @@ export function EventComments({
                           formatTime={formatTime}
                           reply
                           canDelete={reply.user_id === currentUserId || isRa}
-                          onLike={() => like(reply.id, reply.likedByMe)}
+                          onLike={() => like(reply.id, reply.likedByMe, reply.likeCount)}
                           onDelete={() => handleDelete(reply)}
                         />
                       ))}

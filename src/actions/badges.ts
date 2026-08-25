@@ -23,7 +23,15 @@ function parseBadgeForm(formData: FormData) {
     return { error: "キーは半角英数字とアンダースコアのみ（例: first_step）で入力してください" as const };
   }
   if (!label) return { error: "バッジ名を入力してください" as const };
-  if (!["event_count", "survey_count"].includes(criteriaType)) {
+  const validCriteriaTypes: BadgeCriteriaType[] = [
+    "event_count",
+    "survey_count",
+    "friend_count",
+    "comment_count",
+    "message_count",
+    "like_given_count",
+  ];
+  if (!validCriteriaTypes.includes(criteriaType)) {
     return { error: "条件の種類が不正です" as const };
   }
   if (!Number.isInteger(criteriaValue) || criteriaValue <= 0) {
@@ -78,6 +86,17 @@ export async function deleteBadge(badgeId: string) {
   await requireRa();
   const supabase = await createClient();
   const { error } = await supabase.from("badges").delete().eq("id", badgeId);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/badges");
+  return { success: true };
+}
+
+/** RA用: 登録されているバッジを全件削除する（学期の変わり目などにバッジ制度を作り直す用途）。 */
+export async function resetAllBadges() {
+  await requireRa();
+  const supabase = await createClient();
+  // id は必ず存在するため、この条件で事実上「全件」を対象にする。
+  const { error } = await supabase.from("badges").delete().not("id", "is", null);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/badges");
   return { success: true };

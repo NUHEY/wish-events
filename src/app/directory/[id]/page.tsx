@@ -13,8 +13,31 @@ import { buttonVariants } from "@/components/ui/button";
 import { BackButton } from "@/components/layout/back-button";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { ProfileShareButton } from "@/components/profile/profile-share-card";
+import { FriendButton } from "@/components/community/friend-button";
+import { IncomingFriendRequests } from "@/components/community/incoming-friend-requests";
+import { getFriendRelation, getIncomingFriendRequests } from "@/actions/friends";
 import { PROFILE_ACCENT_HEX, type ProfileAccentKey } from "@/lib/constants";
-import type { BadgeRow, DirectoryProfileRow, EngagementStats } from "@/types/database";
+import type { BadgeCriteriaType, BadgeRow, DirectoryProfileRow, EngagementStats } from "@/types/database";
+
+/** バッジの条件種別ごとに、対応する集計値をEngagementStatsから取り出す。 */
+function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType): number {
+  switch (criteriaType) {
+    case "event_count":
+      return stats.event_count;
+    case "survey_count":
+      return stats.survey_count;
+    case "friend_count":
+      return stats.friend_count ?? 0;
+    case "comment_count":
+      return stats.comment_count ?? 0;
+    case "message_count":
+      return stats.message_count ?? 0;
+    case "like_given_count":
+      return stats.like_given_count ?? 0;
+    default:
+      return 0;
+  }
+}
 
 type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
 
@@ -70,13 +93,24 @@ export default async function DirectoryProfilePage({
 
   if (!target) notFound();
 
-  const stats = ((statsData as EngagementStats[] | null) ?? [])[0] ?? { event_count: 0, survey_count: 0 };
+  const stats = ((statsData as EngagementStats[] | null) ?? [])[0] ?? {
+    event_count: 0,
+    survey_count: 0,
+    friend_count: 0,
+    comment_count: 0,
+    message_count: 0,
+    like_given_count: 0,
+  };
   const earnedBadges = ((badges as BadgeRow[] | null) ?? [])
-    .filter((b) => (b.criteria_type === "event_count" ? stats.event_count : stats.survey_count) >= b.criteria_value)
+    .filter((b) => statForCriteria(stats, b.criteria_type) >= b.criteria_value)
     .map((b) => ({ icon: b.icon, label: locale === "en" && b.label_en ? b.label_en : b.label, description: locale === "en" && b.description_en ? b.description_en : b.description }));
 
   const isSelf = viewer.id === target.id;
-  const lineQrSignedUrl = lineQrPath ? await getLineQrSignedUrl(lineQrPath) : null;
+  const [lineQrSignedUrl, friendRelation, incomingRequests] = await Promise.all([
+    lineQrPath ? getLineQrSignedUrl(lineQrPath) : Promise.resolve(null),
+    isSelf ? Promise.resolve(null) : getFriendRelation(target.id),
+    isSelf ? getIncomingFriendRequests() : Promise.resolve([]),
+  ]);
   const accentHex = target.profile_accent
     ? PROFILE_ACCENT_HEX[target.profile_accent as ProfileAccentKey]
     : null;
@@ -108,12 +142,12 @@ export default async function DirectoryProfilePage({
                 <Image
                   src={target.avatar_url}
                   alt=""
-                  width={72}
-                  height={72}
-                  className="h-[72px] w-[72px] shrink-0 rounded-full object-cover"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-secondary-foreground">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-secondary-foreground">
                   {target.full_name?.charAt(0) ?? "?"}
                 </span>
               )}
@@ -128,6 +162,11 @@ export default async function DirectoryProfilePage({
               </div>
               <p className="text-sm text-muted-foreground">{roomText}</p>
             </div>
+            {!isSelf && friendRelation && (
+              <div className="shrink-0">
+                <FriendButton targetId={target.id} initial={friendRelation} />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border py-2.5 text-center">
@@ -136,14 +175,16 @@ export default async function DirectoryProfilePage({
               <p className="text-[11px] text-muted-foreground">{dict.directory.statsEvents}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">{stats.survey_count}</p>
-              <p className="text-[11px] text-muted-foreground">{dict.directory.statsSurveys}</p>
+              <p className="text-lg font-bold">{stats.friend_count}</p>
+              <p className="text-[11px] text-muted-foreground">{dict.directory.statsFriends}</p>
             </div>
             <div>
               <p className="text-lg font-bold">{earnedBadges.length}</p>
               <p className="text-[11px] text-muted-foreground">{dict.directory.statsBadges}</p>
             </div>
           </div>
+
+          {isSelf && <IncomingFriendRequests requests={incomingRequests} />}
 
           {earnedBadges.length > 0 && (
             <div className="flex flex-wrap gap-2">

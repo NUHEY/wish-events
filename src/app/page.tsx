@@ -6,10 +6,10 @@ import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { EventCard } from "@/components/events/event-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import { endOfThisWeek } from "@/lib/utils";
+import { endOfThisWeek, EVENT_CARD_COLUMNS } from "@/lib/utils";
 import { HOME_ACCENT_HEX } from "@/lib/constants";
 import type { HomeAccentKeyValue } from "@/lib/constants";
-import type { AnnouncementRow, EventRow, HomeLayoutSectionRow, TeamMemberRow } from "@/types/database";
+import type { AnnouncementRow, EventCardData, HomeLayoutSectionRow } from "@/types/database";
 
 const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "week_events", section_key: "week_events", visible: true, position: 1, accent: null, title_ja: null, title_en: null, updated_at: "" },
@@ -18,9 +18,9 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
 ];
 
 /** モバイルは横スクロールのスナップ、sm以上はグリッドで表示するイベントカード列 */
-function EventScroller({ events }: { events: EventRow[] }) {
+function EventScroller({ events }: { events: EventCardData[] }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 lg:grid-cols-4 xl:grid-cols-5">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
           <EventCard event={event} />
@@ -53,9 +53,10 @@ export default async function HomePage() {
   const [{ data: layoutRows }, { data: weekEvents }, { data: announcements, error: announcementsError }, { data: floorEventsData }] =
     await Promise.all([
       supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
+      // EventCard に必要な列だけを取得し、ホーム画面の表示を高速化する。
       supabase
         .from("events")
-        .select("*")
+        .select(EVENT_CARD_COLUMNS)
         .gte("event_date", now.toISOString())
         .lte("event_date", weekEnd.toISOString())
         .order("is_pinned", { ascending: false })
@@ -68,26 +69,14 @@ export default async function HomePage() {
       profile.floor_number != null
         ? supabase
             .from("events")
-            .select("*")
+            .select(EVENT_CARD_COLUMNS)
             .gte("event_date", now.toISOString())
             .contains("target_floors", [profile.floor_number])
             .order("is_pinned", { ascending: false })
             .order("event_date", { ascending: true })
-        : Promise.resolve({ data: [] as EventRow[] }),
+        : Promise.resolve({ data: [] as EventCardData[] }),
     ]);
   const floorEvents = floorEventsData ?? [];
-
-  const memberIds = [
-    ...new Set([
-      ...((weekEvents ?? []).flatMap((event) => event.member_ids ?? [])),
-      ...floorEvents.flatMap((event) => event.member_ids ?? []),
-      ...(announcements ?? []).flatMap((announcement) => announcement.member_ids ?? []),
-    ]),
-  ];
-  const { data: teamMembers } = memberIds.length
-    ? await supabase.from("users").select("id, full_name, avatar_url").in("id", memberIds)
-    : { data: [] as TeamMemberRow[] };
-  const membersById = new Map((teamMembers ?? []).map((member) => [member.id, member]));
 
   const sections =
     layoutRows && layoutRows.length === FALLBACK_SECTIONS.length ? layoutRows : FALLBACK_SECTIONS;
@@ -202,18 +191,13 @@ export default async function HomePage() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-3">
-                {(announcements as AnnouncementRow[] | null)?.map((a) => (
-                  <AnnouncementCard
-                    key={a.id}
-                    announcement={a}
-                    isRa={isRa}
-                    members={(a.member_ids ?? [])
-                      .map((id: string) => membersById.get(id))
-                      .filter((member): member is TeamMemberRow => !!member)}
-                  />
-                ))}
-              </div>
+              {announcements && announcements.length > 0 && (
+                <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                  {(announcements as AnnouncementRow[]).map((a) => (
+                    <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
+                  ))}
+                </div>
+              )}
             </section>
           );
         })}

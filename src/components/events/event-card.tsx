@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventRow } from "@/types/database";
+import type { EventCardData } from "@/types/database";
 
 export async function EventCard({
   event,
   variant = "default",
 }: {
-  event: EventRow;
+  event: EventCardData;
   /** "muted" は過去イベント一覧など、目立たせたくない場所で使う控えめな見た目。 */
   variant?: "default" | "muted";
 }) {
@@ -19,6 +19,13 @@ export async function EventCard({
   const title = (locale === "en" && event.title_en) || event.title;
   const categoryLabel = dict.categories[event.category] ?? event.category;
   const isMuted = variant === "muted";
+
+  // 自動タグ: 登録から1週間以内は「新規」、締切が近い（48時間以内）場合は「締切間近」。
+  const now = Date.now();
+  const isNew = !isMuted && now - new Date(event.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
+  const closesAt = event.registration_closes_at ? new Date(event.registration_closes_at).getTime() : null;
+  const isDeadlineSoon =
+    !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
 
   return (
     <Link href={`/events/${event.id}`} className="group block">
@@ -35,11 +42,19 @@ export async function EventCard({
             src={event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
-            ratioClassName="aspect-[4/3] sm:aspect-[4/5]"
+            ratioClassName="aspect-[4/3]"
             className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]")}
           />
-          <Badge variant="secondary" className="absolute left-2 top-2 bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
-          {!!event.fee_amount && <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>}
+          <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+            <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
+            {isNew && <Badge variant="default" className="border-0 bg-sky-600/90 shadow-sm">{dict.event.newTag}</Badge>}
+            {isDeadlineSoon && <Badge variant="destructive" className="border-0 shadow-sm">{dict.event.deadlineSoonTag}</Badge>}
+          </div>
+          {event.fee_amount ? (
+            <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
+          ) : (
+            <span className="absolute bottom-2 right-2 rounded-full bg-emerald-600/90 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.freeLabel}</span>
+          )}
         </div>
         <CardContent className={cn("flex min-h-[76px] flex-col justify-between gap-1.5 p-2.5 sm:min-h-[88px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3

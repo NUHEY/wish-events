@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { TeamPicker } from "@/components/team/team-picker";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
+import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { AnnouncementRow, TeamMemberRow } from "@/types/database";
+import type { AnnouncementRow } from "@/types/database";
 import type { ActionResult } from "@/actions/announcements";
 
 type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -31,12 +31,10 @@ export function AnnouncementForm({
   action,
   initialAnnouncement,
   submitLabel,
-  teamMembers = [],
 }: {
   action: FormAction;
   initialAnnouncement?: AnnouncementRow;
   submitLabel: string;
-  teamMembers?: TeamMemberRow[];
 }) {
   const dict = useDict();
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
@@ -89,10 +87,21 @@ export function AnnouncementForm({
         <Input
           id="category_label"
           name="category_label"
+          required
           defaultValue={initialAnnouncement?.category_label ?? ""}
           placeholder={dict.announcementForm.categoryPlaceholder}
         />
-        <p className="text-xs text-muted-foreground">{dict.announcementForm.categoryHint}</p>
+      </div>
+
+      <div className="grid gap-2 sm:w-2/3">
+        <Label htmlFor="tags">{dict.announcementForm.tagsLabel}</Label>
+        <Input
+          id="tags"
+          name="tags"
+          defaultValue={(initialAnnouncement?.tags ?? []).join(", ")}
+          placeholder={dict.announcementForm.tagsPlaceholder}
+        />
+        <p className="text-xs text-muted-foreground">{dict.announcementForm.tagsHint}</p>
       </div>
 
       <div className="grid gap-2">
@@ -105,8 +114,11 @@ export function AnnouncementForm({
       </div>
 
       <div className="grid gap-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="body">{dict.announcementForm.bodyLabel}</Label>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="body">{dict.announcementForm.bodyLabel}</Label>
+            <MarkdownHelpButton />
+          </div>
           <Button type="button" variant="ghost" size="sm" onClick={() => setShowPreview((v) => !v)}>
             {showPreview ? dict.eventForm.previewToggleOff : dict.eventForm.previewToggleOn}
           </Button>
@@ -134,12 +146,6 @@ export function AnnouncementForm({
         <Checkbox name="pinned" defaultChecked={initialAnnouncement?.pinned ?? false} />
         {dict.announcementForm.pinnedLabel}
       </label>
-
-      <TeamPicker
-        members={teamMembers}
-        initialMemberIds={initialAnnouncement?.member_ids ?? []}
-        initialAllRa={initialAnnouncement?.all_ra_members ?? false}
-      />
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 

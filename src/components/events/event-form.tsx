@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { TeamPicker } from "@/components/team/team-picker";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
+import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 import { utcIsoToJstWallClockInput } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -129,8 +130,11 @@ export function EventForm({
       </div>
 
       <div className="grid gap-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="description">{dict.eventForm.descriptionLabel}</Label>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="description">{dict.eventForm.descriptionLabel}</Label>
+            <MarkdownHelpButton />
+          </div>
           <Button type="button" variant="ghost" size="sm" onClick={() => setShowPreview((v) => !v)}>
             {showPreview ? dict.eventForm.previewToggleOff : dict.eventForm.previewToggleOn}
           </Button>

@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * EventCard の表示に必要な列だけを絞った select 文字列。
+ * イベント一覧系のページで "*" の代わりに使うことで、説明文や対象者情報など
+ * 一覧では使わない列の転送・シリアライズを省き、表示速度を改善する。
+ */
+export const EVENT_CARD_COLUMNS =
+  "id, title, title_en, category, poster_url, fee_amount, event_date, created_at, registration_closes_at" as const;
+
 /** "301A" のように floor_number + room_number を結合して表示用の部屋番号を作る */
 export function formatRoomNumber(
   floorNumber: number | null,
@@ -107,6 +115,20 @@ export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): st
  * イベントを絞り込むために使う。サーバーの実行タイムゾーンに関わらずJST基準の
  * 「週」になるよう、JST壁時計時刻で計算してからUTCに戻す。
  */
+/** お知らせのタグが「重要」系かどうか（一覧・詳細で強調表示するため）。 */
+export function isImportantTag(tag: string): boolean {
+  return /重要|important/i.test(tag);
+}
+
+/** UTC ISO文字列をJST基準の"YYYY-MM-DD"に変換する。イベント検索カレンダーの日付グルーピングに使う。 */
+export function toJstDateKey(iso: string): string {
+  const jst = shiftToJstWallClock(iso);
+  const y = jst.getUTCFullYear();
+  const m = String(jst.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(jst.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function endOfThisWeek(from: Date = new Date()): Date {
   const jst = shiftToJstWallClock(from);
   const day = jst.getUTCDay(); // 0=日 〜 6=土（JST基準）

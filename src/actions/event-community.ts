@@ -4,40 +4,157 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+import type { EventMessageRow } from "@/types/database";
 
 /**
  * サーバーアクション実行中のリクエストヘッダーから絶対URLの起点を組み立てる。
  * トークルームのツール文面（アンケート・詳細案内）にURLをそのまま貼り込むために使う。
  */
-async function getRequestOrigin() {
+export async function getRequestOrigin() {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const protocol = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
 }
 
-export async function sendEventMessage(eventId: string, body: string, mediaPath?: string) {
+/** event_community_profiles_v3() の返り値（送信者の最小プロフィール）。 */
+type CommunityProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string };
+
+/**
+ * event_messagesの生の行に、送信者プロフィールと画像の署名URLを付与する。
+ * 初回ロード・過去メッセージの追加読み込み・リアルタイム新着メッセージの
+ * いずれからも呼ばれる共通ヘルパー（クライアントからは直接呼べない非export関数）。
+ */
+async function hydrateEventMessages(supabase: Awaited<ReturnType<typeof createClient>>, rows: EventMessageRow[]) {
+  const senderIds = [...new Set(rows.map((m) => m.sender_id))];
+  const mediaPaths = rows.map((m) => m.media_path).filter((p): p is string => !!p);
+  const [{ data: users }, signedUrls] = await Promise.all([
+    senderIds.length
+      ? supabase.rpc("event_community_profiles_v3", { profile_ids: senderIds })
+      : Promise.resolve({ data: null }),
+    mediaPaths.length
+      ? supabase.storage.from("event-chat-media").createSignedUrls(mediaPaths, 60 * 60)
+      : Promise.resolve({ data: [] as { path: string | null; signedUrl: string }[] }),
+  ]);
+  const usersById = new Map(((users ?? []) as CommunityProfile[]).map((u) => [u.id, u]));
+  const signedUrlByPath = new Map((signedUrls.data ?? []).map((e) => [e.path, e.signedUrl]));
+  return rows.map((m) => ({
+    ...m,
+    mediaUrl: m.media_path ? signedUrlByPath.get(m.media_path) ?? null : null,
+    sender: usersById.get(m.sender_id) ?? null,
+  }));
+}
+
+/**
+ * テキスト・複数画像（まとめ送信）どちらにも対応した送信アクション。
+ * mediaPathsが複数ある場合は画像1枚につき1メッセージ行を作成し、
+ * 本文（キャプション）は先頭の画像にのみ付与する
+ * （グルーピング表示により1つの塊として自然に見える）。
+ */
+export async function sendEventMessage(eventId: string, body: string, mediaPaths: string[] = []) {
   const profile = await getCurrentProfile();
   const text = body.trim();
-  if (!text && !mediaPath) return { error: "メッセージを入力してください" };
+  if (!text && mediaPaths.length === 0) return { error: "メッセージを入力してください" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("event_messages")
-    .insert({
-      event_id: eventId,
-      sender_id: profile.id,
-      body: text,
-      message_type: mediaPath ? "image" : "text",
-      media_path: mediaPath ?? null,
-    })
-    .select()
-    .single();
+  const rows =
+    mediaPaths.length > 0
+      ? mediaPaths.map((path, index) => ({
+          event_id: eventId,
+          sender_id: profile.id,
+          body: index === 0 ? text : "",
+          message_type: "image" as const,
+          media_path: path,
+        }))
+      : [{ event_id: eventId, sender_id: profile.id, body: text, message_type: "text" as const, media_path: null }];
+
+  const { data, error } = await supabase.from("event_messages").insert(rows).select();
   if (error) return { error: `送信に失敗しました: ${error.message}` };
 
   revalidatePath(`/talks/${eventId}`);
   revalidatePath("/talks");
-  return { success: true, message: data };
+  return { success: true, messages: data };
+}
+
+/**
+ * リアルタイム購読で他の人の新着メッセージIDを受け取った際、そのメッセージだけを
+ * 送信者プロフィール・画像URL付きで取得する（ページ全体のrouter.refresh()を避けるため）。
+ */
+export async function getEventMessagesByIds(eventId: string, ids: string[]) {
+  if (ids.length === 0) return { messages: [] };
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("event_messages")
+    .select("*")
+    .eq("event_id", eventId)
+    .in("id", ids)
+    .order("created_at");
+  const hydrated = await hydrateEventMessages(supabase, rows ?? []);
+  return { messages: hydrated };
+}
+
+/**
+ * 直近limit件（または指定時刻より前のlimit件）のメッセージを、
+ * 関連するpoll/vote/reactionとあわせてまとめて取得する共通ヘルパー。
+ * 初回ロードと「さらに読み込む」の両方から使う。
+ */
+async function fetchEventMessagesPage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  opts: { before?: string; limit: number }
+) {
+  let q = supabase.from("event_messages").select("*").eq("event_id", eventId);
+  if (opts.before) q = q.lt("created_at", opts.before);
+  const { data: rows } = await q.order("created_at", { ascending: false }).limit(opts.limit);
+  const ordered = (rows ?? []).slice().reverse();
+  const hydrated = await hydrateEventMessages(supabase, ordered);
+
+  const pollIds = [...new Set(ordered.map((m) => m.poll_id).filter((id): id is string => !!id))];
+  const messageIds = ordered.map((m) => m.id);
+  const [{ data: polls }, { data: votes }, { data: reactions }] = await Promise.all([
+    pollIds.length ? supabase.from("event_polls").select("*").in("id", pollIds) : Promise.resolve({ data: [] }),
+    pollIds.length ? supabase.from("event_poll_votes").select("*").in("poll_id", pollIds) : Promise.resolve({ data: [] }),
+    messageIds.length
+      ? supabase.from("event_message_reactions").select("*").in("message_id", messageIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  return {
+    messages: hydrated,
+    hasMore: (rows ?? []).length === opts.limit,
+    polls: polls ?? [],
+    votes: votes ?? [],
+    reactions: reactions ?? [],
+  };
+}
+
+/**
+ * トーク画面の初回表示用。全履歴を毎回読み込むと会話が長いイベントほど重くなるため、
+ * 直近limit件だけを返す（デフォルト50件）。
+ */
+export async function getInitialEventMessages(eventId: string, limit = 50) {
+  const supabase = await createClient();
+  return fetchEventMessagesPage(supabase, eventId, { limit });
+}
+
+/** トーク画面の「さらに読み込む」用に、指定時刻より前のメッセージをまとめて取得する。 */
+export async function getOlderEventMessages(eventId: string, beforeCreatedAt: string, limit = 40) {
+  const supabase = await createClient();
+  return fetchEventMessagesPage(supabase, eventId, { before: beforeCreatedAt, limit });
+}
+
+/**
+ * イベントトークの参加者アイコン表示用に、参加登録者のプロフィールを取得する。
+ * registrations/users は本人+RA以外は直接SELECTできないため、
+ * 既存の event_community_profiles_v3（SECURITY DEFINER）で件数分だけ解決する。
+ */
+export async function getEventTalkParticipants(eventId: string) {
+  const supabase = await createClient();
+  const { data: registrations } = await supabase.from("registrations").select("user_id").eq("event_id", eventId);
+  const userIds = [...new Set((registrations ?? []).map((r) => r.user_id))];
+  if (userIds.length === 0) return { participants: [] as CommunityProfile[], total: 0 };
+  const { data: profiles } = await supabase.rpc("event_community_profiles_v3", { profile_ids: userIds });
+  return { participants: (profiles ?? []) as CommunityProfile[], total: userIds.length };
 }
 
 /**

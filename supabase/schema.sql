@@ -1000,6 +1000,8 @@ revoke select, insert on public.registration_answers from anon;
 -- ---------------------------------------------------------------------
 -- 18. announcements（Homeに表示するイベント以外のお知らせ）
 -- ---------------------------------------------------------------------
+-- 注: 33で企画メンバー(member_ids/all_ra_members)は廃止しtagsを追加。
+-- 以下は最終形（新規インストール時はここで完結する）。
 create table public.announcements (
   id               uuid primary key default gen_random_uuid(),
   title            text not null,
@@ -1007,12 +1009,14 @@ create table public.announcements (
   body             text not null,
   cover_image_url  text,
   pinned           boolean not null default false,
-  member_ids       uuid[] not null default '{}',
-  all_ra_members   boolean not null default false,
+  tags             text[] not null default '{}',
   created_by       uuid not null references public.users(id),
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
+
+comment on column public.announcements.tags is
+  'お知らせのタグ（例: 重要）。自由入力。「重要」は一覧で強調表示される。';
 
 comment on table public.announcements is 'Homeに表示するイベント以外のお知らせ（生活窓口・週間SI/RR案内・アパレル案内など）。RAが自由に投稿できる。';
 
@@ -1226,18 +1230,14 @@ insert into public.event_audience_options (label_ja, label_en, position) values
 -- ---------------------------------------------------------------------
 -- 22. events / announcements の企画メンバー（organizing team）
 -- ---------------------------------------------------------------------
+-- 注: 33でannouncementsの企画メンバー(member_ids/all_ra_members)は廃止済み。
+-- （新規インストール時はeventsのみ追加すれば最終形と一致する。）
 alter table public.events
-  add column if not exists member_ids uuid[] not null default '{}',
-  add column if not exists all_ra_members boolean not null default false;
-
-alter table public.announcements
   add column if not exists member_ids uuid[] not null default '{}',
   add column if not exists all_ra_members boolean not null default false;
 
 comment on column public.events.member_ids is '企画メンバー（RA）のpublic.users.id。all_ra_members=trueの場合は空配列にする。';
 comment on column public.events.all_ra_members is 'trueの場合、RA全員が企画メンバー。';
-comment on column public.announcements.member_ids is '企画メンバー（RA）のpublic.users.id。all_ra_members=trueの場合は空配列にする。';
-comment on column public.announcements.all_ra_members is 'trueの場合、RA全員が企画メンバー。';
 
 -- ---------------------------------------------------------------------
 -- 23. イベントコミュニティ（トーク・コメント・いいね）の初期版
@@ -1609,7 +1609,7 @@ create table public.badges (
   description_en   text,
   icon             text not null default '🏅',
   color            text not null default '#C79A3B',
-  criteria_type    text not null check (criteria_type in ('event_count', 'survey_count')),
+  criteria_type    text not null check (criteria_type in ('event_count', 'survey_count', 'friend_count', 'comment_count', 'message_count', 'like_given_count')),
   criteria_value   integer not null check (criteria_value > 0),
   sort_order       integer not null default 0,
   created_by       uuid references public.users(id),
@@ -1647,13 +1647,34 @@ insert into public.badges (key, label, label_en, description, description_en, ic
   ('first_step', 'はじめの一歩', 'First Step', 'イベントに1回参加', 'Attended 1 event', '🌱', '#2F6B4F', 'event_count', 1, 1),
   ('regular', '常連さん', 'Regular', 'イベントに5回参加', 'Attended 5 events', '🎉', '#C79A3B', 'event_count', 5, 2),
   ('super_active', 'スーパー参加者', 'Super Active', 'イベントに10回参加', 'Attended 10 events', '⭐', '#7A2140', 'event_count', 10, 3),
-  ('voice', '声を届ける人', 'Voice Heard', 'アンケートに3回回答', 'Answered 3 surveys', '📣', '#0E8074', 'survey_count', 3, 4);
+  ('voice', '声を届ける人', 'Voice Heard', 'アンケートに3回回答', 'Answered 3 surveys', '📣', '#0E8074', 'survey_count', 3, 4),
+  ('super_active_plus', 'レジェンド', 'Legend', 'イベントに20回参加', 'Attended 20 events', '👑', '#B8860B', 'event_count', 20, 5),
+  ('survey_master', 'アンケートマスター', 'Survey Master', 'アンケートに8回回答', 'Answered 8 surveys', '📊', '#0E8074', 'survey_count', 8, 6),
+  ('first_friend', 'はじめての友達', 'First Friend', '友達が1人できた', 'Made your first friend', '🤝', '#3E7CB1', 'friend_count', 1, 7),
+  ('social', '交友関係アクティブ', 'Socialite', '友達が10人以上', '10+ friends', '👥', '#3E7CB1', 'friend_count', 10, 8),
+  ('super_social', '顔が広い', 'Super Social', '友達が30人以上', '30+ friends', '🌐', '#2A5A8C', 'friend_count', 30, 9),
+  ('chatter', 'おしゃべり', 'Chatter', 'コメントを5回投稿', 'Posted 5 comments', '💬', '#9B5DE5', 'comment_count', 5, 10),
+  ('comment_master', 'コメント職人', 'Comment Master', 'コメントを30回投稿', 'Posted 30 comments', '🗣️', '#7A3FC4', 'comment_count', 30, 11),
+  ('talk_regular', 'トーク常連', 'Talk Regular', 'トークに50回投稿', 'Sent 50 talk messages', '✉️', '#2F6B4F', 'message_count', 50, 12),
+  ('talk_master', 'トークマスター', 'Talk Master', 'トークに300回投稿', 'Sent 300 talk messages', '📮', '#1F4D38', 'message_count', 300, 13),
+  ('like_giver', 'いいね魔', 'Like Giver', 'いいねを20回した', 'Gave 20 likes', '❤️', '#C4436B', 'like_given_count', 20, 14),
+  ('super_liker', '愛あふれる人', 'Super Liker', 'いいねを100回した', 'Gave 100 likes', '💖', '#A62955', 'like_given_count', 100, 15),
+  ('all_rounder', 'オールラウンダー', 'All-Rounder', 'イベント・アンケート・友達すべてに積極的', 'Active across events, surveys, and friends', '🎯', '#C79A3B', 'event_count', 8, 16);
 
 -- registrations/survey_responsesは本人+RAしか直接SELECTできないため、
 -- 他ユーザーのマイページでバッジ達成状況・金色リング表示を判定するために
 -- 件数のみを返す関数を用意する。
+-- 注: 33で friend_count / comment_count / message_count / like_given_count が
+-- 追加され、以下は最終形（drop function → create function で列を追加）。
 create function public.user_engagement_stats(p_user_id uuid)
-returns table (event_count integer, survey_count integer)
+returns table (
+  event_count integer,
+  survey_count integer,
+  friend_count integer,
+  comment_count integer,
+  message_count integer,
+  like_given_count integer
+)
 language sql
 stable
 security definer
@@ -1661,7 +1682,15 @@ set search_path = public
 as $$
   select
     (select count(*)::int from public.registrations r where r.user_id = p_user_id) as event_count,
-    (select count(*)::int from public.survey_responses sr where sr.user_id = p_user_id) as survey_count;
+    (select count(*)::int from public.survey_responses sr where sr.user_id = p_user_id) as survey_count,
+    (select count(*)::int from public.friend_requests fr
+       where fr.status = 'accepted' and (fr.requester_id = p_user_id or fr.addressee_id = p_user_id)) as friend_count,
+    (select count(*)::int from public.event_comments ec where ec.user_id = p_user_id) as comment_count,
+    (select count(*)::int from public.event_messages em where em.sender_id = p_user_id) as message_count,
+    (
+      (select count(*)::int from public.event_likes el where el.user_id = p_user_id) +
+      (select count(*)::int from public.event_comment_likes ecl where ecl.user_id = p_user_id)
+    ) as like_given_count;
 $$;
 
 revoke execute on function public.user_engagement_stats(uuid) from public;
@@ -1674,3 +1703,16 @@ grant execute on function public.user_engagement_stats(uuid) to authenticated;
 --   緊急時・個別対応用に直接SQLで昇格させたい場合は以下でも可能:
 --     update public.users set role = 'ra' where email = 'xxxx@toki.waseda.jp';
 -- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 33. Phase 6: お知らせタグ・企画メンバー廃止、友達システム、バッジ拡充
+--   （supabase/migrations/20260825144759_phase6_tags_friends_badges.sql）
+--   上のセクション18・22・32は、新規インストール時にこのセクションの内容と
+--   矛盾しないよう既に最終形に書き換え済み。既存プロジェクトに対しては
+--   下記migrationファイルを個別に適用した（本セクションはドキュメントとして
+--   全文を再掲する）。
+-- ---------------------------------------------------------------------
+-- (announcements.tags追加 / member_ids・all_ra_members削除、
+--  friend_requestsテーブル新設、badges.criteria_type拡充、
+--  user_engagement_statsへのfriend_count等追加は、
+--  いずれも上のセクション18・22・32に直接反映済み。)

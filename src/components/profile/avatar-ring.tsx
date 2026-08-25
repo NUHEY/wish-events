@@ -24,14 +24,14 @@ export function AvatarRing({
 
   return (
     <span
-      className={cn("inline-flex shrink-0 rounded-full p-[2.5px]", className)}
+      className={cn("inline-flex shrink-0 rounded-full p-[3.5px]", className)}
       style={{
         background: isRa
           ? AVATAR_RING_RA_HEX
           : `linear-gradient(135deg, ${AVATAR_RING_GOLD_HEX}, #F5E1A4, ${AVATAR_RING_GOLD_HEX})`,
       }}
     >
-      <span className="block rounded-full bg-card p-[1.5px]">{children}</span>
+      <span className="block rounded-full bg-card p-[2.5px]">{children}</span>
     </span>
   );
 }

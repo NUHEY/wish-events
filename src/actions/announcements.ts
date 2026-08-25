@@ -9,14 +9,17 @@ import { announcementSchema } from "@/lib/validations/announcement";
 export type ActionResult = { error?: string } | void;
 
 function parseAnnouncementFormData(formData: FormData) {
+  const tagsRaw = String(formData.get("tags") ?? "");
   return announcementSchema.safeParse({
     title: formData.get("title"),
     category_label: formData.get("category_label") ?? "",
     body: formData.get("body"),
     cover_image_url: formData.get("cover_image_url") ?? "",
     pinned: formData.get("pinned") === "on",
-    member_ids: formData.getAll("member_ids").map(String),
-    all_ra_members: formData.get("all_ra_members") === "on",
+    tags: tagsRaw
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
   });
 }
 
@@ -34,12 +37,11 @@ export async function createAnnouncement(
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({
     title: parsed.data.title,
-    category_label: parsed.data.category_label || null,
+    category_label: parsed.data.category_label,
     body: parsed.data.body,
     cover_image_url: parsed.data.cover_image_url || null,
     pinned: parsed.data.pinned,
-    member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
-    all_ra_members: parsed.data.all_ra_members,
+    tags: parsed.data.tags,
     created_by: profile.id,
   });
 
@@ -68,12 +70,11 @@ export async function updateAnnouncement(
     .from("announcements")
     .update({
       title: parsed.data.title,
-      category_label: parsed.data.category_label || null,
+      category_label: parsed.data.category_label,
       body: parsed.data.body,
       cover_image_url: parsed.data.cover_image_url || null,
       pinned: parsed.data.pinned,
-      member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
-      all_ra_members: parsed.data.all_ra_members,
+      tags: parsed.data.tags,
     })
     .eq("id", announcementId);
 

@@ -17,10 +17,7 @@ export default async function EditAnnouncementPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [{ data: announcement }, { data: teamMembers }] = await Promise.all([
-    supabase.from("announcements").select("*").eq("id", id).maybeSingle(),
-    supabase.from("users").select("id, full_name, avatar_url").eq("role", "ra").order("full_name"),
-  ]);
+  const { data: announcement } = await supabase.from("announcements").select("*").eq("id", id).maybeSingle();
   if (!announcement) notFound();
 
   const updateWithId = updateAnnouncement.bind(null, id);
@@ -33,7 +30,6 @@ export default async function EditAnnouncementPage({
         action={updateWithId}
         initialAnnouncement={announcement}
         submitLabel={dict.common.save}
-        teamMembers={teamMembers ?? []}
       />
     </div>
   );

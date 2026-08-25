@@ -3,53 +3,86 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
 import { EventFilter } from "@/components/events/event-filter";
+import { EventStatusFilter } from "@/components/events/event-status-filter";
+import { EventCalendar } from "@/components/events/event-calendar";
 import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
 import { Input } from "@/components/ui/input";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventCategory } from "@/types/database";
+import { EVENT_CARD_COLUMNS } from "@/lib/utils";
+import type { EventCategory, EventCardData } from "@/types/database";
 
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; q?: string }>;
+  searchParams: Promise<{ category?: string; q?: string; status?: string; date?: string }>;
 }) {
   const profile = await getCurrentProfile();
-  const { category, q } = await searchParams;
+  const { category, q, status, date } = await searchParams;
   const query = q?.trim() ?? "";
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const now = new Date().toISOString();
 
-  let upcomingQuery = supabase
-    .from("events")
-    .select("*")
-    .gte("event_date", now)
-    .order("event_date", { ascending: true });
-  let pastQuery = supabase
-    .from("events")
-    .select("*")
-    .lt("event_date", now)
-    .order("event_date", { ascending: false });
+  // 日付が選択されている場合は、開催状況に関わらずその日のイベントだけに絞り込む。
+  const dateRange = date && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? { start: `${date}T00:00:00+09:00`, end: `${date}T23:59:59.999+09:00` }
+    : null;
 
-  if (category) {
-    upcomingQuery = upcomingQuery.eq("category", category as EventCategory);
-    pastQuery = pastQuery.eq("category", category as EventCategory);
-  }
-  if (query) {
-    const escaped = query.replace(/[%,]/g, "");
-    const filter = `title.ilike.%${escaped}%,title_en.ilike.%${escaped}%`;
-    upcomingQuery = upcomingQuery.or(filter);
-    pastQuery = pastQuery.or(filter);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function applyCommonFilters(q: any) {
+    let query_ = q;
+    if (category) query_ = query_.eq("category", category as EventCategory);
+    if (query) {
+      const escaped = query.replace(/[%,]/g, "");
+      query_ = query_.or(`title.ilike.%${escaped}%,title_en.ilike.%${escaped}%`);
+    }
+    return query_;
   }
 
-  const [{ data: upcomingEvents, error }, { data: pastEvents }] = await Promise.all([
-    upcomingQuery,
-    pastQuery,
+  const showUpcoming = !dateRange && status !== "past";
+  const showPast = !dateRange && status !== "upcoming";
+  const showDateOnly = !!dateRange;
+
+  // 一覧では EventCard に必要な列だけを取得し、転送量を減らして表示を高速化する。
+  const upcomingQuery = applyCommonFilters(
+    supabase.from("events").select(EVENT_CARD_COLUMNS).gte("event_date", now).order("event_date", { ascending: true })
+  );
+  const pastQuery = applyCommonFilters(
+    supabase.from("events").select(EVENT_CARD_COLUMNS).lt("event_date", now).order("event_date", { ascending: false })
+  );
+  const dateQuery = dateRange
+    ? applyCommonFilters(
+        supabase
+          .from("events")
+          .select(EVENT_CARD_COLUMNS)
+          .gte("event_date", dateRange.start)
+          .lte("event_date", dateRange.end)
+          .order("event_date", { ascending: true })
+      )
+    : null;
+
+  // カレンダーのドット表示用に、現在のカテゴリ・キーワード条件に一致する全イベントの開催日を取得する。
+  const dotDatesQuery = applyCommonFilters(supabase.from("events").select("event_date"));
+
+  const [
+    { data: upcomingEventsRaw, error },
+    { data: pastEventsRaw },
+    { data: dateEventsRaw },
+    { data: dotDates },
+  ] = await Promise.all([
+    showUpcoming ? upcomingQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
+    showPast ? pastQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
+    dateQuery ?? Promise.resolve({ data: [] as EventCardData[] }),
+    dotDatesQuery,
   ]);
+  const upcomingEvents = upcomingEventsRaw as EventCardData[] | null;
+  const pastEvents = pastEventsRaw as EventCardData[] | null;
+  const dateEvents = dateEventsRaw as EventCardData[] | null;
 
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
+  const hasDateResults = !!dateEvents && dateEvents.length > 0;
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -64,6 +97,7 @@ export default async function EventsPage({
         </div>
         <form className="relative max-w-md">
           {category && <input type="hidden" name="category" value={category} />}
+          {status && <input type="hidden" name="status" value={status} />}
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
@@ -73,7 +107,11 @@ export default async function EventsPage({
             className="h-10 rounded-full pl-10 shadow-sm"
           />
         </form>
-        <EventFilter />
+        <div className="flex flex-wrap items-center gap-2">
+          <EventFilter />
+          <EventStatusFilter />
+        </div>
+        <EventCalendar eventDates={(dotDates ?? []).map((e: { event_date: string }) => e.event_date)} />
       </div>
 
       {error && (
@@ -82,39 +120,67 @@ export default async function EventsPage({
         </p>
       )}
 
-      {!hasUpcoming && !hasPast && (
-        <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
-          <p className="text-sm font-medium">
-            {query ? dict.home.noSearchResults.replace("{query}", query) : dict.home.empty}
-          </p>
-          <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
-        </div>
-      )}
+      {showDateOnly ? (
+        <>
+          {!hasDateResults && (
+            <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
+              <p className="text-sm font-medium">{dict.home.empty}</p>
+              <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
+            </div>
+          )}
+          {hasDateResults && (
+            <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {dateEvents!.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {!hasUpcoming && !hasPast && (
+            <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
+              <p className="text-sm font-medium">
+                {query ? dict.home.noSearchResults.replace("{query}", query) : dict.home.empty}
+              </p>
+              <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
+            </div>
+          )}
 
-      {!hasUpcoming && hasPast && (
-        <p className="text-sm text-muted-foreground">{dict.home.noUpcoming}</p>
-      )}
+          {showUpcoming && !hasUpcoming && hasPast && (
+            <p className="text-sm text-muted-foreground">{dict.home.noUpcoming}</p>
+          )}
 
-      {hasUpcoming && (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {upcomingEvents!.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
+          {hasUpcoming && (
+            <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {upcomingEvents!.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
 
-      {hasPast && (
-        <details className="group border-t border-border pt-5">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
-            {dict.home.pastEventsToggle}（{pastEvents!.length}）
-          </summary>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {pastEvents!.map((event) => (
-              <EventCard key={event.id} event={event} variant="muted" />
-            ))}
-          </div>
-        </details>
+          {hasPast && status === "past" && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {pastEvents!.map((event) => (
+                <EventCard key={event.id} event={event} variant="muted" />
+              ))}
+            </div>
+          )}
+
+          {hasPast && status !== "past" && (
+            <details className="group border-t border-border pt-5">
+              <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
+                {dict.home.pastEventsToggle}（{pastEvents!.length}）
+              </summary>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {pastEvents!.map((event) => (
+                  <EventCard key={event.id} event={event} variant="muted" />
+                ))}
+              </div>
+            </details>
+          )}
+        </>
       )}
     </div>
   );

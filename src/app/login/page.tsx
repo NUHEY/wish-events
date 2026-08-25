@@ -80,9 +80,12 @@ function LoginContent() {
               {dict.login.authFailed}
             </p>
           )}
-          <Button onClick={handleLogin} variant="outline" className="w-full gap-2.5">
+          <Button onClick={handleLogin} variant="outline" className="h-auto w-full gap-2.5 py-3">
             <GoogleIcon />
-            {dict.login.googleButton}
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-sm font-semibold">{dict.login.googleButton}</span>
+              <span className="text-[11px] font-normal text-muted-foreground">{dict.login.googleButtonSub}</span>
+            </span>
           </Button>
           <p className="text-center text-xs text-muted-foreground">{dict.login.domainNote}</p>
         </CardContent>

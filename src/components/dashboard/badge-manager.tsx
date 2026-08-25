@@ -9,9 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createBadge, deleteBadge, updateBadge, type BadgeActionResult } from "@/actions/badges";
+import { createBadge, deleteBadge, updateBadge, resetAllBadges, type BadgeActionResult } from "@/actions/badges";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { BadgeRow } from "@/types/database";
+import type { BadgeCriteriaType, BadgeRow } from "@/types/database";
+
+function criteriaTypeLabel(dict: ReturnType<typeof useDict>, criteriaType: BadgeCriteriaType) {
+  switch (criteriaType) {
+    case "event_count":
+      return dict.badgeAdmin.criteriaEventCount;
+    case "survey_count":
+      return dict.badgeAdmin.criteriaSurveyCount;
+    case "friend_count":
+      return dict.badgeAdmin.criteriaFriendCount;
+    case "comment_count":
+      return dict.badgeAdmin.criteriaCommentCount;
+    case "message_count":
+      return dict.badgeAdmin.criteriaMessageCount;
+    case "like_given_count":
+      return dict.badgeAdmin.criteriaLikeGivenCount;
+    default:
+      return criteriaType;
+  }
+}
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -88,6 +107,10 @@ function BadgeForm({
           <Select id={`criteriaType-${badge?.id ?? "new"}`} name="criteria_type" defaultValue={badge?.criteria_type ?? "event_count"}>
             <option value="event_count">{dict.badgeAdmin.criteriaEventCount}</option>
             <option value="survey_count">{dict.badgeAdmin.criteriaSurveyCount}</option>
+            <option value="friend_count">{dict.badgeAdmin.criteriaFriendCount}</option>
+            <option value="comment_count">{dict.badgeAdmin.criteriaCommentCount}</option>
+            <option value="message_count">{dict.badgeAdmin.criteriaMessageCount}</option>
+            <option value="like_given_count">{dict.badgeAdmin.criteriaLikeGivenCount}</option>
           </Select>
         </div>
         <div className="grid gap-1.5">
@@ -138,7 +161,7 @@ function BadgeItem({ badge }: { badge: BadgeRow }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{badge.label}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {badge.criteria_type === "event_count" ? dict.badgeAdmin.criteriaEventCount : dict.badgeAdmin.criteriaSurveyCount} ≥ {badge.criteria_value}
+          {criteriaTypeLabel(dict, badge.criteria_type)} ≥ {badge.criteria_value}
         </p>
       </div>
       <Button type="button" size="icon" variant="ghost" onClick={() => setEditing(true)} aria-label={dict.badgeAdmin.editButton}>
@@ -148,6 +171,34 @@ function BadgeItem({ badge }: { badge: BadgeRow }) {
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>
+  );
+}
+
+function ResetAllBadgesCard() {
+  const dict = useDict();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function handleReset() {
+    if (!window.confirm(dict.badgeAdmin.resetAllConfirm)) return;
+    startTransition(async () => {
+      await resetAllBadges();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Card className="border-destructive/30">
+      <CardHeader>
+        <CardTitle className="text-base text-destructive">{dict.badgeAdmin.resetAllTitle}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <p className="text-xs text-muted-foreground">{dict.badgeAdmin.resetAllSubtitle}</p>
+        <Button type="button" variant="destructive" size="sm" className="w-fit" disabled={pending} onClick={handleReset}>
+          {dict.badgeAdmin.resetAllButton}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -171,6 +222,8 @@ export function BadgeManager({ badges }: { badges: BadgeRow[] }) {
         ))}
         {badges.length === 0 && <p className="text-sm text-muted-foreground">{dict.badgeAdmin.noBadges}</p>}
       </div>
+
+      {badges.length > 0 && <ResetAllBadgesCard />}
     </div>
   );
 }

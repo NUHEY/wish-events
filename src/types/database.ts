@@ -64,7 +64,13 @@ export interface DirectoryProfileRow {
   profile_accent: string | null;
 }
 
-export type BadgeCriteriaType = "event_count" | "survey_count";
+export type BadgeCriteriaType =
+  | "event_count"
+  | "survey_count"
+  | "friend_count"
+  | "comment_count"
+  | "message_count"
+  | "like_given_count";
 
 /** ゲーム要素（マイページのバッジ）の定義。/dashboard/badgesでRAが編集する。 */
 export interface BadgeRow {
@@ -88,6 +94,22 @@ export interface BadgeRow {
 export interface EngagementStats {
   event_count: number;
   survey_count: number;
+  friend_count: number;
+  comment_count: number;
+  message_count: number;
+  like_given_count: number;
+}
+
+export type FriendRequestStatus = "pending" | "accepted";
+
+/** 寮生同士の「友達」申請・承認。 */
+export interface FriendRequestRow {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: FriendRequestStatus;
+  created_at: string;
+  responded_at: string | null;
 }
 
 export interface EventRow {
@@ -126,6 +148,24 @@ export interface EventRow {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * EventCard の表示に必要な列だけを抜き出した型。
+ * 一覧系ページで select("*") の代わりに絞り込んだ列だけを取得する際に使う
+ * （src/lib/utils.ts の EVENT_CARD_COLUMNS と対応させること）。
+ */
+export type EventCardData = Pick<
+  EventRow,
+  | "id"
+  | "title"
+  | "title_en"
+  | "category"
+  | "poster_url"
+  | "fee_amount"
+  | "event_date"
+  | "created_at"
+  | "registration_closes_at"
+>;
 
 export type HomeLayoutSectionKey = "week_events" | "floor_events" | "announcements";
 export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
@@ -284,8 +324,7 @@ export interface AnnouncementRow {
   body: string;
   cover_image_url: string | null;
   pinned: boolean;
-  member_ids: string[];
-  all_ra_members: boolean;
+  tags: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -481,6 +520,12 @@ export interface Database {
         Row: BadgeRow;
         Insert: Partial<BadgeRow> & { key: string; label: string; criteria_type: BadgeCriteriaType; criteria_value: number };
         Update: Partial<BadgeRow>;
+        Relationships: [];
+      };
+      friend_requests: {
+        Row: FriendRequestRow;
+        Insert: Partial<FriendRequestRow> & { requester_id: string; addressee_id: string };
+        Update: Partial<FriendRequestRow>;
         Relationships: [];
       };
     };
