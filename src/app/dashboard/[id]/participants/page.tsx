@@ -18,7 +18,7 @@ export default async function ParticipantsPage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, title_en")
+    .select("id, title, title_en, fee_amount")
     .eq("id", id)
     .maybeSingle();
   if (!event) notFound();
@@ -33,7 +33,7 @@ export default async function ParticipantsPage({
   const { data: registrations } = await supabase
     .from("registrations")
     .select(
-      "user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options)"
+      "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
     )
     .eq("event_id", id)
     .order("registered_at", { ascending: true });
@@ -47,6 +47,8 @@ export default async function ParticipantsPage({
     }
     return {
       user_id: r.user_id,
+      registration_id: r.id,
+      payment_status: r.registration_payments?.status ?? "unpaid",
       registered_at: r.registered_at,
       full_name: r.users?.full_name ?? null,
       student_id: r.users?.student_id ?? null,
@@ -67,6 +69,7 @@ export default async function ParticipantsPage({
         eventTitle={title}
         participants={participants}
         questions={questions ?? []}
+        collectionRequired={!!event.fee_amount}
       />
     </div>
   );

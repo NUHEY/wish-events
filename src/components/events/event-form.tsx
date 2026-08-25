@@ -286,6 +286,16 @@ export function EventForm({
           />
           <p className="text-xs text-muted-foreground">{dict.eventForm.paymentInfoHint}</p>
         </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label>集金期限（任意）</Label>
+            <DateTimePicker name="payment_due_at" defaultValue={initialEvent?.payment_due_at ? utcIsoToJstWallClockInput(initialEvent.payment_due_at) : undefined} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="payment_destination">支払先・振込先（任意）</Label>
+            <Textarea id="payment_destination" name="payment_destination" rows={3} placeholder="例：○○銀行 ○○支店 普通 1234567 / 口座名義" defaultValue={initialEvent?.payment_destination ?? ""} />
+          </div>
+        </div>
       </fieldset>
 
       <div className="grid gap-2 sm:w-1/2">

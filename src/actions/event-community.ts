@@ -4,16 +4,28 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 
-export async function sendEventMessage(eventId: string, body: string) {
+export async function sendEventMessage(eventId: string, body: string, mediaPath?: string) {
   const profile = await getCurrentProfile();
   const text = body.trim();
-  if (!text) return { error: "メッセージを入力してください" };
+  if (!text && !mediaPath) return { error: "メッセージを入力してください" };
   const supabase = await createClient();
-  const { error } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: text });
+  const { error } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: text, message_type: mediaPath ? "image" : "text", media_path: mediaPath ?? null });
   if (error) return { error: `送信に失敗しました: ${error.message}` };
   revalidatePath(`/talks/${eventId}`);
   revalidatePath("/talks");
   return { success: true };
+}
+
+export async function sendEventSurveyTool(eventId: string) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  const supabase = await createClient();
+  const { data: event } = await supabase.from("events").select("survey_type, survey_external_url").eq("id", eventId).maybeSingle();
+  if (!event || event.survey_type === "none") return { error: "このイベントにはアンケートが設定されていません" };
+  const actionUrl = event.survey_type === "external" ? event.survey_external_url : `/events/${eventId}/survey`;
+  const { error } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: "イベント後アンケートへのご協力をお願いします。", message_type: "tool", action_url: actionUrl, action_label: "アンケートに回答する" });
+  if (error) return { error: `アンケート案内の送信に失敗しました: ${error.message}` };
+  revalidatePath(`/talks/${eventId}`); return { success: true };
 }
 
 export async function addEventComment(eventId: string, body: string) {

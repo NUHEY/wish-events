@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { downloadCsv, formatEventDateTime, formatRoomNumber, toCsv } from "@/lib/utils";
 import { removeRegistrationAsRa } from "@/actions/registrations";
+import { setPaymentStatus } from "@/actions/payments";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import type { RegistrationQuestionRow } from "@/types/database";
 
@@ -24,6 +25,8 @@ export type ParticipantRow = {
   floor_number: number | null;
   room_number: string | null;
   registered_at: string;
+  registration_id: string;
+  payment_status: "unpaid" | "paid" | "waived";
   /** 事前質問への回答。key = question_id */
   answers?: Record<string, string>;
 };
@@ -33,12 +36,14 @@ export function ParticipantTable({
   eventTitle,
   participants,
   questions = [],
+  collectionRequired = false,
 }: {
   eventId: string;
   eventTitle: string;
   participants: ParticipantRow[];
   /** requires_registrationのイベントで事前質問が設定されている場合、回答を列として表示する */
   questions?: RegistrationQuestionRow[];
+  collectionRequired?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -72,6 +77,9 @@ export function ParticipantTable({
       router.refresh();
     });
   }
+  function setPayment(p: ParticipantRow, status: "unpaid" | "paid" | "waived") {
+    startTransition(async () => { const result = await setPaymentStatus(p.registration_id, eventId, status); if (result?.error) toast.error(result.error); else { toast.success("支払い状況を更新しました"); router.refresh(); } });
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -91,6 +99,7 @@ export function ParticipantTable({
             <TableHead>{dict.participants.studentIdColumn}</TableHead>
             <TableHead>{dict.participants.roomColumn}</TableHead>
             <TableHead>{dict.participants.dateColumn}</TableHead>
+            {collectionRequired && <TableHead>集金</TableHead>}
             {questions.map((q) => (
               <TableHead key={q.id}>{q.question_text}</TableHead>
             ))}
@@ -104,6 +113,7 @@ export function ParticipantTable({
               <TableCell>{p.student_id}</TableCell>
               <TableCell>{formatRoomNumber(p.floor_number, p.room_number)}</TableCell>
               <TableCell>{formatEventDateTime(p.registered_at, locale)}</TableCell>
+              {collectionRequired && <TableCell><select value={p.payment_status} disabled={pending} onChange={(e) => setPayment(p, e.target.value as "unpaid" | "paid" | "waived")} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="unpaid">未払い</option><option value="paid">支払い済み</option><option value="waived">免除</option></select></TableCell>}
               {questions.map((q) => (
                 <TableCell key={q.id}>{p.answers?.[q.id] || "-"}</TableCell>
               ))}
@@ -121,7 +131,7 @@ export function ParticipantTable({
           ))}
           {participants.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5 + questions.length} className="text-center text-muted-foreground">
+              <TableCell colSpan={5 + questions.length + (collectionRequired ? 1 : 0)} className="text-center text-muted-foreground">
                 {dict.participants.noParticipants}
               </TableCell>
             </TableRow>

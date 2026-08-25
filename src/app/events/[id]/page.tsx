@@ -38,7 +38,7 @@ export default async function EventDetailPage({
 
   const { data: myRegistration } = await supabase
     .from("registrations")
-    .select("id")
+    .select("id, registration_payments(status)")
     .eq("event_id", id)
     .eq("user_id", profile.id)
     .maybeSingle();
@@ -176,6 +176,14 @@ export default async function EventDetailPage({
         <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
           <p className="mb-1 text-sm font-medium text-primary">{dict.event.paymentInfoTitle}</p>
           <p className="whitespace-pre-wrap text-sm text-foreground/90">{event.payment_info}</p>
+        </div>
+      )}
+
+      {!!event.fee_amount && !!myRegistration && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <p className="text-sm font-semibold text-primary">集金状況：{(myRegistration as any).registration_payments?.status === "paid" ? "支払い済み" : (myRegistration as any).registration_payments?.status === "waived" ? "免除" : "未払い"}</p>
+          {event.payment_due_at && <p className="mt-1 text-sm">集金期限：{formatEventDateTime(event.payment_due_at, locale)}</p>}
+          {event.payment_destination && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">支払先：{event.payment_destination}</p>}
         </div>
       )}
 

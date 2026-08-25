@@ -75,6 +75,8 @@ export interface EventRow {
   capacity: number | null;
   fee_amount: number | null;
   payment_info: string | null;
+  payment_due_at: string | null;
+  payment_destination: string | null;
   publish_at: string | null;
   registration_opens_at: string | null;
   registration_requires_answers: boolean;
@@ -130,11 +132,24 @@ export interface RegistrationRow {
   registered_at: string;
 }
 
+export interface RegistrationPaymentRow {
+  registration_id: string;
+  status: "unpaid" | "paid" | "waived";
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  note: string | null;
+  updated_at: string;
+}
+
 export interface EventMessageRow {
   id: string;
   event_id: string;
   sender_id: string;
   body: string;
+  message_type: "text" | "image" | "tool";
+  media_path: string | null;
+  action_url: string | null;
+  action_label: string | null;
   created_at: string;
 }
 
@@ -259,6 +274,12 @@ export interface Database {
           user_id: string;
         };
         Update: Partial<RegistrationRow>;
+        Relationships: [];
+      };
+      registration_payments: {
+        Row: RegistrationPaymentRow;
+        Insert: Partial<RegistrationPaymentRow> & { registration_id: string };
+        Update: Partial<RegistrationPaymentRow>;
         Relationships: [];
       };
       event_messages: {

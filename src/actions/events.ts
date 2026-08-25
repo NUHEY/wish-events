@@ -34,6 +34,8 @@ function parseEventFormData(formData: FormData) {
     capacity: capacityRaw ? Number(capacityRaw) : undefined,
     fee_amount: feeAmountRaw ? Number(feeAmountRaw) : undefined,
     payment_info: formData.get("payment_info") ?? "",
+    payment_due_at: formData.get("payment_due_at") ?? "",
+    payment_destination: formData.get("payment_destination") ?? "",
     publish_at: formData.get("publish_at") ?? "",
     registration_opens_at: formData.get("registration_opens_at") ?? "",
     registration_closes_at: formData.get("registration_closes_at") ?? "",
@@ -79,6 +81,8 @@ export async function createEvent(
       capacity: parsed.data.capacity ?? null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
+      payment_due_at: parsed.data.payment_due_at ? jstWallClockToUtcIso(parsed.data.payment_due_at) : null,
+      payment_destination: parsed.data.payment_destination || null,
       publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
         parsed.data.registration_opens_at
@@ -144,6 +148,8 @@ export async function updateEvent(
       capacity: parsed.data.capacity ?? null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
+      payment_due_at: parsed.data.payment_due_at ? jstWallClockToUtcIso(parsed.data.payment_due_at) : null,
+      payment_destination: parsed.data.payment_destination || null,
       publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
         parsed.data.registration_opens_at
