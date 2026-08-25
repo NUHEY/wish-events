@@ -1,7 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowUpRight, BarChart3, CalendarDays, Check, ChevronDown, ClipboardCheck, Copy, Heart, ImagePlus, Info, Loader2, Send, Smile, Sparkles, Vote, X } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  ChevronDown,
+  Copy,
+  Heart,
+  ImagePlus,
+  Info,
+  Loader2,
+  MapPin,
+  Send,
+  Smile,
+  Sparkles,
+  Wallet,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,8 +25,10 @@ import {
   getEventMessagesByIds,
   getOlderEventMessages,
   markEventTalkRead,
-  sendEventDetailsTool,
-  sendEventSurveyTool,
+  prepareEventDetailsToolDraft,
+  prepareEventLocationToolDraft,
+  prepareEventPaymentToolDraft,
+  prepareEventSurveyToolDraft,
   sendEventMessage,
   toggleEventMessageReaction,
   voteEventPoll,
@@ -20,7 +37,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { ImageLightbox } from "@/components/community/image-lightbox";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 
@@ -425,9 +441,30 @@ export function EventTalk({
                     )}
                   </div>
                 ) : message.message_type === "tool" && message.action_url ? (
-                  <ToolCard message={message} appOrigin={appOrigin} />
+                  <div className={bubbleBase}>
+                    {hasCaption && (
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin)}
+                      </p>
+                    )}
+                    <a
+                      href={message.action_url}
+                      target={message.action_url.startsWith("http") ? "_blank" : undefined}
+                      rel="noreferrer"
+                      className="mt-2 inline-flex rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95"
+                    >
+                      {message.action_label ?? "開く"}
+                    </a>
+                  </div>
                 ) : poll ? (
-                  <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
+                  <div className={bubbleBase}>
+                    {hasCaption && (
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin)}
+                      </p>
+                    )}
+                    <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
+                  </div>
                 ) : (
                   <div className={`relative ${bubbleBase}`} onClick={() => handleBubbleTap(message, "text")}>
                     <p className="cursor-pointer select-none whitespace-pre-wrap break-words text-[15px] leading-relaxed">
@@ -460,7 +497,9 @@ export function EventTalk({
                   </div>
                 )}
 
-                {isGroupEnd && <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}><span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span></div>}
+                <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                  <span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span>
+                </div>
 
                 {openMenuId === message.id && (
                   <>
@@ -685,13 +724,17 @@ function Composer({
     });
   }
 
-  function sendTool(action: () => Promise<{ message?: unknown; error?: string }>) {
+  /**
+   * RAツールのボタンは即送信せず、下書き文面をテキスト欄に入れるだけにする。
+   * 内容を確認・編集してから、通常の送信ボタンで自分で送ってもらう。
+   */
+  function fillToolDraft(action: () => Promise<{ body?: string; error?: string }>) {
     startTransition(async () => {
       const result = await action();
       if (result?.error) {
         setError(result.error);
-      } else if (result?.message) {
-        onOptimisticAdd([{ ...(result.message as Message), mediaUrl: null, sender: null }]);
+      } else if (result?.body) {
+        setBody(result.body);
         setToolOpen(false);
       }
     });
@@ -699,46 +742,43 @@ function Composer({
 
   return (
     <div className="border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-      <PendingFeedback active={pending || uploading} label={uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       {isRa && (
         <div className="mb-2">
           <button
             type="button"
             onClick={() => setToolOpen((open) => !open)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary/[0.08] px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
           >
             <Sparkles className="h-3.5 w-3.5" />
             ツール
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${toolOpen ? "rotate-180" : ""}`} />
           </button>
           {toolOpen && (
-            <div className="mt-2 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-background p-2 shadow-lg">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => sendTool(() => sendEventSurveyTool(eventId))}
-                className="rounded-xl p-2 text-left text-xs font-semibold hover:bg-secondary"
-              >
-                <Smile className="mb-1 h-4 w-4 text-primary" />
-                アンケート
-              </button>
-              <button
-                type="button"
-                onClick={() => setPollOpen((open) => !open)}
-                className="rounded-xl p-2 text-left text-xs font-semibold hover:bg-secondary"
-              >
-                <BarChart3 className="mb-1 h-4 w-4 text-primary" />
-                投票
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => sendTool(() => sendEventDetailsTool(eventId))}
-                className="rounded-xl p-2 text-left text-xs font-semibold hover:bg-secondary"
-              >
-                <Info className="mb-1 h-4 w-4 text-primary" />
-                詳細案内
-              </button>
+            // ツールの種類が増えても崩れないよう、固定グリッドではなく横スクロールの
+            // 1行レイアウトにする。各ボタンはアイコンを丸背景に載せたカード型にし、
+            // ただのテキストリンクより「送る内容を選ぶ」操作であることが伝わるようにした。
+            <div className="mt-2 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background p-2 shadow-lg [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <ToolButton
+                icon={Smile}
+                label="アンケート"
+                onClick={() => fillToolDraft(() => prepareEventSurveyToolDraft(eventId))}
+              />
+              <ToolButton icon={BarChart3} label="投票" onClick={() => setPollOpen((open) => !open)} />
+              <ToolButton
+                icon={Info}
+                label="詳細案内"
+                onClick={() => fillToolDraft(() => prepareEventDetailsToolDraft(eventId))}
+              />
+              <ToolButton
+                icon={MapPin}
+                label="会場案内"
+                onClick={() => fillToolDraft(() => prepareEventLocationToolDraft(eventId))}
+              />
+              <ToolButton
+                icon={Wallet}
+                label="集金案内"
+                onClick={() => fillToolDraft(() => prepareEventPaymentToolDraft(eventId))}
+              />
             </div>
           )}
           {pollOpen && (
@@ -845,14 +885,28 @@ function Composer({
   );
 }
 
-function ToolCard({ message, appOrigin }: { message: Message; appOrigin: string }) {
-  const rawUrl = message.action_url!;
-  const localPath = rawUrl.startsWith("/") ? rawUrl : internalPath(rawUrl, appOrigin);
-  const isSurvey = rawUrl.includes("survey") || message.action_label?.includes("アンケート");
-  const Icon = isSurvey ? ClipboardCheck : CalendarDays;
-  const content = <><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="mb-1 block text-[10px] font-bold tracking-[0.16em] text-primary">{isSurvey ? "EVENT SURVEY" : "EVENT GUIDE"}</span><span className="block text-sm font-bold">{message.action_label ?? "開く"}</span>{message.body && <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">{message.body}</span>}</span><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"><ArrowUpRight className="h-4 w-4" /></span></>;
-  const className = "flex w-[min(78vw,340px)] items-center gap-3 rounded-[22px] border border-primary/15 bg-[linear-gradient(145deg,#ffffff_0%,hsl(var(--primary)/0.06)_100%)] p-3.5 text-left shadow-[0_8px_30px_rgba(69,25,46,0.10)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(69,25,46,0.14)] active:scale-[0.985]";
-  return localPath ? <Link href={localPath} className={className}>{content}</Link> : <a href={rawUrl} target="_blank" rel="noreferrer" className={className}>{content}</a>;
+/** RAツール横スクロール行の1枚。アイコンを丸背景に載せ、下にラベルを添える縦積みカード。 */
+function ToolButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Smile;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-16 shrink-0 flex-col items-center gap-1 rounded-xl p-1.5 text-center transition-colors hover:bg-secondary"
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="text-[10px] font-semibold leading-tight">{label}</span>
+    </button>
+  );
 }
 
 function PollCard({
@@ -870,10 +924,13 @@ function PollCard({
   const total = votes.length;
 
   return (
-    <div className="w-[min(78vw,340px)] overflow-hidden rounded-[22px] border border-primary/15 bg-card text-foreground shadow-[0_8px_30px_rgba(69,25,46,0.10)]">
-      <div className="flex items-center justify-between bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),hsl(var(--primary)/0.03))] px-4 py-3"><div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.16em] text-primary"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Vote className="h-4 w-4" /></span>QUICK POLL</div>{total > 0 && <span className="rounded-full bg-card/80 px-2 py-1 text-[10px] font-semibold text-muted-foreground">{total}票</span>}</div>
-      <div className="p-4"><p className="mb-3 text-[15px] font-bold leading-snug">{poll.question}</p>
-      <div className="space-y-2">
+    <div className="mt-2 min-w-60 rounded-2xl bg-black/5 p-2.5 text-foreground">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-bold">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        投票
+      </div>
+      <p className="mb-2 text-sm font-semibold">{poll.question}</p>
+      <div className="space-y-1.5">
         {poll.options.map((option, index) => {
           const count = votes.filter((vote) => vote.option_index === index).length;
           const percentage = total ? Math.round((count / total) * 100) : 0;
@@ -882,19 +939,18 @@ function PollCard({
               key={index}
               type="button"
               onClick={() => onVote(poll.id, index)}
-              className={`relative flex w-full items-center overflow-hidden rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-[transform,border-color] active:scale-[0.98] ${
-                selected === index ? "border-primary/50 bg-primary/[0.04]" : "border-border/70 bg-background hover:border-primary/25"
+              className={`relative flex w-full overflow-hidden rounded-xl border px-3 py-2 text-left text-xs font-medium transition-transform active:scale-[0.98] ${
+                selected === index ? "border-primary/50" : "border-border/70 bg-card/80"
               }`}
             >
               <span className="absolute inset-y-0 left-0 bg-primary/12 transition-[width] duration-300" style={{ width: `${percentage}%` }} />
               <span className="relative flex-1">{option}</span>
-              {selected === index && <Check className="relative mr-1 h-3.5 w-3.5 text-primary" />}
               <span className="relative text-muted-foreground">{selected !== undefined ? `${percentage}%` : "投票"}</span>
             </button>
           );
         })}
       </div>
-      {selected !== undefined && <p className="mt-2.5 text-[10px] text-muted-foreground">選択済み · いつでも変更できます</p>}</div>
+      {selected !== undefined && <p className="mt-2 text-[10px] text-muted-foreground">{total}票 · 選択を変更できます</p>}
     </div>
   );
 }

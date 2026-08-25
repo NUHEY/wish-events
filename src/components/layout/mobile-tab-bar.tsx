@@ -45,7 +45,7 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
   const dict = useDict();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 flex items-stretch border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 isolate flex items-stretch border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md [transform:translateZ(0)] sm:hidden"
       aria-label={dict.nav.home}
     >
       <TabLink href="/" icon={Home} label={dict.nav.home} exact />

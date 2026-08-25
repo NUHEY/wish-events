@@ -16,10 +16,11 @@ import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { TeamPicker } from "@/components/team/team-picker";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 import { utcIsoToJstWallClockInput } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { EventRow, EventLocationOptionRow, EventAudienceOptionRow, TeamMemberRow } from "@/types/database";
 import type { ActionResult } from "@/actions/events";
 
@@ -28,7 +29,9 @@ type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResu
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <><PendingFeedback active={pending} label={savingLabel} /><Button type="submit" disabled={pending}>{pending ? savingLabel : label}</Button></>
+    <Button type="submit" disabled={pending}>
+      {pending ? savingLabel : label}
+    </Button>
   );
 }
 
@@ -58,6 +61,9 @@ export function EventForm({
   const [showPreview, setShowPreview] = useState(false);
   const [showPreviewEn, setShowPreviewEn] = useState(false);
 
+  const { formRef, isDirty, markDirty } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
+
   async function handlePosterFile(file: File) {
     setUploading(true);
     setUploadError(null);
@@ -79,10 +85,17 @@ export function EventForm({
     const { data } = supabase.storage.from("event-posters").getPublicUrl(path);
     setPosterUrl(data.publicUrl);
     setUploading(false);
+    markDirty();
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={markDirty}
+      onChange={markDirty}
+      className="flex flex-col gap-6"
+    >
       <input type="hidden" name="poster_url" value={posterUrl} />
 
       <div className="grid gap-2">

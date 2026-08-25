@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,8 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { submitSurveyResponse, type AnswerInput } from "@/actions/surveys";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { SurveyQuestionRow } from "@/types/database";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 export function SurveyResponseForm({
   surveyId,
@@ -26,6 +27,8 @@ export function SurveyResponseForm({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const router = useRouter();
+
+  useUnsavedChangesGuard(Object.keys(answers).length > 0 && !done, dict.common.unsavedChangesConfirm);
 
   function setText(questionId: string, value: string) {
     setAnswers((a) => ({ ...a, [questionId]: value }));
@@ -68,7 +71,9 @@ export function SurveyResponseForm({
       const result = await submitSurveyResponse(surveyId, payload);
       if (result.error) {
         setError(result.error);
+        toast.error(result.error);
       } else {
+        toast.success(dict.toast.registered);
         setDone(true);
         router.refresh();
       }
@@ -81,7 +86,6 @@ export function SurveyResponseForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <PendingFeedback active={pending} label="回答を送信しています…" />
       {sorted.map((q, index) => (
         <div key={q.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <Label>

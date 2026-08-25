@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { HOME_ACCENT_HEX, HOME_ACCENT_KEYS, type HomeAccentKeyValue } from "@/lib/constants";
 import { saveHomeLayout, type HomeLayoutActionResult } from "@/actions/home-layout";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { HomeLayoutSectionRow } from "@/types/database";
 
 type SectionState = {
@@ -27,7 +28,9 @@ type SectionState = {
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <><PendingFeedback active={pending} label={savingLabel} /><Button type="submit" disabled={pending}>{pending ? savingLabel : label}</Button></>
+    <Button type="submit" disabled={pending}>
+      {pending ? savingLabel : label}
+    </Button>
   );
 }
 
@@ -46,8 +49,14 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
       }))
   );
 
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
+
   useEffect(() => {
-    if (state?.success) toast.success(dict.homeLayout.saved);
+    if (state?.success) {
+      toast.success(dict.homeLayout.saved);
+      reset();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
@@ -59,14 +68,22 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+    markDirty();
   }
 
   function updateSection(key: string, patch: Partial<SectionState>) {
     setSections((prev) => prev.map((s) => (s.section_key === key ? { ...s, ...patch } : s)));
+    markDirty();
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={markDirty}
+      onChange={markDirty}
+      className="flex flex-col gap-4"
+    >
       {sections.map((s, index) => (
         <Card key={s.section_key} className={cn("rounded-2xl", !s.visible && "opacity-60")}>
           <CardContent className="flex flex-col gap-3.5 p-4">

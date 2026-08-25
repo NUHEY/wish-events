@@ -2,21 +2,22 @@
 
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
-import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
-import { LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
+import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
 import { parseFullRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { submitProfile } from "@/actions/profile";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { UserRow } from "@/types/database";
 
 type InitialProfile = Pick<
@@ -36,18 +37,15 @@ type InitialProfile = Pick<
   | "avatar_url"
   | "line_id"
   | "x_handle"
-  | "profile_accent"
-  | "profile_cover_url"
-  | "show_past_events"
-  | "show_sns"
-  | "show_languages"
-  | "show_nationalities"
+  | "profile_accents"
 >;
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <><PendingFeedback active={pending} label={pendingLabel} /><Button type="submit" disabled={pending} className="w-full">{pending ? pendingLabel : label}</Button></>
+    <Button type="submit" disabled={pending} className="w-full">
+      {pending ? pendingLabel : label}
+    </Button>
   );
 }
 
@@ -55,12 +53,10 @@ export function ProfileForm({
   initialProfile,
   initialLineQrSignedUrl = null,
   submitLabel,
-  returnTo = "post-login",
 }: {
   initialProfile?: InitialProfile;
   initialLineQrSignedUrl?: string | null;
   submitLabel?: string;
-  returnTo?: "profile" | "post-login";
 }) {
   const dict = useDict();
   const locale = useLocale();
@@ -75,15 +71,31 @@ export function ProfileForm({
       : ""
   );
   const parsedRoom = parseFullRoomNumber(roomNumberInput);
-  const [accent, setAccent] = useState<string | null>(initialProfile?.profile_accent ?? null);
+  const MAX_ACCENTS = 5;
+  const [accents, setAccents] = useState<string[]>(initialProfile?.profile_accents ?? []);
+
+  function toggleAccent(key: string) {
+    setAccents((prev) => {
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
+      if (prev.length >= MAX_ACCENTS) return prev;
+      return [...prev, key];
+    });
+  }
+
+  const { formRef, isDirty, markDirty } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="return_to" value={returnTo} />
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={markDirty}
+      onChange={markDirty}
+      className="flex flex-col gap-4"
+    >
       <div className="pb-2">
         <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
       </div>
-      <ProfileCoverUploader initialUrl={initialProfile?.profile_cover_url ?? null} />
 
       <div className="grid gap-2">
         <Label htmlFor="full_name">{dict.profile.fullNameLabel}</Label>
@@ -237,7 +249,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label>{dict.profile.lineLabel} <span className="text-destructive">*</span></Label>
+          <Label>{dict.profile.lineLabel}</Label>
           <LineQrUploader
             hasQr={!!initialProfile?.line_qr_path}
             initialSignedUrl={initialLineQrSignedUrl}
@@ -267,16 +279,6 @@ export function ProfileForm({
         </div>
       </div>
 
-      <fieldset className="grid gap-3 border-t border-border pt-4">
-        <legend className="text-sm font-semibold">マイページの公開設定</legend>
-        {[
-          ["show_past_events", "参加したイベントを表示", initialProfile?.show_past_events ?? true],
-          ["show_sns", "SNSリンクを表示", initialProfile?.show_sns ?? true],
-          ["show_languages", "話せる言語を表示", initialProfile?.show_languages ?? true],
-          ["show_nationalities", "国籍・居住経験国を表示", initialProfile?.show_nationalities ?? true],
-        ].map(([name, label, checked]) => <label key={String(name)} className="flex items-center justify-between gap-4 rounded-xl bg-secondary/40 px-3 py-2.5 text-sm"><span>{String(label)}</span><input type="checkbox" name={String(name)} defaultChecked={Boolean(checked)} className="h-4 w-4 accent-primary" /></label>)}
-      </fieldset>
-
       <div className="grid gap-3 border-t border-border pt-4">
         <div>
           <p className="text-sm font-medium">{dict.profile.decoSectionTitle}</p>
@@ -284,31 +286,52 @@ export function ProfileForm({
         </div>
         <div className="grid gap-2">
           <Label>{dict.profile.accentLabel}</Label>
-          <input type="hidden" name="profile_accent" value={accent ?? ""} />
+          {accents.map((a) => (
+            <input key={a} type="hidden" name="profile_accents" value={a} />
+          ))}
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setAccent(null)}
+              onClick={() => {
+                setAccents([]);
+                markDirty();
+              }}
               aria-label={dict.profile.accentNone}
               className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-muted-foreground transition-transform ${
-                accent === null ? "border-foreground scale-110" : "border-border"
+                accents.length === 0 ? "border-foreground scale-110" : "border-border"
               }`}
             >
               <span className="h-4 w-4 rounded-full border border-dashed border-current" />
             </button>
-            {PROFILE_ACCENT_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setAccent(key)}
-                aria-label={key}
-                className={`h-8 w-8 shrink-0 rounded-full border-2 transition-transform ${
-                  accent === key ? "border-foreground scale-110" : "border-transparent"
-                }`}
-                style={{ backgroundColor: PROFILE_ACCENT_HEX[key] }}
-              />
-            ))}
+            {PROFILE_ACCENT_KEYS.map((key) => {
+              const selected = accents.includes(key);
+              const disabled = !selected && accents.length >= MAX_ACCENTS;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    toggleAccent(key);
+                    markDirty();
+                  }}
+                  aria-label={key}
+                  aria-pressed={selected}
+                  className={`relative h-8 w-8 shrink-0 rounded-full border-2 transition-transform ${
+                    selected ? "border-foreground scale-110" : "border-transparent"
+                  } ${disabled ? "cursor-not-allowed opacity-35" : ""}`}
+                  style={{ backgroundColor: PROFILE_ACCENT_HEX[key] }}
+                >
+                  {selected && (
+                    <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                  )}
+                </button>
+              );
+            })}
           </div>
+          <p className="text-xs text-muted-foreground">
+            {accents.length}/{MAX_ACCENTS}
+          </p>
         </div>
       </div>
 

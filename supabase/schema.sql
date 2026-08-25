@@ -417,8 +417,7 @@ grant update (
   full_name, student_id, floor_number, room_number,
   faculty, grade_level, languages, nationalities, lived_countries,
   instagram_handle, line_qr_path, self_intro, avatar_url,
-  line_id, x_handle, profile_accent,
-  profile_cover_url, show_past_events, show_sns, show_languages, show_nationalities
+  line_id, x_handle, profile_accent
 ) on public.users to authenticated;
 grant select, insert on public.users to authenticated;
 
@@ -2037,3 +2036,314 @@ create policy "dm_media_select_members" on storage.objects for select using (
 create policy "dm_media_insert_members" on storage.objects for insert with check (
   bucket_id = 'dm-media' and public.can_access_dm_media((storage.foldername(name))[1])
 );
+
+-- ---------------------------------------------------------------------
+-- 37. Phase 9: マイページのアクセントカラーを最大5色まで選べるようにする
+--   （supabase/migrations/20260825194858_phase9_profile_accents_multi.sql）
+--   旧 profile_accent（単色）は互換のため残すが、以後は profile_accents（配列）を使う。
+--   ついでに directory_profiles() の返り値が実際には line_id / x_handle を
+--   含んでいなかった不整合（TypeScript側の型定義とズレていた）も合わせて修正。
+-- ---------------------------------------------------------------------
+alter table public.users
+  add column if not exists profile_accents text[] not null default '{}'::text[];
+
+alter table public.users
+  add constraint users_profile_accents_max5
+  check (array_length(profile_accents, 1) is null or array_length(profile_accents, 1) <= 5);
+
+drop function if exists public.directory_profiles(uuid);
+
+create function public.directory_profiles(p_user_id uuid default null)
+returns table (
+  id uuid,
+  full_name text,
+  role text,
+  floor_number integer,
+  room_number text,
+  faculty text,
+  grade_level text,
+  languages text[],
+  nationalities text[],
+  lived_countries text[],
+  instagram_handle text,
+  self_intro text,
+  avatar_url text,
+  line_id text,
+  x_handle text,
+  profile_accents text[]
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    u.id, u.full_name, u.role, u.floor_number, u.room_number,
+    u.faculty, u.grade_level, u.languages, u.nationalities, u.lived_countries,
+    u.instagram_handle, u.self_intro, u.avatar_url,
+    u.line_id, u.x_handle, u.profile_accents
+  from public.users u
+  where (p_user_id is null or u.id = p_user_id)
+    and u.moved_out_at is null
+  order by u.floor_number nulls last, u.room_number nulls last, u.full_name nulls last;
+$$;
+
+comment on function public.directory_profiles(uuid) is
+  '寮生ディレクトリ表示用（email/student_id/line_qr_pathは含めない）。p_user_id省略で全件、指定で1件のみ。全dormログインユーザーが実行可。';
+
+revoke all on function public.directory_profiles(uuid) from public;
+revoke execute on function public.directory_profiles(uuid) from anon;
+grant execute on function public.directory_profiles(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 38. Phase 9: お知らせ詳細ページにコメント機能を追加
+--   （supabase/migrations/20260825200632_phase9_announcement_comments.sql）
+--   event_comments / event_comment_likes と同じ構造・RLS方針を
+--   announcement_comments / announcement_comment_likes として新設する。
+-- ---------------------------------------------------------------------
+create table if not exists public.announcement_comments (
+  id uuid primary key default gen_random_uuid(),
+  announcement_id uuid not null references public.announcements(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  parent_id uuid references public.announcement_comments(id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 1000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists announcement_comments_announcement_created_idx
+  on public.announcement_comments(announcement_id, created_at desc);
+
+create table if not exists public.announcement_comment_likes (
+  comment_id uuid not null references public.announcement_comments(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (comment_id, user_id)
+);
+
+alter table public.announcement_comments enable row level security;
+alter table public.announcement_comment_likes enable row level security;
+
+create policy "announcement_comments_select_authenticated"
+on public.announcement_comments for select using (auth.uid() is not null);
+create policy "announcement_comments_insert_own"
+on public.announcement_comments for insert with check (user_id = auth.uid());
+create policy "announcement_comments_update_own"
+on public.announcement_comments for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- event_comments と同様、投稿者本人に加えRAもモデレーション目的で削除できるようにする。
+create policy "announcement_comments_delete"
+on public.announcement_comments for delete using (user_id = (select auth.uid()) or public.is_ra());
+
+create policy "announcement_comment_likes_select_authenticated"
+on public.announcement_comment_likes for select using (auth.uid() is not null);
+create policy "announcement_comment_likes_insert_own"
+on public.announcement_comment_likes for insert with check (user_id = auth.uid());
+create policy "announcement_comment_likes_delete_own"
+on public.announcement_comment_likes for delete using (user_id = auth.uid());
+
+-- ---------------------------------------------------------------------
+-- 39. Phase 9: 通知機能（Instagram風通知フィード）
+--   （supabase/migrations/20260825201312_phase9_notifications.sql,
+--     supabase/migrations/20260825201312_phase9_notifications_lockdown_trigger_fns.sql
+--     相当。実際に適用したのは2本のmigrationだが、内容は最終形として1本にまとめて記載）
+--   友達申請/承認、イベント・お知らせへのいいね/コメント/返信をトリガーで検知し、
+--   notificationsテーブルに自動でレコードを作成する。クライアントからの直接INSERTは
+--   許可しない（SECURITY DEFINERトリガー関数のみが書き込める）。
+-- ---------------------------------------------------------------------
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  actor_id uuid references public.users(id) on delete set null,
+  type text not null check (type in (
+    'friend_request', 'friend_accept',
+    'event_like', 'event_comment', 'event_comment_reply', 'event_comment_like',
+    'announcement_comment', 'announcement_comment_reply', 'announcement_comment_like'
+  )),
+  link text not null,
+  preview_text text,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.notifications is
+  'Instagram風の通知フィード用。直接INSERTは許可せず、各種アクション（友達申請/承認、いいね、コメント、返信）のトリガー関数からのみ生成される。';
+
+create index if not exists notifications_user_created_idx
+  on public.notifications(user_id, created_at desc);
+create index if not exists notifications_user_unread_idx
+  on public.notifications(user_id) where read_at is null;
+
+alter table public.notifications enable row level security;
+
+create policy "notifications_select_own"
+on public.notifications for select using (user_id = auth.uid());
+create policy "notifications_update_own"
+on public.notifications for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "notifications_delete_own"
+on public.notifications for delete using (user_id = auth.uid());
+
+create or replace function public.notify_friend_request()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  insert into public.notifications (user_id, actor_id, type, link)
+  values (new.addressee_id, new.requester_id, 'friend_request', '/directory/' || new.requester_id);
+  return new;
+end;
+$$;
+
+create trigger trg_notify_friend_request
+after insert on public.friend_requests
+for each row execute function public.notify_friend_request();
+
+create or replace function public.notify_friend_accept()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  if old.status = 'pending' and new.status = 'accepted' then
+    insert into public.notifications (user_id, actor_id, type, link)
+    values (new.requester_id, new.addressee_id, 'friend_accept', '/directory/' || new.addressee_id);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_friend_accept
+after update on public.friend_requests
+for each row execute function public.notify_friend_accept();
+
+create or replace function public.notify_event_like()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  v_owner uuid;
+begin
+  select created_by into v_owner from public.events where id = new.event_id;
+  if v_owner is not null and v_owner <> new.user_id then
+    insert into public.notifications (user_id, actor_id, type, link)
+    values (v_owner, new.user_id, 'event_like', '/events/' || new.event_id);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_event_like
+after insert on public.event_likes
+for each row execute function public.notify_event_like();
+
+create or replace function public.notify_event_comment()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  v_owner uuid;
+  v_parent_user uuid;
+begin
+  if new.parent_id is null then
+    select created_by into v_owner from public.events where id = new.event_id;
+    if v_owner is not null and v_owner <> new.user_id then
+      insert into public.notifications (user_id, actor_id, type, link, preview_text)
+      values (v_owner, new.user_id, 'event_comment', '/events/' || new.event_id, left(new.body, 140));
+    end if;
+  else
+    select user_id into v_parent_user from public.event_comments where id = new.parent_id;
+    if v_parent_user is not null and v_parent_user <> new.user_id then
+      insert into public.notifications (user_id, actor_id, type, link, preview_text)
+      values (v_parent_user, new.user_id, 'event_comment_reply', '/events/' || new.event_id, left(new.body, 140));
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_event_comment
+after insert on public.event_comments
+for each row execute function public.notify_event_comment();
+
+create or replace function public.notify_event_comment_like()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  v_author uuid;
+  v_event_id uuid;
+begin
+  select user_id, event_id into v_author, v_event_id from public.event_comments where id = new.comment_id;
+  if v_author is not null and v_author <> new.user_id then
+    insert into public.notifications (user_id, actor_id, type, link)
+    values (v_author, new.user_id, 'event_comment_like', '/events/' || v_event_id);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_event_comment_like
+after insert on public.event_comment_likes
+for each row execute function public.notify_event_comment_like();
+
+create or replace function public.notify_announcement_comment()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  v_owner uuid;
+  v_parent_user uuid;
+begin
+  if new.parent_id is null then
+    select created_by into v_owner from public.announcements where id = new.announcement_id;
+    if v_owner is not null and v_owner <> new.user_id then
+      insert into public.notifications (user_id, actor_id, type, link, preview_text)
+      values (v_owner, new.user_id, 'announcement_comment', '/announcements/' || new.announcement_id, left(new.body, 140));
+    end if;
+  else
+    select user_id into v_parent_user from public.announcement_comments where id = new.parent_id;
+    if v_parent_user is not null and v_parent_user <> new.user_id then
+      insert into public.notifications (user_id, actor_id, type, link, preview_text)
+      values (v_parent_user, new.user_id, 'announcement_comment_reply', '/announcements/' || new.announcement_id, left(new.body, 140));
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_announcement_comment
+after insert on public.announcement_comments
+for each row execute function public.notify_announcement_comment();
+
+create or replace function public.notify_announcement_comment_like()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  v_author uuid;
+  v_announcement_id uuid;
+begin
+  select user_id, announcement_id into v_author, v_announcement_id
+    from public.announcement_comments where id = new.comment_id;
+  if v_author is not null and v_author <> new.user_id then
+    insert into public.notifications (user_id, actor_id, type, link)
+    values (v_author, new.user_id, 'announcement_comment_like', '/announcements/' || v_announcement_id);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_notify_announcement_comment_like
+after insert on public.announcement_comment_likes
+for each row execute function public.notify_announcement_comment_like();
+
+create or replace function public.has_unread_notifications()
+returns boolean language sql security definer stable set search_path = public
+as $$
+  select exists (select 1 from public.notifications where user_id = auth.uid() and read_at is null);
+$$;
+
+revoke all on function public.has_unread_notifications() from public;
+revoke execute on function public.has_unread_notifications() from anon;
+grant execute on function public.has_unread_notifications() to authenticated;
+
+-- notify_*関数はトリガーからのみ発火されるべきで、直接RPCとして呼び出す必要はない。
+-- 全ロールからEXECUTE権限を剥奪する（トリガーの発火自体は妨げられない）。
+revoke all on function public.notify_friend_request() from public, anon, authenticated;
+revoke all on function public.notify_friend_accept() from public, anon, authenticated;
+revoke all on function public.notify_event_like() from public, anon, authenticated;
+revoke all on function public.notify_event_comment() from public, anon, authenticated;
+revoke all on function public.notify_event_comment_like() from public, anon, authenticated;
+revoke all on function public.notify_announcement_comment() from public, anon, authenticated;
+revoke all on function public.notify_announcement_comment_like() from public, anon, authenticated;

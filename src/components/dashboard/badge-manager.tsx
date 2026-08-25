@@ -3,15 +3,16 @@
 import { useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBadge, deleteBadge, updateBadge, resetAllBadges, type BadgeActionResult } from "@/actions/badges";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { BadgeCriteriaType, BadgeRow } from "@/types/database";
 
 function criteriaTypeLabel(dict: ReturnType<typeof useDict>, criteriaType: BadgeCriteriaType) {
@@ -36,7 +37,9 @@ function criteriaTypeLabel(dict: ReturnType<typeof useDict>, criteriaType: Badge
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <><PendingFeedback active={pending} label="バッジを保存しています…" /><Button type="submit" size="sm" disabled={pending}>{pending ? "保存中…" : label}</Button></>
+    <Button type="submit" size="sm" disabled={pending}>
+      {pending ? "..." : label}
+    </Button>
   );
 }
 
@@ -56,6 +59,7 @@ function BadgeForm({
   const [state, formAction] = useFormState(async (prev: BadgeActionResult, formData: FormData) => {
     const result = await action(prev, formData);
     if (!result?.error) {
+      toast.success(badge ? dict.toast.updated : dict.toast.created);
       router.refresh();
       onDone?.();
     }
@@ -135,12 +139,18 @@ function BadgeItem({ badge }: { badge: BadgeRow }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function handleDelete() {
-    if (!window.confirm(dict.badgeAdmin.deleteConfirm)) return;
+  async function handleDelete() {
+    if (!(await confirm({ message: dict.badgeAdmin.deleteConfirm, danger: true }))) return;
     startTransition(async () => {
-      await deleteBadge(badge.id);
-      router.refresh();
+      const result = await deleteBadge(badge.id);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(dict.toast.deleted);
+        router.refresh();
+      }
     });
   }
 
@@ -177,12 +187,18 @@ function ResetAllBadgesCard() {
   const dict = useDict();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function handleReset() {
-    if (!window.confirm(dict.badgeAdmin.resetAllConfirm)) return;
+  async function handleReset() {
+    if (!(await confirm({ message: dict.badgeAdmin.resetAllConfirm, danger: true }))) return;
     startTransition(async () => {
-      await resetAllBadges();
-      router.refresh();
+      const result = await resetAllBadges();
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(dict.toast.updated);
+        router.refresh();
+      }
     });
   }
 

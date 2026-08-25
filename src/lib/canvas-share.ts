@@ -95,6 +95,18 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 /**
+ * LINEのQRコードなど、既に画像として存在するURLをフェッチしてそのまま
+ * ファイルとして保存する。スクリーンショットに頼らず、劣化のない元画像を
+ * 直接ダウンロードできるようにするための共通処理。
+ */
+export async function fetchAndDownloadImage(url: string, filename: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  downloadBlob(blob, filename);
+}
+
+/**
  * 可能ならOS標準の共有シート（インスタのストーリーへの共有等を含む）を開き、
  * 使えない環境（多くのデスクトップブラウザ等）ではPNGダウンロードにフォールバックする。
  */

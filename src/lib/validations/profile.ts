@@ -82,19 +82,17 @@ export function getProfileSchema(locale: Locale) {
       .optional()
       .transform((v) => (v ? v.replace(/^@/, "") : null))
       .refine((v) => v === null || X_HANDLE_REGEX.test(v), t.xHandleFormat),
-    profile_accent: z
-      .string()
-      .trim()
+    /** マイページの背景に使うアクセントカラー。自由に最大5つまで選べる（0個=未選択も可）。 */
+    profile_accents: z
+      .array(z.string().trim().min(1))
       .optional()
-      .transform((v) => (v ? v : null))
+      .default([])
+      .transform((arr) => Array.from(new Set(arr)))
       .refine(
-        (v) => v === null || (PROFILE_ACCENT_KEYS as readonly string[]).includes(v),
+        (arr) => arr.every((v) => (PROFILE_ACCENT_KEYS as readonly string[]).includes(v)),
         t.profileAccentInvalid
-      ),
-    show_past_events: z.boolean().default(false),
-    show_sns: z.boolean().default(false),
-    show_languages: z.boolean().default(false),
-    show_nationalities: z.boolean().default(false),
+      )
+      .refine((arr) => arr.length <= 5, t.profileAccentTooMany),
   });
 }
 

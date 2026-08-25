@@ -25,6 +25,8 @@ export function EventLikeButton({ eventId, count, liked }: { eventId: string; co
     <button
       type="button"
       onClick={toggle}
+      aria-label="いいね"
+      aria-pressed={optimisticLiked}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
         optimisticLiked
           ? "border-primary bg-primary/10 text-primary"
@@ -32,7 +34,7 @@ export function EventLikeButton({ eventId, count, liked }: { eventId: string; co
       }`}
     >
       <Heart className={`h-4 w-4 ${optimisticLiked ? "fill-current" : ""}`} />
-      {optimisticCount || "いいね"}
+      {optimisticCount > 0 && <span>{optimisticCount}</span>}
     </button>
   );
 }

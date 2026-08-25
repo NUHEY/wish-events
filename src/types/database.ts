@@ -13,7 +13,6 @@ export type EventCategory =
   | "サポーター募集"
   | "その他";
 export type SurveyType = "none" | "external" | "internal";
-export type FeatureFlagState = "public" | "beta" | "hidden";
 export type QuestionType =
   | "text"
   | "single_choice"
@@ -39,12 +38,9 @@ export interface UserRow {
   avatar_url: string | null;
   line_id: string | null;
   x_handle: string | null;
+  /** @deprecated profile_accents（配列・最大5色）に置き換え済み。互換のため列は残している。 */
   profile_accent: string | null;
-  profile_cover_url: string | null;
-  show_past_events: boolean;
-  show_sns: boolean;
-  show_languages: boolean;
-  show_nationalities: boolean;
+  profile_accents: string[] | null;
   moved_out_at: string | null;
   created_at: string;
   updated_at: string;
@@ -67,12 +63,7 @@ export interface DirectoryProfileRow {
   avatar_url: string | null;
   line_id: string | null;
   x_handle: string | null;
-  profile_accent: string | null;
-  profile_cover_url: string | null;
-  show_past_events: boolean;
-  show_sns: boolean;
-  show_languages: boolean;
-  show_nationalities: boolean;
+  profile_accents: string[] | null;
 }
 
 export type BadgeCriteriaType =
@@ -280,6 +271,38 @@ export interface EventCommentRow {
   updated_at: string;
 }
 
+export interface AnnouncementCommentRow {
+  id: string;
+  announcement_id: string;
+  user_id: string;
+  parent_id: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NotificationType =
+  | "friend_request"
+  | "friend_accept"
+  | "event_like"
+  | "event_comment"
+  | "event_comment_reply"
+  | "event_comment_like"
+  | "announcement_comment"
+  | "announcement_comment_reply"
+  | "announcement_comment_like";
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  type: NotificationType;
+  link: string;
+  preview_text: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface SurveyRow {
   id: string;
   event_id: string;
@@ -364,13 +387,6 @@ export interface TeamMemberRow {
   avatar_url: string | null;
 }
 
-export interface FeatureFlagRow {
-  key: string;
-  state: FeatureFlagState;
-  updated_by: string | null;
-  updated_at: string;
-}
-
 export interface Database {
   public: {
     Tables: {
@@ -440,6 +456,24 @@ export interface Database {
         Row: { comment_id: string; user_id: string; created_at: string };
         Insert: { comment_id: string; user_id: string };
         Update: never;
+        Relationships: [];
+      };
+      announcement_comments: {
+        Row: AnnouncementCommentRow;
+        Insert: Partial<AnnouncementCommentRow> & { announcement_id: string; user_id: string; body: string };
+        Update: Partial<AnnouncementCommentRow>;
+        Relationships: [];
+      };
+      announcement_comment_likes: {
+        Row: { comment_id: string; user_id: string; created_at: string };
+        Insert: { comment_id: string; user_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      notifications: {
+        Row: NotificationRow;
+        Insert: never;
+        Update: Partial<Pick<NotificationRow, "read_at">>;
         Relationships: [];
       };
       event_likes: {
@@ -574,12 +608,6 @@ export interface Database {
         Update: Partial<FriendRequestRow>;
         Relationships: [];
       };
-      feature_flags: {
-        Row: FeatureFlagRow;
-        Insert: Partial<FeatureFlagRow> & { key: string };
-        Update: Partial<FeatureFlagRow>;
-        Relationships: [];
-      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -657,32 +685,6 @@ export interface Database {
       can_access_dm_media: {
         Args: { p_pair: string };
         Returns: boolean;
-      };
-      has_unread_talks: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-      has_unread_direct_messages: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-      event_talk_threads: {
-        Args: Record<string, never>;
-        Returns: {
-          event_id: string;
-          title: string;
-          title_en: string | null;
-          event_date: string;
-          poster_url: string | null;
-          last_message_body: string | null;
-          last_message_type: string | null;
-          last_message_at: string | null;
-          unread: boolean;
-        }[];
-      };
-      profile_past_events: {
-        Args: { p_user_id: string };
-        Returns: { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null }[];
       };
     };
     Enums: Record<string, never>;

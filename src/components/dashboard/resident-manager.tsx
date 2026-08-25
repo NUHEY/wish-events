@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,26 +19,33 @@ import { formatRoomNumber } from "@/lib/utils";
 import { releaseRoom, resetAllRoomAssignments } from "@/actions/residents";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 function ResidentTable({ residents }: { residents: UserRow[] }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const dict = useDict();
+  const confirm = useConfirm();
 
-  function handleRelease(resident: UserRow) {
-    const ok = window.confirm(
-      `${resident.full_name ?? resident.email} ${dict.residents.releaseConfirm}`
-    );
+  async function handleRelease(resident: UserRow) {
+    const ok = await confirm({
+      message: `${resident.full_name ?? resident.email} ${dict.residents.releaseConfirm}`,
+      danger: true,
+    });
     if (!ok) return;
     startTransition(async () => {
-      await releaseRoom(resident.id);
-      router.refresh();
+      const result = await releaseRoom(resident.id);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(dict.toast.updated);
+        router.refresh();
+      }
     });
   }
 
   return (
-    <><PendingFeedback active={pending} label="寮生情報を更新しています…" /><Table>
+    <Table>
       <TableHeader>
         <TableRow>
           <TableHead>{dict.residents.nameColumn}</TableHead>
@@ -74,7 +82,7 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
           </TableRow>
         )}
       </TableBody>
-    </Table></>
+    </Table>
   );
 }
 
@@ -84,9 +92,10 @@ function BulkResetPanel() {
   const [result, setResult] = useState<string | null>(null);
   const router = useRouter();
   const dict = useDict();
+  const confirm = useConfirm();
 
-  function handleReset() {
-    const ok = window.confirm(dict.residents.resetConfirm);
+  async function handleReset() {
+    const ok = await confirm({ message: dict.residents.resetConfirm, danger: true });
     if (!ok) return;
 
     startTransition(async () => {
@@ -103,7 +112,6 @@ function BulkResetPanel() {
 
   return (
     <Card className="border-destructive/30">
-      <PendingFeedback active={pending} label={dict.residents.resetting} />
       <CardHeader>
         <CardTitle className="text-base">{dict.residents.resetTitle}</CardTitle>
         <CardDescription>

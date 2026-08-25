@@ -5,6 +5,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** "#RRGGBB" を rgba(r, g, b, alpha) 文字列に変換する。 */
+export function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace("#", "");
+  const r = parseInt(normalized.substring(0, 2), 16);
+  const g = parseInt(normalized.substring(2, 4), 16);
+  const b = parseInt(normalized.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * マイページのアクセントカラー（最大5色）から、カードの背景に敷く
+ * 「見えるか分からないほど薄い」グラデーションを組み立てる。
+ * 色が1つなら単色のごく淡いグラデーション、複数なら等間隔に並べる。
+ */
+export function buildAccentBackgroundGradient(hexList: string[], alpha = 0.07): string | null {
+  if (hexList.length === 0) return null;
+  if (hexList.length === 1) {
+    const c = hexToRgba(hexList[0], alpha);
+    return `linear-gradient(135deg, ${c}, transparent 70%)`;
+  }
+  const stops = hexList
+    .map((hex, i) => `${hexToRgba(hex, alpha)} ${Math.round((i / (hexList.length - 1)) * 100)}%`)
+    .join(", ");
+  return `linear-gradient(135deg, ${stops})`;
+}
+
 /**
  * EventCard の表示に必要な列だけを絞った select 文字列。
  * イベント一覧系のページで "*" の代わりに使うことで、説明文や対象者情報など

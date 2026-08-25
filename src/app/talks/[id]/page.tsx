@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { EventTalk } from "@/components/community/event-talk";
-import { AvatarStack } from "@/components/community/avatar-stack";
+import { TalkParticipantsButton } from "@/components/community/talk-participants-button";
 import { BackButton } from "@/components/layout/back-button";
 import { getInitialEventMessages, getEventTalkParticipants, getRequestOrigin } from "@/actions/event-community";
 
@@ -46,7 +46,7 @@ export default async function EventTalkPage({
             イベント詳細
           </Link>
         </div>
-        {participants.length > 0 && <AvatarStack participants={participants} total={participantTotal} />}
+        {participants.length > 0 && <TalkParticipantsButton participants={participants} total={participantTotal} />}
       </div>
       {joined === "1" && (
         <div className="mx-3 mt-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">

@@ -8,6 +8,7 @@ import { CalendarDays, CircleDollarSign, MapPin, UsersRound } from "lucide-react
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
+import { FloatingRegistrationCta } from "@/components/events/floating-registration-cta";
 import { EventPoster } from "@/components/events/event-poster";
 import { EventShareButton } from "@/components/events/event-share-button";
 import { EventComments } from "@/components/community/event-comments";
@@ -103,6 +104,19 @@ export default async function EventDetailPage({
   const isFull = event.capacity != null && registeredCount >= event.capacity;
   const isPast = new Date(event.event_date).getTime() < Date.now();
   const isUnpublished = !!event.publish_at && new Date(event.publish_at).getTime() > Date.now();
+
+  // フローティング申込ボタン（本来の申込ボタンが画面外の間だけ画面下部に表示する
+  // ショートカット）に出すラベルは、RegistrationButton内部の状態判定と揃える。
+  const registrationOpen =
+    !event.registration_opens_at || new Date(event.registration_opens_at).getTime() <= Date.now();
+  const registrationClosed =
+    !!event.registration_closes_at && new Date(event.registration_closes_at).getTime() < Date.now();
+  const floatingCtaLabel = myRegistration
+    ? dict.event.cancelRegistration
+    : isFull
+      ? dict.event.full
+      : dict.event.register;
+  const floatingCtaDisabled = !myRegistration && (!registrationOpen || registrationClosed || isFull);
 
   const isEn = locale === "en";
   const title = (isEn && event.title_en) || event.title;
@@ -210,7 +224,7 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+      <div id="registration-panel" className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">
             {event.capacity != null ? <>{dict.event.registrationStatus}: <span className="font-semibold text-foreground">{registeredCount}</span> / {event.capacity}{dict.event.peopleUnit}</> : <>参加受付中 · 定員なし</>}
           </p>
@@ -226,6 +240,13 @@ export default async function EventDetailPage({
           )}
           {!!myRegistration && <Link href={`/talks/${event.id}`} className="text-sm font-medium text-primary hover:underline">イベントのトークを見る</Link>}
         </div>
+      {!isPast && (
+        <FloatingRegistrationCta
+          anchorId="registration-panel"
+          label={floatingCtaLabel}
+          disabled={floatingCtaDisabled}
+        />
+      )}
 
       {isPast && event.survey_type !== "none" && (
         <div className="rounded-md border border-border p-4">

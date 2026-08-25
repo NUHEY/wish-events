@@ -32,21 +32,14 @@ export async function submitProfile(
     self_intro: formData.get("self_intro"),
     line_id: formData.get("line_id"),
     x_handle: formData.get("x_handle"),
-    profile_accent: formData.get("profile_accent"),
-    show_past_events: formData.get("show_past_events") === "on",
-    show_sns: formData.get("show_sns") === "on",
-    show_languages: formData.get("show_languages") === "on",
-    show_nationalities: formData.get("show_nationalities") === "on",
+    profile_accents: formData.getAll("profile_accents"),
   });
-  const returnTo = formData.get("return_to") === "profile" ? "profile" : "post-login";
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? dict.validation.genericError };
   }
 
   const supabase = await createClient();
-  const { data: qrCheck } = await supabase.from("users").select("line_qr_path").eq("id", profile.id).maybeSingle();
-  if (!qrCheck?.line_qr_path) return { error: "LINE QRコードの登録は必須です。先にQR画像をアップロードしてください。" };
   const { error } = await supabase
     .from("users")
     .update({
@@ -63,11 +56,7 @@ export async function submitProfile(
       self_intro: parsed.data.self_intro,
       line_id: parsed.data.line_id,
       x_handle: parsed.data.x_handle,
-      profile_accent: parsed.data.profile_accent,
-      show_past_events: parsed.data.show_past_events,
-      show_sns: parsed.data.show_sns,
-      show_languages: parsed.data.show_languages,
-      show_nationalities: parsed.data.show_nationalities,
+      profile_accents: parsed.data.profile_accents,
     })
     .eq("id", profile.id);
 
@@ -88,9 +77,7 @@ export async function submitProfile(
 
   revalidatePath("/", "layout");
   revalidatePath("/directory");
-  const nextPath = returnTo === "profile"
-    ? `/directory/${profile.id}`
-    : postLoginPath((newRole as UserRole | null) ?? profile.role);
+  const nextPath = postLoginPath((newRole as UserRole | null) ?? profile.role);
   const separator = nextPath.includes("?") ? "&" : "?";
   redirect(`${nextPath}${separator}saved=1`);
 }

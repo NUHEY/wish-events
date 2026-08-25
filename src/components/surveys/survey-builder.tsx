@@ -11,7 +11,8 @@ import { QUESTION_TYPES, type QuestionType } from "@/lib/constants";
 import type { SurveyQuestionRow, SurveyRow } from "@/types/database";
 import type { ActionResult } from "@/actions/surveys";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 
 type DraftQuestion = {
   question_text: string;
@@ -26,7 +27,9 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   const dict = useDict();
   return (
-    <><PendingFeedback active={pending} label={dict.surveys.saving} /><Button type="submit" disabled={pending}>{pending ? dict.surveys.saving : dict.surveys.saveButton}</Button></>
+    <Button type="submit" disabled={pending}>
+      {pending ? dict.surveys.saving : dict.surveys.saveButton}
+    </Button>
   );
 }
 
@@ -57,8 +60,12 @@ export function SurveyBuilder({
       : [{ question_text: "", question_type: "text", options: [], is_required: true }]
   );
 
+  const { formRef, isDirty, markDirty } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
+
   function updateQuestion(index: number, patch: Partial<DraftQuestion>) {
     setQuestions((qs) => qs.map((q, i) => (i === index ? { ...q, ...patch } : q)));
+    markDirty();
   }
 
   function addQuestion() {
@@ -66,14 +73,22 @@ export function SurveyBuilder({
       ...qs,
       { question_text: "", question_type: "text", options: [], is_required: true },
     ]);
+    markDirty();
   }
 
   function removeQuestion(index: number) {
     setQuestions((qs) => qs.filter((_, i) => i !== index));
+    markDirty();
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={markDirty}
+      onChange={markDirty}
+      className="flex flex-col gap-6"
+    >
       <input type="hidden" name="questions_json" value={JSON.stringify(questions)} />
 
       <div className="grid gap-2 sm:w-2/3">

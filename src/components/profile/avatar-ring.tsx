@@ -24,10 +24,19 @@ export function AvatarRing({
   children: React.ReactNode;
   className?: string;
 }) {
-  const isRa = role?.toLowerCase() === "ra";
+  const isRa = role === "ra";
   const isGold = !isRa && (eventCount ?? 0) >= AVATAR_RING_GOLD_THRESHOLD;
 
-  if (!isRa && !isGold) return <>{children}</>;
+  // リングなし（一般表示）の場合も、リングありと全く同じ外側ラッパーを返す。
+  // 以前はここで <>{children}</> と素通ししていたため、(a) 呼び出し側が渡した
+  // className（重ねて表示する際の白い区切りリング等）が無視される、(b) 写真
+  // (<img>相当のnext/Image)がinline要素のままflex化されず、ブラウザ標準の
+  // ベースライン用の数px分の余白がアイコン下にできる、という2つのバグがあった。
+  // どちらの分岐でも同じ inline-flex ラッパーを通すことで、写真の有無・リングの
+  // 有無に関わらずアイコンの見た目とサイズを完全に統一する。
+  if (!isRa && !isGold) {
+    return <span className={cn("inline-flex shrink-0 rounded-full", className)}>{children}</span>;
+  }
 
   const outerPad = Math.max(1.25, Math.min(3.5, size * 0.055));
   const innerGap = Math.max(0.75, Math.min(2.5, size * 0.04));
@@ -42,7 +51,7 @@ export function AvatarRing({
           : `linear-gradient(135deg, ${AVATAR_RING_GOLD_HEX}, #F5E1A4, ${AVATAR_RING_GOLD_HEX})`,
       }}
     >
-      <span className="block rounded-full bg-card" style={{ padding: innerGap }}>
+      <span className="flex items-center justify-center rounded-full bg-card" style={{ padding: innerGap }}>
         {children}
       </span>
     </span>

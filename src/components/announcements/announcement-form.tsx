@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { AnnouncementRow } from "@/types/database";
 import type { ActionResult } from "@/actions/announcements";
 
@@ -22,7 +23,9 @@ type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResu
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <><PendingFeedback active={pending} label={savingLabel} /><Button type="submit" disabled={pending}>{pending ? savingLabel : label}</Button></>
+    <Button type="submit" disabled={pending}>
+      {pending ? savingLabel : label}
+    </Button>
   );
 }
 
@@ -42,6 +45,9 @@ export function AnnouncementForm({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [body, setBody] = useState(initialAnnouncement?.body ?? "");
   const [showPreview, setShowPreview] = useState(false);
+
+  const { formRef, isDirty, markDirty } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   async function handleCoverFile(file: File) {
     setUploading(true);
@@ -64,10 +70,17 @@ export function AnnouncementForm({
     const { data } = supabase.storage.from("event-posters").getPublicUrl(path);
     setCoverImageUrl(data.publicUrl);
     setUploading(false);
+    markDirty();
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={markDirty}
+      onChange={markDirty}
+      className="flex flex-col gap-6"
+    >
       <input type="hidden" name="cover_image_url" value={coverImageUrl} />
 
       <div className="grid gap-2">

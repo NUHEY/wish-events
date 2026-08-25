@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,7 +18,6 @@ import { formatRoomNumber } from "@/lib/utils";
 import { demoteUserToResident } from "@/actions/ra-rooms";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; currentUserId: string }) {
   const [pending, startTransition] = useTransition();
@@ -26,13 +26,18 @@ function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; curren
 
   function handleDemote(userId: string) {
     startTransition(async () => {
-      await demoteUserToResident(userId);
-      router.refresh();
+      const result = await demoteUserToResident(userId);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(dict.toast.updated);
+        router.refresh();
+      }
     });
   }
 
   return (
-    <><PendingFeedback active={pending} label="RA権限を更新しています…" /><Table>
+    <Table>
       <TableHeader>
         <TableRow>
           <TableHead>{dict.raRooms.nameColumn}</TableHead>
@@ -69,7 +74,7 @@ function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; curren
           </TableRow>
         )}
       </TableBody>
-    </Table></>
+    </Table>
   );
 }
 

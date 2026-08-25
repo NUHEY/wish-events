@@ -2,7 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { getFriendDmThreads } from "@/actions/direct-messages";
 
 export async function Header() {
   const supabase = await createClient();
@@ -19,11 +21,31 @@ export async function Header() {
     .maybeSingle();
 
   if (!profile) return null;
-  const { data: hasUnreadTalk } = await supabase.rpc("has_unread_talks");
+  const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
+  const eventIds = (registrations ?? []).map((registration) => registration.event_id);
+  const [{ data: reads }, { data: messages }, friendThreads, { data: hasUnreadNotifications }] = await Promise.all([
+    eventIds.length
+      ? supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id)
+      : Promise.resolve({ data: [] }),
+    eventIds.length
+      ? supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds)
+      : Promise.resolve({ data: [] }),
+    getFriendDmThreads(),
+    supabase.rpc("has_unread_notifications"),
+  ]);
+  const lastReadByEvent = new Map((reads ?? []).map((read) => [read.event_id, read.last_read_at]));
+  const hasUnreadEventTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
+  const hasUnreadTalk = hasUnreadEventTalk || friendThreads.some((t) => t.unread);
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-border bg-card/85 backdrop-blur-md">
+      {/*
+        sticky + backdrop-blur の組み合わせは、モバイルSafari等でスクロール中に
+        コンポジットのシーム（継ぎ目）が生じ、固定部分の隙間から裏のコンテンツが
+        一瞬見えてしまうことがある。isolate で独立したスタッキングコンテキストを作り、
+        translateZ(0) で専用のコンポジットレイヤーを強制することでこれを防ぐ。
+      */}
+      <header className="sticky top-0 z-20 isolate border-b border-border bg-card/95 backdrop-blur-md [transform:translateZ(0)]">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
           <div className="flex items-center gap-5">
             <Link href="/" className="flex items-center gap-2">
@@ -32,9 +54,10 @@ export async function Header() {
               </span>
               <span className="text-lg font-bold tracking-tight">WISH Events</span>
             </Link>
-            <Nav role={profile.role} hasUnreadTalk={!!hasUnreadTalk} />
+            <Nav role={profile.role} hasUnreadTalk={hasUnreadTalk} />
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1">
+            <NotificationBell hasUnread={!!hasUnreadNotifications} />
             <UserMenu
               userId={user.id}
               fullName={profile.full_name}
@@ -46,7 +69,7 @@ export async function Header() {
           </div>
         </div>
       </header>
-      <MobileTabBar hasUnreadTalk={!!hasUnreadTalk} />
+      <MobileTabBar hasUnreadTalk={hasUnreadTalk} />
     </>
   );
 }

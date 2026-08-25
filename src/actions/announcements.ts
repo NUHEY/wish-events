@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
+import { requireRa, getCurrentProfile } from "@/lib/auth";
 import { announcementSchema } from "@/lib/validations/announcement";
 
 export type ActionResult = { error?: string } | void;
@@ -35,7 +35,7 @@ export async function createAnnouncement(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("announcements").insert({
+  const { error } = await supabase.from("announcements").insert({
     title: parsed.data.title,
     category_label: parsed.data.category_label,
     body: parsed.data.body,
@@ -43,14 +43,14 @@ export async function createAnnouncement(
     pinned: parsed.data.pinned,
     tags: parsed.data.tags,
     created_by: profile.id,
-  }).select("id").single();
+  });
 
   if (error) {
     return { error: `作成に失敗しました: ${error.message}` };
   }
 
   revalidatePath("/");
-  redirect(`/announcements/${data.id}?created=1`);
+  redirect("/?created=1");
 }
 
 export async function updateAnnouncement(
@@ -83,7 +83,7 @@ export async function updateAnnouncement(
   }
 
   revalidatePath("/");
-  redirect(`/announcements/${announcementId}?updated=1`);
+  redirect("/?updated=1");
 }
 
 export async function deleteAnnouncement(announcementId: string) {
@@ -96,4 +96,69 @@ export async function deleteAnnouncement(announcementId: string) {
   }
 
   revalidatePath("/");
+}
+
+// ---------------------------------------------------------------------
+// お知らせ詳細のコメント機能。event_comments系（src/actions/event-community.ts）
+// と同じ設計・挙動を announcement_comments 側に対して行うだけのミラー実装。
+// ---------------------------------------------------------------------
+
+export async function addAnnouncementComment(announcementId: string, body: string, parentId?: string | null) {
+  const profile = await getCurrentProfile();
+  const text = body.trim();
+  if (!text) return { error: "コメントを入力してください" };
+
+  const supabase = await createClient();
+  if (parentId) {
+    const { data: parent } = await supabase
+      .from("announcement_comments")
+      .select("id, announcement_id, parent_id")
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parent || parent.announcement_id !== announcementId || parent.parent_id) {
+      return { error: "返信先のコメントを確認できませんでした" };
+    }
+  }
+
+  const { error } = await supabase
+    .from("announcement_comments")
+    .insert({ announcement_id: announcementId, user_id: profile.id, body: text, parent_id: parentId ?? null });
+  if (error) return { error: `コメントの投稿に失敗しました: ${error.message}` };
+
+  revalidatePath(`/announcements/${announcementId}`);
+  return { success: true };
+}
+
+export async function deleteAnnouncementComment(commentId: string, announcementId: string) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+
+  const { data: comment } = await supabase
+    .from("announcement_comments")
+    .select("id, user_id, announcement_id")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (!comment || comment.announcement_id !== announcementId) return { error: "コメントが見つかりませんでした" };
+  if (comment.user_id !== profile.id && profile.role !== "ra") {
+    return { error: "このコメントを削除する権限がありません" };
+  }
+
+  // parent_id / comment_id はon delete cascadeのため、返信といいねも合わせて削除される。
+  const { error } = await supabase.from("announcement_comments").delete().eq("id", commentId);
+  if (error) return { error: `コメントの削除に失敗しました: ${error.message}` };
+
+  revalidatePath(`/announcements/${announcementId}`);
+  return { success: true };
+}
+
+export async function toggleAnnouncementCommentLike(commentId: string, announcementId: string, liked: boolean) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+  const { error } = liked
+    ? await supabase.from("announcement_comment_likes").delete().eq("comment_id", commentId).eq("user_id", profile.id)
+    : await supabase.from("announcement_comment_likes").insert({ comment_id: commentId, user_id: profile.id });
+  if (error) return { error: `いいねの更新に失敗しました: ${error.message}` };
+
+  revalidatePath(`/announcements/${announcementId}`);
+  return { success: true };
 }

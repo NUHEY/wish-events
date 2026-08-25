@@ -3,18 +3,17 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getLocale, getDictionary } from "@/lib/i18n";
-import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
-import { getFeatureFlagState } from "@/lib/feature-flags";
+import { getLocale, getDictionary, findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
-import { cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
-import { AtSign, Instagram, MessageCircle } from "lucide-react";
+import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
+import { AtSign, ExternalLink, Instagram, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BackButton } from "@/components/layout/back-button";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { ProfileShareButton } from "@/components/profile/profile-share-card";
+import { LineQrDisplay } from "@/components/profile/line-qr-display";
 import { FriendButton } from "@/components/community/friend-button";
 import { IncomingFriendRequests } from "@/components/community/incoming-friend-requests";
 import { getFriendRelation, getIncomingFriendRequests } from "@/actions/friends";
@@ -77,7 +76,7 @@ export default async function DirectoryProfilePage({
       ? supabase
           .from("users")
           .select(
-            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accent, profile_cover_url, show_past_events, show_sns, show_languages, show_nationalities"
+            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accents"
           )
           .eq("id", id)
           .maybeSingle()
@@ -108,20 +107,28 @@ export default async function DirectoryProfilePage({
     .map((b) => ({ icon: b.icon, label: locale === "en" && b.label_en ? b.label_en : b.label, description: locale === "en" && b.description_en ? b.description_en : b.description }));
 
   const isSelf = viewer.id === target.id;
-  const [lineQrSignedUrl, friendRelation, incomingRequests, friendDmState] = await Promise.all([
+  const [lineQrSignedUrl, friendRelation, incomingRequests] = await Promise.all([
     lineQrPath ? getLineQrSignedUrl(lineQrPath) : Promise.resolve(null),
     isSelf ? Promise.resolve(null) : getFriendRelation(target.id),
     isSelf ? getIncomingFriendRequests() : Promise.resolve([]),
-    getFeatureFlagState("friend_dm"),
   ]);
-  const accentHex = target.profile_accent
-    ? PROFILE_ACCENT_HEX[target.profile_accent as ProfileAccentKey]
-    : null;
+  const accentHexList = (target.profile_accents ?? [])
+    .map((key) => PROFILE_ACCENT_HEX[key as ProfileAccentKey])
+    .filter((hex): hex is string => Boolean(hex))
+    .slice(0, 5);
+  const accentHex = accentHexList[0] ?? null;
+  const accentBackgroundGradient = buildAccentBackgroundGradient(accentHexList);
 
   let pastEvents: PastEvent[] = [];
-  if (isSelf || target.show_past_events) {
-    const { data } = await supabase.rpc("profile_past_events", { p_user_id: target.id });
-    pastEvents = (data ?? []) as PastEvent[];
+  if (isSelf) {
+    const { data: pastRegs } = await supabase
+      .from("registrations")
+      .select("event_id, events(id, title, title_en, event_date, poster_url)")
+      .eq("user_id", target.id)
+      .order("registered_at", { ascending: false })
+      .limit(12)
+      .returns<{ event_id: string; events: PastEvent | null }[]>();
+    pastEvents = (pastRegs ?? []).map((r) => r.events).filter(Boolean) as PastEvent[];
   }
 
   const roomText = formatRoomNumber(target.floor_number, target.room_number);
@@ -130,25 +137,47 @@ export default async function DirectoryProfilePage({
     <div className="mx-auto flex max-w-xl flex-col gap-4">
       <BackButton fallbackHref="/directory" className="-ml-2" />
 
-      <Card className="overflow-hidden rounded-2xl">
-        {target.profile_cover_url ? <div className="relative h-32 w-full"><Image src={target.profile_cover_url} alt="" fill sizes="576px" className="object-cover" /></div> : accentHex ? <div className="h-16 w-full" style={{ backgroundColor: accentHex }} /> : null}
-        <CardContent className={`flex flex-col gap-5 p-5 ${target.profile_cover_url || accentHex ? "-mt-10" : ""}`}>
-          <div className="flex items-center gap-4">
-            <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
-              {target.avatar_url ? (
-                <Image
-                  src={target.avatar_url}
-                  alt=""
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-secondary-foreground">
-                  {target.full_name?.charAt(0) ?? "?"}
-                </span>
-              )}
-            </AvatarRing>
+      <Card
+        className="overflow-hidden rounded-2xl"
+        style={
+          accentBackgroundGradient ? { backgroundImage: accentBackgroundGradient } : undefined
+        }
+      >
+        {accentHexList.length > 0 && (
+          <div
+            className="h-16 w-full"
+            style={{
+              background:
+                accentHexList.length === 1
+                  ? accentHexList[0]
+                  : `linear-gradient(90deg, ${accentHexList.join(", ")})`,
+            }}
+          />
+        )}
+        <CardContent className="flex flex-col gap-5 p-5">
+          {/*
+            カバー（アクセントカラー）の帯とアバターだけを重ねて見せたいので、
+            マイナスマージンはこの行だけに限定する。以前はCardContent全体に
+            掛けていたため、名前や部屋番号までカバーの上に乗り上げてしまっていた。
+          */}
+          <div className={`flex items-center gap-4 ${accentHex ? "-mt-10" : ""}`}>
+            <div className={cn("shrink-0 rounded-full", accentHex && "ring-4 ring-card")}>
+              <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
+                {target.avatar_url ? (
+                  <Image
+                    src={target.avatar_url}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-secondary-foreground">
+                    {target.full_name?.charAt(0) ?? "?"}
+                  </span>
+                )}
+              </AvatarRing>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-xl font-bold">{target.full_name ?? dict.common.notRegistered}</h1>
@@ -161,7 +190,7 @@ export default async function DirectoryProfilePage({
             </div>
             {!isSelf && friendRelation && (
               <div className="flex shrink-0 items-center gap-2">
-                {friendRelation.status === "friends" && friendDmState !== "hidden" && (
+                {friendRelation.status === "friends" && (
                   <Link
                     href={`/talks/friends/${target.id}`}
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -261,10 +290,13 @@ export default async function DirectoryProfilePage({
                   href={`https://instagram.com/${target.instagram_handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-sm transition-colors hover:text-primary"
+                  className="flex w-fit items-center gap-2 rounded-full border border-border bg-gradient-to-r from-[#FEDA75]/15 via-[#D62976]/15 to-[#4F5BD5]/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
                 >
-                  <Instagram className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] text-white">
+                    <Instagram className="h-3.5 w-3.5" />
+                  </span>
                   <span>@{target.instagram_handle}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 </a>
               )}
               {target.x_handle && (
@@ -292,16 +324,7 @@ export default async function DirectoryProfilePage({
             <div className="grid gap-1.5">
               <p className="text-xs text-muted-foreground">{dict.profile.lineLabel}</p>
               {lineQrSignedUrl ? (
-                <div className="h-32 w-32 overflow-hidden rounded-md border border-border bg-muted">
-                  <Image
-                    src={lineQrSignedUrl}
-                    alt="LINE QR"
-                    width={128}
-                    height={128}
-                    className="h-full w-full object-contain"
-                    unoptimized
-                  />
-                </div>
+                <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
               ) : (
                 <p className="text-sm text-muted-foreground">{dict.profile.lineNotUploaded}</p>
               )}
@@ -312,7 +335,7 @@ export default async function DirectoryProfilePage({
             <p className="text-xs text-muted-foreground">{dict.directory.hiddenFieldsNote}</p>
           )}
 
-          {(isSelf || target.show_past_events) && pastEvents.length > 0 && (
+          {isSelf && pastEvents.length > 0 && (
             <div className="grid gap-2 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">{dict.directory.pastEventsTitle}</p>
               <div className="grid grid-cols-4 gap-2">
@@ -356,7 +379,6 @@ export default async function DirectoryProfilePage({
                 fullName: target.full_name,
                 roomText,
                 avatarUrl: target.avatar_url,
-                coverUrl: target.profile_cover_url,
                 accentHex,
                 badges: earnedBadges,
                 eventCount: stats.event_count,

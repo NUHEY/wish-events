@@ -249,45 +249,45 @@ export async function prepareEventDetailsToolDraft(eventId: string) {
   return { body: `イベントの日時・場所・持ち物などは、詳細ページで確認できます。\n${url}` };
 }
 
-/** RAがイベント詳細を、通常の吹き出しではないサイト内カードとして送る。 */
-export async function sendEventDetailsTool(eventId: string) {
+/** RAツール「会場案内」の下書き文面を作る。 */
+export async function prepareEventLocationToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
   if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+
   const supabase = await createClient();
-  const { data, error } = await supabase.from("event_messages").insert({
-    event_id: eventId,
-    sender_id: profile.id,
-    body: "日時・場所・持ち物など、最新のイベント情報を確認できます。",
-    message_type: "tool",
-    action_url: `/events/${eventId}`,
-    action_label: "イベント詳細を確認",
-  }).select().single();
-  if (error) return { error: `案内を送信できませんでした: ${error.message}` };
-  revalidatePath(`/talks/${eventId}`);
-  revalidatePath("/talks");
-  return { success: true, message: data };
+  const { data: event } = await supabase.from("events").select("location, location_url").eq("id", eventId).maybeSingle();
+  if (!event || (!event.location && !event.location_url)) {
+    return { error: "このイベントには開催場所が設定されていません" };
+  }
+
+  const lines = ["開催場所のご案内です。"];
+  if (event.location) lines.push(event.location);
+  if (event.location_url) lines.push(event.location_url);
+  return { body: lines.join("\n") };
 }
 
-/** RAが設定済みアンケートを、回答先が明確なサイト専用カードとして送る。 */
-export async function sendEventSurveyTool(eventId: string) {
+/** RAツール「集金案内」の下書き文面を作る。 */
+export async function prepareEventPaymentToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
   if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+
   const supabase = await createClient();
-  const { data: event } = await supabase.from("events").select("survey_type, survey_external_url").eq("id", eventId).maybeSingle();
-  if (!event || event.survey_type === "none") return { error: "このイベントにはアンケートが設定されていません" };
-  const actionUrl = event.survey_type === "external" && event.survey_external_url ? event.survey_external_url : `/events/${eventId}/survey`;
-  const { data, error } = await supabase.from("event_messages").insert({
-    event_id: eventId,
-    sender_id: profile.id,
-    body: "イベントをより良くするため、回答にご協力ください。",
-    message_type: "tool",
-    action_url: actionUrl,
-    action_label: "アンケートに回答",
-  }).select().single();
-  if (error) return { error: `アンケートを送信できませんでした: ${error.message}` };
-  revalidatePath(`/talks/${eventId}`);
-  revalidatePath("/talks");
-  return { success: true, message: data };
+  const { data: event } = await supabase
+    .from("events")
+    .select("fee_amount, payment_info, payment_destination, payment_due_at")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event || !event.fee_amount) return { error: "このイベントには参加費が設定されていません" };
+
+  const lines = [`参加費: ${event.fee_amount.toLocaleString()}円`];
+  if (event.payment_destination) lines.push(`集金場所: ${event.payment_destination}`);
+  if (event.payment_info) lines.push(event.payment_info);
+  if (event.payment_due_at) {
+    lines.push(
+      `集金期限: ${new Date(event.payment_due_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}`
+    );
+  }
+  return { body: lines.join("\n") };
 }
 
 export async function markEventTalkRead(eventId: string) {

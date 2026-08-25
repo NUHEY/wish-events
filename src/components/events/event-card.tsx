@@ -60,28 +60,33 @@ export async function EventCard({
     !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
 
   return (
-    <Link href={`/events/${event.id}`} prefetch className="group block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+    <Link href={`/events/${event.id}`} className="group block">
       <Card
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border-border/80 bg-card shadow-[0_2px_12px_rgba(44,24,34,0.06)] transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.985]",
+          "h-full overflow-hidden transition-all duration-200",
           isMuted
             ? "opacity-70 grayscale-[0.35] hover:opacity-100 hover:grayscale-0"
             : "group-hover:-translate-y-0.5 group-hover:border-foreground/15 group-hover:shadow-card-hover"
         )}
       >
-        <div className="relative shrink-0 overflow-hidden">
+        <div className="relative">
           <EventPoster
             src={event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
             ratioClassName="aspect-[4/3]"
-            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.025]")}
+            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]")}
           />
-          <div className="absolute inset-x-2 top-2 flex items-start gap-1 overflow-hidden">
-            <Badge variant="secondary" className="max-w-[65%] truncate border-white/40 bg-card/90 shadow-sm backdrop-blur-md">{categoryLabel}</Badge>
-            {isNew && <Badge variant="default" className="border-0 bg-sky-600/90 shadow-sm">{dict.event.newTag}</Badge>}
+          <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+            <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
             {isDeadlineSoon && <Badge variant="destructive" className="border-0 shadow-sm">{dict.event.deadlineSoonTag}</Badge>}
           </div>
+          {/* 「新規」は左上のタグ群に混ぜず、右上に独立した帯（リボン）として配置する。 */}
+          {isNew && (
+            <span className="absolute right-0 top-3 inline-flex h-5 items-center rounded-l-full bg-sky-600 py-0 pl-2.5 pr-2 text-[10px] font-bold uppercase leading-none tracking-wide text-white shadow-sm">
+              {dict.event.newTag}
+            </span>
+          )}
           {event.fee_amount ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
           ) : (
@@ -89,16 +94,16 @@ export async function EventCard({
           )}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
         </div>
-        <CardContent className={cn("flex h-[82px] shrink-0 flex-col justify-between gap-1.5 p-2.5 sm:h-[92px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
+        <CardContent className={cn("flex min-h-[76px] flex-col justify-between gap-1.5 p-2.5 sm:min-h-[88px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "line-clamp-2 min-h-[2.5em] break-words text-sm font-semibold leading-[1.25] transition-colors group-hover:text-primary sm:text-base",
+              "line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-base",
               isMuted && "text-sm"
             )}
           >
             {title}
           </h3>
-          <p className="truncate text-[11px] font-medium text-muted-foreground sm:text-xs">
+          <p className="text-xs text-muted-foreground sm:text-sm">
             {formatEventDateTime(event.event_date, locale)}
           </p>
         </CardContent>
