@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/locales";
-import { FLOORS } from "@/lib/constants";
-
-const ROOM_NUMBER_REGEX = /^[0-9]{2}[A-D]?$/;
+import { parseFullRoomNumber } from "@/lib/utils";
 
 const INSTAGRAM_REGEX = /^[A-Za-z0-9._]{1,30}$/;
 
@@ -26,10 +24,11 @@ const optionalArray = () =>
  * バリデーションメッセージは表示ロケールに合わせて出し分ける。
  * Server Action側で `getLocale()` の結果を渡して呼び出す。
  *
- * 部屋番号は「階」と「号室（ユニット記号含む・階を含まない）」を別入力にしている。
- * ドアの表示（例: 3階なら301A）から自分でパースして入力してもらう方式は
- * 使い方が分かりにくいという指摘を受け、RA個室一覧の登録フォームと同じ
- * 「階のプルダウン + 号室の入力欄」という分離した形式に統一した。
+ * 部屋番号は「1001A」のようにドアの表示そのまま（階込み）を1つの入力欄で
+ * 受け取り、ここで parseFullRoomNumber により floor_number/room_number に
+ * 分解する。DB上は引き続き両者を別カラムで保持する（表示・検索・RA個室判定
+ * のロジックは変更していないため）が、ユーザーからは階を意識せず普段呼んで
+ * いる部屋番号をそのまま入力してもらう。
  */
 export function getProfileSchema(locale: Locale) {
   const t = dictionaries[locale].validation;
@@ -44,16 +43,13 @@ export function getProfileSchema(locale: Locale) {
       .string()
       .trim()
       .regex(/^[A-Za-z0-9]{8}$/, t.studentIdFormat),
-    floor_number: z.coerce
-      .number()
-      .int()
-      .refine((v) => (FLOORS as readonly number[]).includes(v), t.floorRequired),
     room_number: z
       .string()
       .trim()
       .min(1, t.roomNumberRequired)
-      .transform((v) => v.toUpperCase())
-      .refine((v) => ROOM_NUMBER_REGEX.test(v), t.roomNumberFormat),
+      .transform((v) => v.toUpperCase().replace(/\s+/g, ""))
+      .refine((v) => parseFullRoomNumber(v) !== null, t.roomNumberFormat)
+      .transform((v) => parseFullRoomNumber(v)!),
     faculty: optionalSelect(),
     grade_level: optionalSelect(),
     languages: optionalArray(),

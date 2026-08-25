@@ -22,7 +22,6 @@ export async function submitProfile(
   const parsed = schema.safeParse({
     full_name: formData.get("full_name"),
     student_id: formData.get("student_id"),
-    floor_number: formData.get("floor_number"),
     room_number: formData.get("room_number"),
     faculty: formData.get("faculty"),
     grade_level: formData.get("grade_level"),
@@ -43,8 +42,8 @@ export async function submitProfile(
     .update({
       full_name: parsed.data.full_name,
       student_id: parsed.data.student_id,
-      floor_number: parsed.data.floor_number,
-      room_number: parsed.data.room_number,
+      floor_number: parsed.data.room_number.floorNumber,
+      room_number: parsed.data.room_number.roomNumber,
       faculty: parsed.data.faculty,
       grade_level: parsed.data.grade_level,
       languages: parsed.data.languages.length ? parsed.data.languages : null,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
+import { parseFullRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { submitProfile } from "@/actions/profile";
 import type { UserRow } from "@/types/database";
@@ -55,6 +57,13 @@ export function ProfileForm({
   const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l[locale] }));
   const countryOptions = COUNTRIES.map((c) => ({ code: c.code, label: c[locale] }));
 
+  const [roomNumberInput, setRoomNumberInput] = useState(
+    initialProfile?.floor_number != null && initialProfile?.room_number
+      ? `${initialProfile.floor_number}${initialProfile.room_number}`
+      : ""
+  );
+  const parsedRoom = parseFullRoomNumber(roomNumberInput);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-2">
@@ -80,19 +89,29 @@ export function ProfileForm({
         />
       </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-3">
+      <div className="grid grid-cols-[1fr_auto] gap-3">
         <div className="grid gap-2">
-          <Label htmlFor="floor_number">{dict.profile.floorLabel}</Label>
-          <Select
-            id="floor_number"
-            name="floor_number"
+          <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
+          <Input
+            id="room_number"
+            name="room_number"
             required
-            defaultValue={initialProfile?.floor_number ?? ""}
+            maxLength={5}
+            placeholder={dict.profile.roomNumberPlaceholder}
+            value={roomNumberInput}
+            onChange={(e) => setRoomNumberInput(e.target.value)}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="floor_number_display">{dict.profile.floorLabel}</Label>
+          <Select
+            id="floor_number_display"
+            disabled
+            value={parsedRoom?.floorNumber ?? ""}
             className="w-24"
+            aria-readonly
           >
-            <option value="" disabled>
-              {dict.profile.floorPlaceholder}
-            </option>
+            <option value="">{dict.profile.floorPlaceholder}</option>
             {FLOORS.map((f) => (
               <option key={f} value={f}>
                 {f}
@@ -100,17 +119,6 @@ export function ProfileForm({
               </option>
             ))}
           </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
-          <Input
-            id="room_number"
-            name="room_number"
-            required
-            maxLength={3}
-            placeholder={dict.profile.roomNumberPlaceholder}
-            defaultValue={initialProfile?.room_number ?? ""}
-          />
         </div>
       </div>
       <p className="-mt-2 text-xs text-muted-foreground">{dict.profile.roomNumberHint}</p>
