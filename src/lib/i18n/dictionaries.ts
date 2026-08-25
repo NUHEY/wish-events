@@ -35,7 +35,8 @@ const ja = {
     subtitle: "早稲田大学国際学生寮のイベント情報サイト",
     googleButton: "Googleアカウントでログイン",
     domainNote: "@waseda.jp（学生用Google Workspace）のアカウントのみログインできます",
-    invalidDomain: "waseda.jp のメールアドレスでログインしてください。",
+    invalidDomain: "waseda.jp のメールアドレスでログインしてください。別のGoogleアカウントを選択してしまった可能性があります。",
+    authFailed: "ログインに失敗しました。もう一度お試しください。改善しない場合は少し時間をおいてからお試しください。",
   },
   home: {
     title: "イベント一覧",
@@ -367,7 +368,8 @@ const en: typeof ja = {
     subtitle: "Event site for Waseda University's international student dorm (WISH)",
     googleButton: "Sign in with Google",
     domainNote: "Only @waseda.jp (student Google Workspace) accounts can sign in",
-    invalidDomain: "Please sign in with a waseda.jp email address.",
+    invalidDomain: "Please sign in with a waseda.jp email address. You may have selected the wrong Google account.",
+    authFailed: "Sign-in failed. Please try again. If this keeps happening, wait a moment and retry.",
   },
   home: {
     title: "Events",

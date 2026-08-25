@@ -42,6 +42,13 @@ function LoginContent() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        // Googleのアカウント選択画面をwaseda.jpのGoogle Workspaceアカウントに
+        // 絞り込むヒント。複数のGoogleアカウントを使い分けている人が誤って
+        // 個人のGmailアカウントを選んでしまう事故を減らす（強制ではないため
+        // サーバー側のドメインチェックは別途必須で残す）。
+        queryParams: {
+          hd: "waseda.jp",
+        },
       },
     });
   }
@@ -69,6 +76,11 @@ function LoginContent() {
           {error === "invalid_domain" && (
             <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
               {dict.login.invalidDomain}
+            </p>
+          )}
+          {error === "auth_failed" && (
+            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
+              {dict.login.authFailed}
             </p>
           )}
           <Button onClick={handleLogin} variant="outline" className="w-full gap-2.5">
