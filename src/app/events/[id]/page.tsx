@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
 import { EventPoster } from "@/components/events/event-poster";
+import { EventShareButton } from "@/components/events/event-share-button";
 import { BackButton } from "@/components/layout/back-button";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
@@ -40,9 +41,18 @@ export default async function EventDetailPage({
     .eq("user_id", profile.id)
     .maybeSingle();
 
+  const { data: registrationQuestions } = event.requires_registration
+    ? await supabase
+        .from("registration_questions")
+        .select("*")
+        .eq("event_id", id)
+        .order("position", { ascending: true })
+    : { data: [] };
+
   const registeredCount = count ?? 0;
   const isFull = event.capacity != null && registeredCount >= event.capacity;
   const isPast = new Date(event.event_date).getTime() < Date.now();
+  const isUnpublished = !!event.publish_at && new Date(event.publish_at).getTime() > Date.now();
 
   const isEn = locale === "en";
   const title = (isEn && event.title_en) || event.title;
@@ -72,8 +82,21 @@ export default async function EventDetailPage({
               {dict.event.limitedFloors}
             </Badge>
           )}
+          {profile.role === "ra" && isUnpublished && (
+            <Badge variant="destructive">{dict.event.unpublishedBadge}</Badge>
+          )}
         </div>
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <EventShareButton
+            title={title}
+            categoryLabel={categoryLabel}
+            eventDate={event.event_date}
+            location={location}
+            audience={audience}
+            feeAmount={event.fee_amount}
+          />
+        </div>
         <dl className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
           <div>
             <dt className="inline font-medium text-foreground">{dict.event.dateLabel}: </dt>
@@ -129,6 +152,8 @@ export default async function EventDetailPage({
               eventId={event.id}
               isRegistered={!!myRegistration}
               isFull={isFull}
+              questions={registrationQuestions ?? []}
+              registrationOpensAt={event.registration_opens_at}
             />
           )}
         </div>
@@ -168,6 +193,14 @@ export default async function EventDetailPage({
           >
             {dict.event.participantsButton}
           </Link>
+          {event.requires_registration && (
+            <Link
+              href={`/events/${event.id}/questions`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {dict.event.questionsManageButton}
+            </Link>
+          )}
           <Link
             href={`/dashboard/${event.id}/survey`}
             className={buttonVariants({ variant: "outline", size: "sm" })}

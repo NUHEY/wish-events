@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, UserRound } from "lucide-react";
+import { DoorOpen, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -87,6 +87,12 @@ export function UserMenu({
             </Link>
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem asChild>
+          <Link href="/move-out" className="cursor-pointer">
+            <DoorOpen className="h-4 w-4" />
+            {dict.moveOut.navMenuLabel}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem destructive onSelect={handleSignOut}>
           <LogOut className="h-4 w-4" />

@@ -33,6 +33,8 @@ function parseEventFormData(formData: FormData) {
     capacity: capacityRaw ? Number(capacityRaw) : undefined,
     fee_amount: feeAmountRaw ? Number(feeAmountRaw) : undefined,
     payment_info: formData.get("payment_info") ?? "",
+    publish_at: formData.get("publish_at") ?? "",
+    registration_opens_at: formData.get("registration_opens_at") ?? "",
     target_floors: targetFloors,
     survey_type: formData.get("survey_type") ?? "none",
     survey_external_url: formData.get("survey_external_url") ?? "",
@@ -69,6 +71,11 @@ export async function createEvent(
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
+      publish_at: parsed.data.publish_at ? new Date(parsed.data.publish_at).toISOString() : null,
+      registration_opens_at:
+        parsed.data.requires_registration && parsed.data.registration_opens_at
+          ? new Date(parsed.data.registration_opens_at).toISOString()
+          : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:
@@ -119,6 +126,11 @@ export async function updateEvent(
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
+      publish_at: parsed.data.publish_at ? new Date(parsed.data.publish_at).toISOString() : null,
+      registration_opens_at:
+        parsed.data.requires_registration && parsed.data.registration_opens_at
+          ? new Date(parsed.data.registration_opens_at).toISOString()
+          : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:

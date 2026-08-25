@@ -18,6 +18,9 @@ export const eventSchema = z
     capacity: z.coerce.number().int().positive().optional().nullable(),
     fee_amount: z.coerce.number().int().min(0).optional().nullable(),
     payment_info: z.string().trim().optional().default(""),
+    // 空文字は「即公開/即申込可」を意味するnullとして扱う。
+    publish_at: z.string().trim().optional().default(""),
+    registration_opens_at: z.string().trim().optional().default(""),
     target_floors: z
       .array(z.coerce.number().refine((v) => (FLOORS as readonly number[]).includes(v)))
       .optional()

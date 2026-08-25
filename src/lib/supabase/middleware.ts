@@ -118,6 +118,7 @@ export async function updateSession(request: NextRequest) {
         path.startsWith("/dashboard") ||
         path.startsWith("/announcements/new") ||
         /^\/events\/[^/]+\/edit/.test(path) ||
+        /^\/events\/[^/]+\/questions/.test(path) ||
         /^\/announcements\/[^/]+\/edit/.test(path);
 
       if (isRaOnlyPath && profile?.role !== "ra") {

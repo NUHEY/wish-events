@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -266,6 +267,19 @@ export function EventForm({
         />
       </div>
 
+      <fieldset className="grid gap-2 rounded-md border border-border p-3 sm:w-1/2">
+        <legend className="px-1 text-sm font-medium">{dict.eventForm.publishLegend}</legend>
+        <DateTimePicker
+          name="publish_at"
+          defaultValue={
+            initialEvent?.publish_at
+              ? new Date(initialEvent.publish_at).toISOString().slice(0, 16)
+              : undefined
+          }
+        />
+        <p className="text-xs text-muted-foreground">{dict.eventForm.publishHint}</p>
+      </fieldset>
+
       <fieldset className="grid gap-2 rounded-md border border-border p-3">
         <legend className="px-1 text-sm font-medium">{dict.eventForm.targetFloorsLegend}</legend>
         <p className="text-xs text-muted-foreground">{dict.eventForm.targetFloorsHint}</p>
@@ -295,17 +309,46 @@ export function EventForm({
           {dict.eventForm.registrationRequired}
         </label>
         {requiresRegistration && (
-          <div className="grid gap-2 sm:w-1/3">
-            <Label htmlFor="capacity">{dict.eventForm.capacityLabel}</Label>
-            <Input
-              id="capacity"
-              name="capacity"
-              type="number"
-              min={1}
-              required={requiresRegistration}
-              defaultValue={initialEvent?.capacity ?? undefined}
-            />
-          </div>
+          <>
+            <div className="grid gap-2 sm:w-1/3">
+              <Label htmlFor="capacity">{dict.eventForm.capacityLabel}</Label>
+              <Input
+                id="capacity"
+                name="capacity"
+                type="number"
+                min={1}
+                required={requiresRegistration}
+                defaultValue={initialEvent?.capacity ?? undefined}
+              />
+            </div>
+            <div className="grid gap-2 sm:w-1/2">
+              <Label>{dict.eventForm.registrationOpensLabel}</Label>
+              <DateTimePicker
+                name="registration_opens_at"
+                defaultValue={
+                  initialEvent?.registration_opens_at
+                    ? new Date(initialEvent.registration_opens_at).toISOString().slice(0, 16)
+                    : undefined
+                }
+              />
+              <p className="text-xs text-muted-foreground">{dict.eventForm.registrationOpensHint}</p>
+            </div>
+            <div className="grid gap-1.5">
+              <p className="text-xs text-muted-foreground">
+                {initialEvent
+                  ? dict.eventForm.registrationQuestionsHintEdit
+                  : dict.eventForm.registrationQuestionsHintNew}
+              </p>
+              {initialEvent && (
+                <Link
+                  href={`/events/${initialEvent.id}/questions`}
+                  className="w-fit text-xs font-medium text-primary hover:underline"
+                >
+                  {dict.event.questionsManageButton}
+                </Link>
+              )}
+            </div>
+          </>
         )}
       </fieldset>
 

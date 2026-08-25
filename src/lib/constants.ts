@@ -31,6 +31,17 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 };
 
 /**
+ * 申込前の事前質問（アレルギー等）で使える質問形式。
+ * イベント後アンケート(QUESTION_TYPES)と異なり「評価(rating)」は対象外。
+ */
+export const REGISTRATION_QUESTION_TYPES = [
+  "text",
+  "single_choice",
+  "multiple_choice",
+] as const;
+export type RegistrationQuestionType = (typeof REGISTRATION_QUESTION_TYPES)[number];
+
+/**
  * RA活動（イベント企画・フロア対応など）に役立てるための任意プロフィール項目。
  * いずれも未選択のまま保存可能（＝回答しない）。
  */

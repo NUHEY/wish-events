@@ -263,16 +263,26 @@ as $$
 declare
   v_capacity integer;
   v_requires boolean;
+  v_registration_opens_at timestamptz;
   v_current_count integer;
 begin
-  select capacity, requires_registration
-    into v_capacity, v_requires
+  select capacity, requires_registration, registration_opens_at
+    into v_capacity, v_requires, v_registration_opens_at
     from public.events
     where id = new.event_id
     for update;
 
   if not v_requires then
     raise exception 'このイベントは事前申し込みが不要です';
+  end if;
+
+  -- registration_opens_at（申込受付開始日時）を過ぎるまではRA以外は申込不可。
+  -- クライアント側のボタンdisabled表示はUXでしかないため、Server Action直叩きでの
+  -- 回避を防ぐ目的でここ（DBトリガー）でも強制する。
+  if v_registration_opens_at is not null
+     and v_registration_opens_at > now()
+     and not public.is_ra() then
+    raise exception '申込受付開始前です';
   end if;
 
   select count(*) into v_current_count
@@ -394,6 +404,9 @@ grant select, insert on public.users to authenticated;
 -- ---------------------------------------------------------------------
 -- 閲覧: RAは常に全件。一般寮生はpublish_atを過ぎておりtarget_floorsが
 -- 未指定 or 自分の階が含まれる場合のみ。
+-- 自分がregistrationsを持つイベントは、フロア条件やpublish_atに関わらず常に
+-- 閲覧可にする（退寮済みユーザーはfloor_numberがNULLになるため、これが無いと
+-- target_floors指定イベントが退寮画面の参加履歴から消えてしまう）。
 create policy "events_select"
 on public.events for select
 using (
@@ -405,6 +418,10 @@ using (
       or array_length(target_floors, 1) is null
       or public.current_user_floor() = any (target_floors)
     )
+  )
+  or exists (
+    select 1 from public.registrations r
+    where r.event_id = events.id and r.user_id = auth.uid()
   )
 );
 

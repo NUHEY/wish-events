@@ -24,20 +24,37 @@ export default async function ParticipantsPage({
   if (!event) notFound();
   const title = (locale === "en" && event.title_en) || event.title;
 
+  const { data: questions } = await supabase
+    .from("registration_questions")
+    .select("*")
+    .eq("event_id", id)
+    .order("position", { ascending: true });
+
   const { data: registrations } = await supabase
     .from("registrations")
-    .select("user_id, registered_at, users(full_name, student_id, floor_number, room_number)")
+    .select(
+      "user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options)"
+    )
     .eq("event_id", id)
     .order("registered_at", { ascending: true });
 
-  const participants = (registrations ?? []).map((r: any) => ({
-    user_id: r.user_id,
-    registered_at: r.registered_at,
-    full_name: r.users?.full_name ?? null,
-    student_id: r.users?.student_id ?? null,
-    floor_number: r.users?.floor_number ?? null,
-    room_number: r.users?.room_number ?? null,
-  }));
+  const participants = (registrations ?? []).map((r: any) => {
+    const answers: Record<string, string> = {};
+    for (const a of r.registration_answers ?? []) {
+      answers[a.question_id] = a.answer_options?.length
+        ? a.answer_options.join(", ")
+        : a.answer_text ?? "";
+    }
+    return {
+      user_id: r.user_id,
+      registered_at: r.registered_at,
+      full_name: r.users?.full_name ?? null,
+      student_id: r.users?.student_id ?? null,
+      floor_number: r.users?.floor_number ?? null,
+      room_number: r.users?.room_number ?? null,
+      answers,
+    };
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,7 +62,12 @@ export default async function ParticipantsPage({
       <h1 className="text-xl font-bold">
         {dict.participants.title}: {title}
       </h1>
-      <ParticipantTable eventId={id} eventTitle={title} participants={participants} />
+      <ParticipantTable
+        eventId={id}
+        eventTitle={title}
+        participants={participants}
+        questions={questions ?? []}
+      />
     </div>
   );
 }

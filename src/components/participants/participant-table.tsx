@@ -14,6 +14,7 @@ import {
 import { downloadCsv, formatEventDateTime, formatRoomNumber, toCsv } from "@/lib/utils";
 import { removeRegistrationAsRa } from "@/actions/registrations";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import type { RegistrationQuestionRow } from "@/types/database";
 
 export type ParticipantRow = {
   user_id: string;
@@ -22,16 +23,21 @@ export type ParticipantRow = {
   floor_number: number | null;
   room_number: string | null;
   registered_at: string;
+  /** 事前質問への回答。key = question_id */
+  answers?: Record<string, string>;
 };
 
 export function ParticipantTable({
   eventId,
   eventTitle,
   participants,
+  questions = [],
 }: {
   eventId: string;
   eventTitle: string;
   participants: ParticipantRow[];
+  /** requires_registrationのイベントで事前質問が設定されている場合、回答を列として表示する */
+  questions?: RegistrationQuestionRow[];
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -45,12 +51,14 @@ export function ParticipantTable({
         student_id: p.student_id ?? "",
         room: formatRoomNumber(p.floor_number, p.room_number),
         registered_at: formatEventDateTime(p.registered_at, locale),
+        ...Object.fromEntries(questions.map((q) => [q.id, p.answers?.[q.id] ?? ""])),
       })),
       [
         { key: "full_name", label: dict.participants.nameColumn },
         { key: "student_id", label: dict.participants.studentIdColumn },
         { key: "room", label: dict.participants.roomColumn },
         { key: "registered_at", label: dict.participants.dateColumn },
+        ...questions.map((q) => ({ key: q.id, label: q.question_text })),
       ]
     );
     downloadCsv(`${eventTitle}_${dict.participants.title}.csv`, csv);
@@ -81,6 +89,9 @@ export function ParticipantTable({
             <TableHead>{dict.participants.studentIdColumn}</TableHead>
             <TableHead>{dict.participants.roomColumn}</TableHead>
             <TableHead>{dict.participants.dateColumn}</TableHead>
+            {questions.map((q) => (
+              <TableHead key={q.id}>{q.question_text}</TableHead>
+            ))}
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -91,6 +102,9 @@ export function ParticipantTable({
               <TableCell>{p.student_id}</TableCell>
               <TableCell>{formatRoomNumber(p.floor_number, p.room_number)}</TableCell>
               <TableCell>{formatEventDateTime(p.registered_at, locale)}</TableCell>
+              {questions.map((q) => (
+                <TableCell key={q.id}>{p.answers?.[q.id] || "-"}</TableCell>
+              ))}
               <TableCell>
                 <Button
                   size="sm"
@@ -105,7 +119,7 @@ export function ParticipantTable({
           ))}
           {participants.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
+              <TableCell colSpan={5 + questions.length} className="text-center text-muted-foreground">
                 {dict.participants.noParticipants}
               </TableCell>
             </TableRow>
