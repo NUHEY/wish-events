@@ -45,7 +45,10 @@ export function Nav({ role: _role }: { role: UserRole }) {
   const dict = useDict();
   return (
     <nav className="flex items-center gap-1">
-      <NavLink href="/">{dict.nav.events}</NavLink>
+      <NavLink href="/" exact>
+        {dict.nav.home}
+      </NavLink>
+      <NavLink href="/events">{dict.nav.events}</NavLink>
       <NavLink href="/directory">{dict.nav.directory}</NavLink>
     </nav>
   );

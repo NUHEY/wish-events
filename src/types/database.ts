@@ -35,6 +35,7 @@ export interface UserRow {
   instagram_handle: string | null;
   line_qr_path: string | null;
   self_intro: string | null;
+  moved_out_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +73,9 @@ export interface EventRow {
   capacity: number | null;
   fee_amount: number | null;
   payment_info: string | null;
+  publish_at: string | null;
+  registration_opens_at: string | null;
+  registration_requires_answers: boolean;
   target_floors: number[] | null;
   survey_type: SurveyType;
   survey_external_url: string | null;
@@ -129,6 +133,38 @@ export interface RaRoomRow {
   note: string | null;
   created_by: string | null;
   created_at: string;
+}
+
+export interface RegistrationQuestionRow {
+  id: string;
+  event_id: string;
+  question_text: string;
+  question_type: QuestionType;
+  options: string[] | null;
+  is_required: boolean;
+  position: number;
+  created_at: string;
+}
+
+export interface RegistrationAnswerRow {
+  id: string;
+  registration_id: string;
+  question_id: string;
+  answer_text: string | null;
+  answer_options: string[] | null;
+  created_at: string;
+}
+
+export interface AnnouncementRow {
+  id: string;
+  title: string;
+  category_label: string | null;
+  body: string;
+  cover_image_url: string | null;
+  pinned: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Database {
@@ -207,6 +243,34 @@ export interface Database {
         Update: Partial<RaRoomRow>;
         Relationships: [];
       };
+      registration_questions: {
+        Row: RegistrationQuestionRow;
+        Insert: Partial<RegistrationQuestionRow> & {
+          event_id: string;
+          question_text: string;
+        };
+        Update: Partial<RegistrationQuestionRow>;
+        Relationships: [];
+      };
+      registration_answers: {
+        Row: RegistrationAnswerRow;
+        Insert: Partial<RegistrationAnswerRow> & {
+          registration_id: string;
+          question_id: string;
+        };
+        Update: Partial<RegistrationAnswerRow>;
+        Relationships: [];
+      };
+      announcements: {
+        Row: AnnouncementRow;
+        Insert: Partial<AnnouncementRow> & {
+          title: string;
+          body: string;
+          created_by: string;
+        };
+        Update: Partial<AnnouncementRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -233,6 +297,10 @@ export interface Database {
       directory_profiles: {
         Args: { p_user_id?: string | null };
         Returns: DirectoryProfileRow[];
+      };
+      self_move_out: {
+        Args: Record<string, never>;
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

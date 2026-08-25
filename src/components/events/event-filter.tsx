@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { EVENT_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -11,19 +12,36 @@ export function EventFilter() {
   const searchParams = useSearchParams();
   const active = searchParams.get("category");
   const dict = useDict();
+  const [pending, startTransition] = useTransition();
 
-  function setCategory(category: string | null) {
+  function buildHref(category: string | null) {
     const params = new URLSearchParams(searchParams.toString());
     if (category) {
       params.set("category", category);
     } else {
       params.delete("category");
     }
-    router.push(`${pathname}?${params.toString()}`);
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }
+
+  // 押されそうな遷移先を先読みしておくことで、実際にクリックした時の
+  // 体感速度を上げる（サーバーコンポーネントの再取得を待たずに済む）。
+  useEffect(() => {
+    router.prefetch(buildHref(null));
+    EVENT_CATEGORIES.forEach((c) => router.prefetch(buildHref(c)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  function setCategory(category: string | null) {
+    const href = buildHref(category);
+    startTransition(() => {
+      router.push(href);
+    });
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={cn("flex flex-wrap gap-2 transition-opacity", pending && "opacity-60")}>
       <button
         type="button"
         onClick={() => setCategory(null)}

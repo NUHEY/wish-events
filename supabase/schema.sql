@@ -37,6 +37,7 @@ create table public.users (
   instagram_handle text,              -- Instagramユーザーネーム（@なし）
   line_qr_path     text,              -- 非公開Storageバケット(line-qr)内のパス
   self_intro       text,              -- 自由記述の自己紹介文（寮生ディレクトリに表示、500文字以内）
+  moved_out_at     timestamptz,       -- 寮生本人による退寮設定日時。NULL=在寮中（self_move_out()経由のみ設定可）
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
@@ -85,6 +86,7 @@ comment on column public.users.lived_countries is '居住経験のある国・�
 comment on column public.users.instagram_handle is 'Instagramユーザーネーム（@なし、任意回答）。未回答はNULL。';
 comment on column public.users.line_qr_path is '非公開Storageバケット(line-qr)内の画像パス。本人とRAのみ閲覧可（RLSで制御）。未アップロードはNULL。';
 comment on column public.users.self_intro is '自由記述の自己紹介文（任意、500文字以内）。寮生ディレクトリのプロフィールページに表示される。';
+comment on column public.users.moved_out_at is '寮生本人が退寮設定を行った日時。NULL=在寮中。設定されるとfloor_number/room_numberはNULL、roleはresidentにリセットされる。';
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -172,6 +174,11 @@ create table public.events (
   -- 集金場所・集金方法などの案内文（任意）。
   payment_info          text,
 
+  -- 公開時間・申込開始時間（どちらもNULL=制限なし・即時）
+  publish_at                    timestamptz,
+  registration_opens_at         timestamptz,
+  registration_requires_answers boolean not null default false,
+
   -- 配信対象フロア。NULL または空配列 = 全フロア対象。
   -- 例: '{3,11}' なら3階・11階の寮生のみ一覧・詳細に表示される（RAには常に全件表示）。
   target_floors         integer[],
@@ -219,6 +226,9 @@ comment on column public.events.location_en is '英語の開催場所（任意�
 comment on column public.events.target_audience_en is '英語の対象者（任意）。NULLまたは空文字の場合、英語表示時も target_audience をそのまま表示する。';
 comment on column public.events.fee_amount is '参加費（円）。nullまたは0は無料イベント。';
 comment on column public.events.payment_info is '集金場所・集金方法などの案内文（任意）。';
+comment on column public.events.publish_at is 'NULL=即公開。将来の日時を指定すると、その時刻まで一般寮生には一覧・詳細とも非表示（RAは常に閲覧可）。';
+comment on column public.events.registration_opens_at is 'NULL=定員に達していなければ即申込可。将来の日時を指定すると、その時刻まで申込ボタンが無効になる。';
+comment on column public.events.registration_requires_answers is 'trueの場合、申込前にregistration_questionsへの回答が必須になる。';
 
 create index events_event_date_idx on public.events (event_date);
 create index events_category_idx on public.events (category);
@@ -381,14 +391,20 @@ grant select, insert on public.users to authenticated;
 -- ---------------------------------------------------------------------
 -- 9. events のRLSポリシー
 -- ---------------------------------------------------------------------
--- 閲覧: RAは常に全件。一般寮生はtarget_floorsが未指定 or 自分の階が含まれる場合のみ。
+-- 閲覧: RAは常に全件。一般寮生はpublish_atを過ぎておりtarget_floorsが
+-- 未指定 or 自分の階が含まれる場合のみ。
 create policy "events_select"
 on public.events for select
 using (
   public.is_ra()
-  or target_floors is null
-  or array_length(target_floors, 1) is null
-  or public.current_user_floor() = any (target_floors)
+  or (
+    (publish_at is null or publish_at <= now())
+    and (
+      target_floors is null
+      or array_length(target_floors, 1) is null
+      or public.current_user_floor() = any (target_floors)
+    )
+  )
 );
 
 create policy "events_insert_ra"
@@ -816,9 +832,165 @@ as $$
     u.faculty, u.grade_level, u.languages, u.nationalities, u.lived_countries,
     u.instagram_handle, u.self_intro
   from public.users u
-  where p_user_id is null or u.id = p_user_id
+  where (p_user_id is null or u.id = p_user_id)
+    and u.moved_out_at is null
   order by u.floor_number nulls last, u.room_number nulls last, u.full_name nulls last;
 $$;
+
+
+-- ---------------------------------------------------------------------
+-- 17. registration_questions / registration_answers（申込前の事前質問）
+-- ---------------------------------------------------------------------
+create table public.registration_questions (
+  id             uuid primary key default gen_random_uuid(),
+  event_id       uuid not null references public.events(id) on delete cascade,
+  question_text  text not null,
+  question_type  text not null default 'text',
+  options        text[],
+  is_required    boolean not null default true,
+  position       integer not null default 0,
+  created_at     timestamptz not null default now(),
+
+  constraint registration_questions_type_check
+    check (question_type in ('text', 'single_choice', 'multiple_choice'))
+);
+
+comment on table public.registration_questions is 'イベント申込前に回答してもらう質問（アレルギー等）。registration_requires_answers=trueのイベントのみ使用。';
+
+create index registration_questions_event_idx on public.registration_questions (event_id, position);
+
+alter table public.registration_questions enable row level security;
+
+create policy "registration_questions_select"
+on public.registration_questions for select
+using (
+  public.is_ra()
+  or exists (select 1 from public.events e where e.id = event_id)
+);
+
+create policy "registration_questions_insert_ra"
+on public.registration_questions for insert
+with check (public.is_ra());
+
+create policy "registration_questions_update_ra"
+on public.registration_questions for update
+using (public.is_ra())
+with check (public.is_ra());
+
+create policy "registration_questions_delete_ra"
+on public.registration_questions for delete
+using (public.is_ra());
+
+grant select, insert, update, delete on public.registration_questions to authenticated;
+revoke select on public.registration_questions from anon;
+
+create table public.registration_answers (
+  id               uuid primary key default gen_random_uuid(),
+  registration_id  uuid not null references public.registrations(id) on delete cascade,
+  question_id      uuid not null references public.registration_questions(id) on delete cascade,
+  answer_text      text,
+  answer_options   text[],
+  created_at       timestamptz not null default now(),
+
+  constraint registration_answers_unique unique (registration_id, question_id)
+);
+
+comment on table public.registration_answers is '申込者が事前質問に回答した内容。';
+
+alter table public.registration_answers enable row level security;
+
+create policy "registration_answers_select"
+on public.registration_answers for select
+using (
+  public.is_ra()
+  or exists (
+    select 1 from public.registrations r
+    where r.id = registration_id and r.user_id = auth.uid()
+  )
+);
+
+create policy "registration_answers_insert_own"
+on public.registration_answers for insert
+with check (
+  exists (
+    select 1 from public.registrations r
+    where r.id = registration_id and r.user_id = auth.uid()
+  )
+);
+
+grant select, insert on public.registration_answers to authenticated;
+revoke select, insert on public.registration_answers from anon;
+
+
+-- ---------------------------------------------------------------------
+-- 18. announcements（Homeに表示するイベント以外のお知らせ）
+-- ---------------------------------------------------------------------
+create table public.announcements (
+  id               uuid primary key default gen_random_uuid(),
+  title            text not null,
+  category_label   text,
+  body             text not null,
+  cover_image_url  text,
+  pinned           boolean not null default false,
+  created_by       uuid not null references public.users(id),
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+comment on table public.announcements is 'Homeに表示するイベント以外のお知らせ（生活窓口・週間SI/RR案内・アパレル案内など）。RAが自由に投稿できる。';
+
+create index announcements_pinned_created_idx on public.announcements (pinned desc, created_at desc);
+
+create trigger announcements_set_updated_at
+before update on public.announcements
+for each row execute function public.set_updated_at();
+
+alter table public.announcements enable row level security;
+
+create policy "announcements_select_all"
+on public.announcements for select
+using (true);
+
+create policy "announcements_insert_ra"
+on public.announcements for insert
+with check (public.is_ra() and created_by = auth.uid());
+
+create policy "announcements_update_any_ra"
+on public.announcements for update
+using (public.is_ra())
+with check (public.is_ra());
+
+create policy "announcements_delete_any_ra"
+on public.announcements for delete
+using (public.is_ra());
+
+grant select, insert, update, delete on public.announcements to authenticated;
+revoke select on public.announcements from anon;
+
+
+-- ---------------------------------------------------------------------
+-- 19. self_move_out（寮生本人による退寮設定）
+-- ---------------------------------------------------------------------
+create or replace function public.self_move_out()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.users
+    set floor_number = null,
+        room_number = null,
+        role = 'resident',
+        moved_out_at = now()
+    where id = auth.uid()
+      and moved_out_at is null;
+end;
+$$;
+
+revoke all on function public.self_move_out() from public;
+revoke execute on function public.self_move_out() from anon;
+grant execute on function public.self_move_out() to authenticated;
 
 comment on function public.directory_profiles(uuid) is
   '寮生ディレクトリ表示用（email/student_id/line_qr_pathは含めない）。p_user_id省略で全件、指定で1件のみ。全dormログインユーザーが実行可。';

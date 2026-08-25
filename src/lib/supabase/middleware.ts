@@ -87,9 +87,16 @@ export async function updateSession(request: NextRequest) {
     if (!isPublicPath) {
       const { data: profile } = await supabase
         .from("users")
-        .select("full_name, student_id, floor_number, room_number, role")
+        .select("full_name, student_id, floor_number, room_number, role, moved_out_at")
         .eq("id", user.id)
         .maybeSingle();
+
+      // 退寮設定済みのユーザーは、退寮ページ以外どこにアクセスしても
+      // 退寮ページへ戻す（floor_number/room_numberがNULLになっているため
+      // 通常のプロフィール未完了判定より先に判定する必要がある）。
+      if (profile?.moved_out_at && path !== "/move-out") {
+        return redirectTo("/move-out");
+      }
 
       const profileComplete =
         !!profile?.full_name &&
@@ -97,19 +104,21 @@ export async function updateSession(request: NextRequest) {
         profile?.floor_number != null &&
         !!profile?.room_number;
 
-      if (!profileComplete && path !== "/profile/setup") {
+      if (!profile?.moved_out_at && !profileComplete && path !== "/profile/setup") {
         return redirectTo("/profile/setup");
       }
 
       if (profileComplete && path === "/profile/setup") {
-        // RAは管理ダッシュボードへ、一般寮生はイベント一覧へ
+        // RAは管理ダッシュボードへ、一般寮生はホームへ
         return redirectTo(profile?.role === "ra" ? "/dashboard" : "/");
       }
 
       const isRaOnlyPath =
         path.startsWith("/events/new") ||
         path.startsWith("/dashboard") ||
-        /^\/events\/[^/]+\/edit/.test(path);
+        path.startsWith("/announcements/new") ||
+        /^\/events\/[^/]+\/edit/.test(path) ||
+        /^\/announcements\/[^/]+\/edit/.test(path);
 
       if (isRaOnlyPath && profile?.role !== "ra") {
         return redirectTo("/");

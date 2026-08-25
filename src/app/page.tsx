@@ -1,47 +1,23 @@
-import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
-import { EventCard } from "@/components/events/event-card";
-import { EventFilter } from "@/components/events/event-filter";
-import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
+import { AnnouncementCard } from "@/components/announcements/announcement-card";
+import { buttonVariants } from "@/components/ui/button";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventCategory } from "@/types/database";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
+export default async function HomePage() {
   const profile = await getCurrentProfile();
-  const { category } = await searchParams;
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const now = new Date().toISOString();
+  const isRa = profile.role === "ra";
 
-  let upcomingQuery = supabase
-    .from("events")
+  const { data: announcements, error } = await supabase
+    .from("announcements")
     .select("*")
-    .gte("event_date", now)
-    .order("event_date", { ascending: true });
-  let pastQuery = supabase
-    .from("events")
-    .select("*")
-    .lt("event_date", now)
-    .order("event_date", { ascending: false });
-
-  if (category) {
-    upcomingQuery = upcomingQuery.eq("category", category as EventCategory);
-    pastQuery = pastQuery.eq("category", category as EventCategory);
-  }
-
-  const [{ data: upcomingEvents, error }, { data: pastEvents }] = await Promise.all([
-    upcomingQuery,
-    pastQuery,
-  ]);
-
-  const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
-  const hasPast = !!pastEvents && pastEvents.length > 0;
+    .order("pinned", { ascending: false })
+    .order("created_at", { ascending: false });
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -50,14 +26,17 @@ export default async function HomePage({
         className="pointer-events-none absolute -top-6 left-1/2 -z-10 h-56 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
       />
 
-      <PendingSurveyBanner userId={profile.id} />
-
-      <div className="flex flex-col gap-3 border-b border-border pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">{dict.home.title}</h1>
-          <p className="text-sm text-muted-foreground">{dict.home.subtitle}</p>
+          <h1 className="text-2xl font-bold tracking-tight">{dict.homeFeed.title}</h1>
+          <p className="text-sm text-muted-foreground">{dict.homeFeed.subtitle}</p>
         </div>
-        <EventFilter />
+        {isRa && (
+          <Link href="/announcements/new" className={buttonVariants({ size: "sm" })}>
+            <Plus className="mr-1 h-4 w-4" />
+            {dict.homeFeed.newButton}
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -66,38 +45,18 @@ export default async function HomePage({
         </p>
       )}
 
-      {!hasUpcoming && !hasPast && (
+      {announcements && announcements.length === 0 && (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border py-16 text-center">
-          <p className="text-sm font-medium">{dict.home.empty}</p>
-          <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
+          <p className="text-sm font-medium">{dict.homeFeed.empty}</p>
+          <p className="text-xs text-muted-foreground">{dict.homeFeed.emptyHint}</p>
         </div>
       )}
 
-      {!hasUpcoming && hasPast && (
-        <p className="text-sm text-muted-foreground">{dict.home.noUpcoming}</p>
-      )}
-
-      {hasUpcoming && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {upcomingEvents!.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
-
-      {hasPast && (
-        <details className="group border-t border-border pt-5">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
-            {dict.home.pastEventsToggle}（{pastEvents!.length}）
-          </summary>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {pastEvents!.map((event) => (
-              <EventCard key={event.id} event={event} variant="muted" />
-            ))}
-          </div>
-        </details>
-      )}
+      <div className="flex flex-col gap-4">
+        {announcements?.map((a) => (
+          <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
+        ))}
+      </div>
     </div>
   );
 }

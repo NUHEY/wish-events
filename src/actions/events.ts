@@ -83,6 +83,7 @@ export async function createEvent(
   }
 
   revalidatePath("/");
+  revalidatePath("/events");
   revalidatePath("/dashboard");
   redirect(`/events/${data.id}`);
 }
@@ -130,6 +131,7 @@ export async function updateEvent(
   }
 
   revalidatePath("/");
+  revalidatePath("/events");
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/dashboard");
   redirect(`/events/${eventId}`);
@@ -145,6 +147,7 @@ export async function deleteEvent(eventId: string) {
   }
 
   revalidatePath("/");
+  revalidatePath("/events");
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
