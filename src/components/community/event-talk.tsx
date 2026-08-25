@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { BarChart3, ChevronDown, ImagePlus, Info, Send, Smile, Sparkles } from "lucide-react";
+import { BarChart3, ChevronDown, Heart, ImagePlus, Info, Send, Smile, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -34,6 +34,15 @@ type Poll = { id: string; question: string; options: string[]; closes_at?: strin
 type Vote = { poll_id: string; user_id: string; option_index: number };
 
 const EMOJIS: Reaction["emoji"][] = ["❤️", "👍", "🎉", "😂", "👀"];
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
+const DOUBLE_TAP_MS = 320;
+
+/** 直前・直後のメッセージと同じ送信者・近い時刻かどうか（IG DM風のグルーピング用）。 */
+function isSameGroup(a: Message | undefined, b: Message | undefined) {
+  if (!a || !b) return false;
+  if (a.sender_id !== b.sender_id) return false;
+  return Math.abs(new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) < GROUP_WINDOW_MS;
+}
 
 export function EventTalk({
   eventId,
@@ -63,7 +72,11 @@ export function EventTalk({
   const [pollOpen, setPollOpen] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [openPickerId, setOpenPickerId] = useState<string | null>(null);
+  const [heartPulseId, setHeartPulseId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const lastTapRef = useRef<Map<string, number>>(new Map());
+  const heartTimerRef = useRef<number | null>(null);
   const router = useRouter();
 
   const displayedMessages = useMemo(
@@ -94,6 +107,11 @@ export function EventTalk({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [displayedMessages.length]);
+  useEffect(() => {
+    return () => {
+      if (heartTimerRef.current) window.clearTimeout(heartTimerRef.current);
+    };
+  }, []);
 
   function addOptimisticMessage(message: Message) {
     setOptimisticMessages((current) => [...current, message]);
@@ -174,6 +192,24 @@ export function EventTalk({
     });
   }
 
+  /** ダブルタップ／ダブルクリックで即座に❤️リアクションを付ける（Instagram DM風）。 */
+  function handleQuickReactTap(messageId: string) {
+    const now = Date.now();
+    const last = lastTapRef.current.get(messageId) ?? 0;
+    if (now - last < DOUBLE_TAP_MS) {
+      lastTapRef.current.delete(messageId);
+      const alreadyLiked = reactionState.some(
+        (reaction) => reaction.message_id === messageId && reaction.user_id === currentUserId && reaction.emoji === "❤️"
+      );
+      if (!alreadyLiked) react(messageId, "❤️");
+      setHeartPulseId(messageId);
+      if (heartTimerRef.current) window.clearTimeout(heartTimerRef.current);
+      heartTimerRef.current = window.setTimeout(() => setHeartPulseId((current) => (current === messageId ? null : current)), 700);
+    } else {
+      lastTapRef.current.set(messageId, now);
+    }
+  }
+
   function castVote(pollId: string, optionIndex: number) {
     const oldVote = voteState.find((vote) => vote.poll_id === pollId && vote.user_id === currentUserId);
     setVoteState((current) => [
@@ -220,12 +256,16 @@ export function EventTalk({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8f7f8] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f5e9ef_0%,#fafafa_42%,#f8f7f8_100%)] px-3.5 py-5 sm:max-h-[56vh] sm:min-h-[20rem] sm:px-4">
-        <div className="self-center rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f5e9ef_0%,#fafafa_42%,#f8f7f8_100%)] px-3.5 py-5 sm:max-h-[56vh] sm:min-h-[20rem] sm:px-4">
+        <div className="mb-2 self-center rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
           イベントに関するお知らせと会話
         </div>
-        {displayedMessages.map((message) => {
+        {displayedMessages.map((message, index) => {
           const mine = message.sender_id === currentUserId;
+          const prev = displayedMessages[index - 1];
+          const next = displayedMessages[index + 1];
+          const isGroupStart = !isSameGroup(prev, message);
+          const isGroupEnd = !isSameGroup(message, next);
           const messageReactions = reactionState.filter((reaction) => reaction.message_id === message.id);
           const reactionGroups = EMOJIS.map((emoji) => ({
             emoji,
@@ -233,38 +273,55 @@ export function EventTalk({
             active: messageReactions.some((reaction) => reaction.emoji === emoji && reaction.user_id === currentUserId),
           })).filter((reaction) => reaction.count > 0);
           const poll = message.poll_id ? pollsById.get(message.poll_id) : undefined;
+          const hasCaption = !!message.body;
+          const bubbleTail = mine
+            ? isGroupEnd
+              ? "rounded-br-md"
+              : "rounded-br-2xl"
+            : isGroupEnd
+              ? "rounded-bl-md"
+              : "rounded-bl-2xl";
+          const bubbleBase = `rounded-[22px] ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
+            mine
+              ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
+              : "border border-white/80 bg-[linear-gradient(145deg,#ffffff,#fbf8fa)] text-foreground"
+          }`;
 
           return (
             <div
               key={message.id}
-              className={`group flex max-w-[91%] gap-2 motion-safe:animate-[fade-in_180ms_ease-out] ${
-                mine ? "self-end" : "self-start"
+              className={`group flex max-w-[91%] gap-2 motion-safe:animate-fade-in ${mine ? "self-end" : "self-start"} ${
+                isGroupStart && index !== 0 ? "mt-3" : ""
               }`}
             >
               {!mine &&
-                (message.sender?.avatar_url ? (
-                  <span className="relative mt-1">
-                    <Image
-                      src={message.sender.avatar_url}
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 rounded-full object-cover shadow-sm"
-                    />
-                    {message.sender.role === "ra" && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-                    )}
-                  </span>
+                (isGroupEnd ? (
+                  message.sender?.avatar_url ? (
+                    <span className="relative mt-1 self-end">
+                      <Image
+                        src={message.sender.avatar_url}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full object-cover shadow-sm"
+                      />
+                      {message.sender.role === "ra" && (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
+                      )}
+                    </span>
+                  ) : (
+                    <span className="relative mt-1 flex h-7 w-7 shrink-0 items-center justify-center self-end rounded-full bg-muted text-xs shadow-sm">
+                      {message.sender?.full_name?.charAt(0) ?? "?"}
+                      {message.sender?.role === "ra" && (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
+                      )}
+                    </span>
+                  )
                 ) : (
-                  <span className="relative mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
-                    {message.sender?.full_name?.charAt(0) ?? "?"}
-                    {message.sender?.role === "ra" && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-                    )}
-                  </span>
+                  <span className="w-7 shrink-0" />
                 ))}
-              <div className="min-w-0">
-                {!mine && (
+              <div className="relative min-w-0">
+                {!mine && isGroupStart && (
                   <p className="mb-1 pl-1 text-[11px] font-semibold text-muted-foreground">
                     {message.sender?.full_name ?? "RA"}
                     {message.sender?.role === "ra" && (
@@ -272,23 +329,28 @@ export function EventTalk({
                     )}
                   </p>
                 )}
-                <div
-                  className={`${
-                    mine
-                      ? "rounded-[22px] rounded-br-md bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
-                      : "rounded-[22px] rounded-bl-md border border-white/80 bg-[linear-gradient(145deg,#ffffff,#fbf8fa)] text-foreground"
-                  } px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)]`}
-                >
-                  {message.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{message.body}</p>}
-                  {message.mediaUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
+
+                {message.mediaUrl ? (
+                  // 写真メッセージは吹き出しの背景色を持たず、画像そのものを浮かせて表示する（Instagram DM風）。
+                  <div
+                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-[20px] shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
+                    onClick={() => handleQuickReactTap(message.id)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={message.mediaUrl}
                       alt="トークに送信された画像"
-                      className="mt-1.5 max-h-80 min-w-48 rounded-2xl object-cover"
+                      className="block max-h-80 min-w-40 rounded-[20px] object-cover"
                     />
-                  )}
-                  {message.message_type === "tool" && message.action_url && (
+                    {heartPulseId === message.id && (
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <Heart className="h-16 w-16 fill-white text-white drop-shadow-lg motion-safe:animate-heart-pop" />
+                      </span>
+                    )}
+                  </div>
+                ) : message.message_type === "tool" && message.action_url ? (
+                  <div className={bubbleBase}>
+                    {hasCaption && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{message.body}</p>}
                     <a
                       href={message.action_url}
                       target={message.action_url.startsWith("http") ? "_blank" : undefined}
@@ -297,41 +359,81 @@ export function EventTalk({
                     >
                       {message.action_label ?? "開く"}
                     </a>
-                  )}
-                  {poll && (
+                  </div>
+                ) : poll ? (
+                  <div className={bubbleBase}>
+                    {hasCaption && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{message.body}</p>}
                     <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
-                  )}
-                  <p className={`mt-1.5 text-right text-[10px] font-medium ${mine ? "text-primary-foreground/65" : "text-muted-foreground/80"}`}>
-                    {time(message.created_at)}
+                  </div>
+                ) : (
+                  <div className={`relative ${bubbleBase}`} onClick={() => handleQuickReactTap(message.id)}>
+                    <p className="cursor-pointer select-none whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                      {message.body}
+                    </p>
+                  </div>
+                )}
+
+                {message.mediaUrl && hasCaption && (
+                  <p className="mt-1 whitespace-pre-wrap break-words px-0.5 text-[13px] leading-snug text-foreground/80">
+                    {message.body}
                   </p>
+                )}
+
+                <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                  <span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span>
+                  <button
+                    type="button"
+                    aria-label="リアクションを追加"
+                    onClick={() => setOpenPickerId((current) => (current === message.id ? null : message.id))}
+                    className="rounded-full p-1 text-muted-foreground/50 opacity-60 transition-all hover:bg-secondary/70 hover:text-primary hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <Smile className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <div className={`relative -mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
-                  {reactionGroups.map((reaction) => (
-                    <button
-                      key={reaction.emoji}
-                      type="button"
-                      onClick={() => react(message.id, reaction.emoji)}
-                      className={`rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm transition-transform active:scale-90 ${
-                        reaction.active ? "border-primary/40 bg-primary/10" : "border-border bg-card"
-                      }`}
-                    >
-                      {reaction.emoji} {reaction.count}
-                    </button>
-                  ))}
-                  <span className="flex rounded-full border border-border bg-card p-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                    {EMOJIS.slice(0, 3).map((emoji) => (
+
+                {reactionGroups.length > 0 && (
+                  <div className={`mt-1 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                    {reactionGroups.map((reaction) => (
                       <button
-                        key={emoji}
+                        key={reaction.emoji}
                         type="button"
-                        aria-label={`${emoji}でリアクション`}
-                        onClick={() => react(message.id, emoji)}
-                        className="rounded-full px-1 text-xs transition-transform hover:scale-125"
+                        onClick={() => react(message.id, reaction.emoji)}
+                        className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm transition-transform active:scale-90 ${
+                          reaction.active ? "border-primary/40 bg-primary/10" : "border-border bg-card"
+                        }`}
                       >
-                        {emoji}
+                        <span>{reaction.emoji}</span>
+                        <span>{reaction.count}</span>
                       </button>
                     ))}
-                  </span>
-                </div>
+                  </div>
+                )}
+
+                {openPickerId === message.id && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOpenPickerId(null)} />
+                    <div
+                      className={`absolute bottom-full z-50 mb-1 flex gap-0.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-elevated motion-safe:animate-pop-in ${
+                        mine ? "right-0" : "left-0"
+                      }`}
+                    >
+                      {EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          aria-label={`${emoji}でリアクション`}
+                          onClick={() => {
+                            react(message.id, emoji);
+                            setOpenPickerId(null);
+                          }}
+                          className="rounded-full p-1 text-lg leading-none transition-transform hover:scale-125 active:scale-90"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );

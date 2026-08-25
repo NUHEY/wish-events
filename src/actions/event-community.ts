@@ -169,6 +169,28 @@ export async function addEventComment(eventId: string, body: string, parentId?: 
   return { success: true };
 }
 
+export async function deleteEventComment(commentId: string, eventId: string) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+
+  const { data: comment } = await supabase
+    .from("event_comments")
+    .select("id, user_id, event_id")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (!comment || comment.event_id !== eventId) return { error: "コメントが見つかりませんでした" };
+  if (comment.user_id !== profile.id && profile.role !== "ra") {
+    return { error: "このコメントを削除する権限がありません" };
+  }
+
+  // parent_id / comment_id はon delete cascadeのため、返信といいねも合わせて削除される。
+  const { error } = await supabase.from("event_comments").delete().eq("id", commentId);
+  if (error) return { error: `コメントの削除に失敗しました: ${error.message}` };
+
+  revalidatePath(`/events/${eventId}`);
+  return { success: true };
+}
+
 export async function toggleEventCommentLike(commentId: string, eventId: string, liked: boolean) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();

@@ -1326,6 +1326,7 @@ create policy "event_comments_update_own"
 on public.event_comments for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "event_comments_delete_own"
 on public.event_comments for delete using (user_id = auth.uid());
+-- 注: このポリシーは29でevent_comments_deleteに置き換わり、RAも削除できるようになる。
 
 create policy "event_comment_likes_select_authenticated"
 on public.event_comment_likes for select using (auth.uid() is not null);
@@ -1536,6 +1537,14 @@ $$;
 --     だった点に注意（Supabaseのセキュリティadvisorで検出）。
 --     あわせて、コードから参照されなくなった無印版 event_community_profiles
 --     関数を削除した。
+
+-- ---------------------------------------------------------------------
+-- 29. コメント削除機能: RAもモデレーション目的で削除できるようにする
+--   （supabase/migrations/20260825095622_allow_ra_delete_any_event_comment.sql）
+-- ---------------------------------------------------------------------
+drop policy if exists "event_comments_delete_own" on public.event_comments;
+create policy "event_comments_delete" on public.event_comments
+for delete using (user_id = (select auth.uid()) or public.is_ra());
 
 -- =====================================================================
 -- RAへの昇格/降格:

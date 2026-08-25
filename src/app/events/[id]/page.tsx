@@ -248,7 +248,12 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      <EventComments eventId={event.id} comments={comments} />
+      <EventComments
+        eventId={event.id}
+        comments={comments}
+        currentUserId={profile.id}
+        isRa={profile.role === "ra"}
+      />
 
       {profile.role === "ra" && (
         <div className="hidden flex-wrap gap-2 border-t border-border pt-4 sm:flex">
