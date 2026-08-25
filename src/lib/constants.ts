@@ -109,6 +109,14 @@ export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
   plum: "#7C5CB5",
 };
 
+/**
+ * アイコン周りの装飾リング（ゲーム要素）。
+ * RAは常にワインレッド、一般寮生はイベント参加数がこの数を超えると金色になる。
+ */
+export const AVATAR_RING_GOLD_HEX = "#D4AF37";
+export const AVATAR_RING_RA_HEX = "#7A2140";
+export const AVATAR_RING_GOLD_THRESHOLD = 8;
+
 export const GRADE_LEVELS = [
   "学部1年",
   "学部2年",

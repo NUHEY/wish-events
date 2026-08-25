@@ -45,6 +45,7 @@ export async function Header() {
           </div>
           <div className="flex items-center gap-2.5">
             <UserMenu
+              userId={user.id}
               fullName={profile.full_name}
               role={profile.role}
               floorNumber={profile.floor_number}

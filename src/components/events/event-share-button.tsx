@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Share2 } from "lucide-react";
+import QRCode from "qrcode";
+import { Link2, QrCode, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { drawRoundedRect, wrapText, canvasToBlob, shareOrDownloadImage } from "@/lib/canvas-share";
 import { formatEventDateTime } from "@/lib/utils";
@@ -113,6 +114,47 @@ async function renderEventShareImage(opts: {
   return canvas;
 }
 
+const QR_W = 900;
+const QR_H = 1100;
+
+async function renderEventQrImage(opts: { title: string; url: string }): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement("canvas");
+  canvas.width = QR_W;
+  canvas.height = QR_H;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, QR_W, QR_H);
+  ctx.strokeStyle = "#eee2e6";
+  ctx.lineWidth = 3;
+  drawRoundedRect(ctx, 24, 24, QR_W - 48, QR_H - 48, 32);
+  ctx.stroke();
+
+  ctx.fillStyle = "#7A2140";
+  ctx.font = "700 32px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("WISH Events", QR_W / 2, 100);
+
+  ctx.fillStyle = "#1a1a1a";
+  ctx.font = "800 42px sans-serif";
+  wrapText(ctx, opts.title, QR_W / 2, 170, QR_W - 160, 52, 2);
+
+  const qrCanvas = await QRCode.toCanvas(opts.url, {
+    width: 620,
+    margin: 1,
+    color: { dark: "#1a1a1a", light: "#ffffff" },
+  });
+  ctx.drawImage(qrCanvas, (QR_W - 620) / 2, 280, 620, 620);
+
+  ctx.textAlign = "center";
+  ctx.font = "500 26px sans-serif";
+  ctx.fillStyle = "#7a7178";
+  ctx.fillText(opts.url.replace(/^https?:\/\//, ""), QR_W / 2, QR_H - 70);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
 export function EventShareButton({
   eventId,
   title,
@@ -132,13 +174,14 @@ export function EventShareButton({
 }) {
   const dict = useDict();
   const locale = useLocale();
+  const [open, setOpen] = useState(false);
   const [imagePending, setImagePending] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
+  const [qrPending, setQrPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [urlCopied, setUrlCopied] = useState(false);
-  const [urlError, setUrlError] = useState<string | null>(null);
 
   async function handleImageShare() {
-    setImageError(null);
+    setError(null);
     setImagePending(true);
     try {
       const canvas = await renderEventShareImage({
@@ -153,15 +196,32 @@ export function EventShareButton({
       });
       const blob = await canvasToBlob(canvas);
       await shareOrDownloadImage(blob, `${title}.png`, title);
+      setOpen(false);
     } catch {
-      setImageError(dict.event.shareImageError);
+      setError(dict.event.shareImageError);
     } finally {
       setImagePending(false);
     }
   }
 
+  async function handleQrSave() {
+    setError(null);
+    setQrPending(true);
+    try {
+      const url = `${window.location.origin}/events/${eventId}`;
+      const canvas = await renderEventQrImage({ title, url });
+      const blob = await canvasToBlob(canvas);
+      await shareOrDownloadImage(blob, `${title}-qr.png`, title);
+      setOpen(false);
+    } catch {
+      setError(dict.event.shareQrError);
+    } finally {
+      setQrPending(false);
+    }
+  }
+
   async function handleUrlShare() {
-    setUrlError(null);
+    setError(null);
     const url = `${window.location.origin}/events/${eventId}`;
     const nav = navigator as Navigator & {
       share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
@@ -170,6 +230,7 @@ export function EventShareButton({
     if (nav.share) {
       try {
         await nav.share({ title, text: title, url });
+        setOpen(false);
         return;
       } catch {
         // ユーザーが共有シートをキャンセルした場合など。何もしない。
@@ -181,25 +242,53 @@ export function EventShareButton({
       await navigator.clipboard.writeText(url);
       setUrlCopied(true);
       setTimeout(() => setUrlCopied(false), 2000);
+      setOpen(false);
     } catch {
-      setUrlError(dict.event.shareUrlError);
+      setError(dict.event.shareUrlError);
     }
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={handleUrlShare}>
-          <Link2 className="h-3.5 w-3.5" />
-          {urlCopied ? dict.event.shareUrlCopied : dict.event.shareUrlButton}
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleImageShare} disabled={imagePending}>
-          <Share2 className="h-3.5 w-3.5" />
-          {imagePending ? dict.event.shareImageGenerating : dict.event.shareImageButton}
-        </Button>
-      </div>
-      {imageError && <p className="text-xs text-destructive">{imageError}</p>}
-      {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+    <div className="relative">
+      <Button variant="outline" size="sm" onClick={() => setOpen((v) => !v)}>
+        <Share2 className="h-3.5 w-3.5" />
+        {urlCopied ? dict.event.shareUrlCopied : dict.event.shareButton}
+      </Button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1.5 flex w-56 flex-col gap-0.5 rounded-xl border border-border bg-card p-1.5 shadow-elevated motion-safe:animate-pop-in">
+            <button
+              type="button"
+              onClick={handleUrlShare}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors hover:bg-secondary"
+            >
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              {dict.event.shareUrlButton}
+            </button>
+            <button
+              type="button"
+              onClick={handleImageShare}
+              disabled={imagePending}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
+            >
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+              {imagePending ? dict.event.shareImageGenerating : dict.event.shareImageButton}
+            </button>
+            <button
+              type="button"
+              onClick={handleQrSave}
+              disabled={qrPending}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
+            >
+              <QrCode className="h-4 w-4 text-muted-foreground" />
+              {qrPending ? dict.event.shareQrGenerating : dict.event.shareQrButton}
+            </button>
+            {error && <p className="px-2.5 pt-1 text-xs text-destructive">{error}</p>}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -6,26 +6,28 @@ import Image from "next/image";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AvatarRing } from "@/components/profile/avatar-ring";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { DirectoryProfileRow } from "@/types/database";
 
-function Avatar({ name, url }: { name: string | null; url: string | null }) {
-  if (url) {
-    return (
-      <Image
-        src={url}
-        alt=""
-        width={44}
-        height={44}
-        className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
-      />
-    );
-  }
+function Avatar({ name, url, role }: { name: string | null; url: string | null; role?: string }) {
   return (
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm">
-      {name?.charAt(0) ?? "?"}
-    </span>
+    <AvatarRing role={role}>
+      {url ? (
+        <Image
+          src={url}
+          alt=""
+          width={44}
+          height={44}
+          className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
+        />
+      ) : (
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm">
+          {name?.charAt(0) ?? "?"}
+        </span>
+      )}
+    </AvatarRing>
   );
 }
 
@@ -78,7 +80,7 @@ export function DirectoryList({
             href={`/directory/${p.id}`}
             className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card-hover"
           >
-            <Avatar name={p.full_name} url={p.avatar_url} />
+            <Avatar name={p.full_name} url={p.avatar_url} role={p.role} />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="flex items-center gap-1.5 truncate font-medium transition-colors group-hover:text-primary">
                 {p.full_name ?? dict.common.notRegistered}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { DoorOpen, LayoutDashboard, LogOut, Menu, MessageCircle, UserRound, Users } from "lucide-react";
+import { DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -26,6 +26,7 @@ import type { UserRole } from "@/types/database";
  * まとめている。常時表示するのは日英切替とこのアバターのみ。
  */
 export function UserMenu({
+  userId,
   fullName,
   role,
   floorNumber,
@@ -33,6 +34,7 @@ export function UserMenu({
   avatarUrl,
   variant = "header",
 }: {
+  userId: string;
   fullName: string | null;
   role: UserRole;
   floorNumber: number | null;
@@ -81,25 +83,34 @@ export function UserMenu({
           </button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuLabel className="flex flex-col gap-0.5 px-2.5 py-2">
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            {fullName ?? dict.common.notRegistered}
-            {role === "ra" && <Badge variant="default">RA</Badge>}
+      <DropdownMenuContent className="min-w-[15rem]">
+        <Link href={`/directory/${userId}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-accent">
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
+              {fullName?.charAt(0) ?? "?"}
+            </span>
+          )}
+          <span className="flex min-w-0 flex-col">
+            <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
+              {fullName ?? dict.common.notRegistered}
+              {role === "ra" && <Badge variant="default">RA</Badge>}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatRoomNumber(floorNumber, roomNumber)}
+            </span>
           </span>
-          <span className="text-xs text-muted-foreground">
-            {formatRoomNumber(floorNumber, roomNumber)}
-          </span>
-        </DropdownMenuLabel>
+        </Link>
         <DropdownMenuSeparator />
         <div className="px-2 py-1.5">
           <LocaleToggle />
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/talks" className="cursor-pointer">
-            <MessageCircle className="h-4 w-4" />
-            トーク
+          <Link href={`/directory/${userId}`} className="cursor-pointer">
+            <IdCard className="h-4 w-4" />
+            {dict.header.viewMyPage}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

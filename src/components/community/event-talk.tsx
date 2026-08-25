@@ -16,6 +16,7 @@ import {
 } from "@/actions/event-community";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { AvatarRing } from "@/components/profile/avatar-ring";
 import { createClient } from "@/lib/supabase/client";
 
 type Message = {
@@ -335,23 +336,22 @@ export function EventTalk({
             >
               {!mine &&
                 (isGroupEnd ? (
-                  <Link href={`/directory/${message.sender_id}`} className="relative mt-1 self-end shrink-0">
-                    {message.sender?.avatar_url ? (
-                      <Image
-                        src={message.sender.avatar_url}
-                        alt=""
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-full object-cover shadow-sm"
-                      />
-                    ) : (
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
-                        {message.sender?.full_name?.charAt(0) ?? "?"}
-                      </span>
-                    )}
-                    {message.sender?.role === "ra" && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-                    )}
+                  <Link href={`/directory/${message.sender_id}`} className="mt-1 self-end shrink-0">
+                    <AvatarRing role={message.sender?.role}>
+                      {message.sender?.avatar_url ? (
+                        <Image
+                          src={message.sender.avatar_url}
+                          alt=""
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 rounded-full object-cover shadow-sm"
+                        />
+                      ) : (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
+                          {message.sender?.full_name?.charAt(0) ?? "?"}
+                        </span>
+                      )}
+                    </AvatarRing>
                   </Link>
                 ) : (
                   <span className="w-7 shrink-0" />
@@ -584,7 +584,9 @@ export function EventTalk({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              // IME変換確定のEnterまで送信してしまい、テキスト欄に変換途中の
+              // 文字が残る不具合があったため、isComposing中は無視する。
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 submit();
               }

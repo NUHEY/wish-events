@@ -64,6 +64,32 @@ export interface DirectoryProfileRow {
   profile_accent: string | null;
 }
 
+export type BadgeCriteriaType = "event_count" | "survey_count";
+
+/** ゲーム要素（マイページのバッジ）の定義。/dashboard/badgesでRAが編集する。 */
+export interface BadgeRow {
+  id: string;
+  key: string;
+  label: string;
+  label_en: string | null;
+  description: string | null;
+  description_en: string | null;
+  icon: string;
+  color: string;
+  criteria_type: BadgeCriteriaType;
+  criteria_value: number;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** user_engagement_stats()関数の返り値。バッジ判定・アイコンの金色リング表示に使う。 */
+export interface EngagementStats {
+  event_count: number;
+  survey_count: number;
+}
+
 export interface EventRow {
   id: string;
   title: string;
@@ -451,6 +477,12 @@ export interface Database {
         Update: Partial<EventAudienceOptionRow>;
         Relationships: [];
       };
+      badges: {
+        Row: BadgeRow;
+        Insert: Partial<BadgeRow> & { key: string; label: string; criteria_type: BadgeCriteriaType; criteria_value: number };
+        Update: Partial<BadgeRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -477,6 +509,10 @@ export interface Database {
       directory_profiles: {
         Args: { p_user_id?: string | null };
         Returns: DirectoryProfileRow[];
+      };
+      user_engagement_stats: {
+        Args: { p_user_id: string };
+        Returns: EngagementStats[];
       };
       self_move_out: {
         Args: Record<string, never>;
