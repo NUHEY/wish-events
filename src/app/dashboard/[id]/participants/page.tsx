@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ParticipantTable } from "@/components/participants/participant-table";
+import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function ParticipantsPage({
@@ -40,6 +41,7 @@ export default async function ParticipantsPage({
 
   return (
     <div className="flex flex-col gap-4">
+      <BackButton fallbackHref="/dashboard" className="-ml-2 self-start" />
       <h1 className="text-xl font-bold">
         {dict.participants.title}: {title}
       </h1>

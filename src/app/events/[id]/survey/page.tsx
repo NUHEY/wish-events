@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SurveyResponseForm } from "@/components/surveys/survey-response-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function EventSurveyPage({
@@ -31,7 +32,8 @@ export default async function EventSurveyPage({
 
   if (!survey || !survey.is_active) {
     return (
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto flex max-w-xl flex-col gap-3">
+        <BackButton fallbackHref={`/events/${id}`} className="-ml-2" />
         <p className="text-sm text-muted-foreground">{dict.event.surveyNoneOpen}</p>
       </div>
     );
@@ -51,7 +53,8 @@ export default async function EventSurveyPage({
     .order("position", { ascending: true });
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto flex max-w-xl flex-col gap-3">
+      <BackButton fallbackHref={`/events/${id}`} className="-ml-2" />
       <Card>
         <CardHeader>
           <CardTitle>{survey.title}</CardTitle>

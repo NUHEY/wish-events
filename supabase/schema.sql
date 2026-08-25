@@ -37,6 +37,7 @@ create table public.users (
   instagram_handle text,              -- Instagramユーザーネーム（@なし）
   line_qr_path     text,              -- 非公開Storageバケット(line-qr)内のパス
   self_intro       text,              -- 自由記述の自己紹介文（寮生ディレクトリに表示、500文字以内）
+  avatar_url       text,              -- 公開Storageバケット(avatars)内画像の公開URL。プロフィールアイコン。未設定はNULL
   moved_out_at     timestamptz,       -- 寮生本人による退寮設定日時。NULL=在寮中（self_move_out()経由のみ設定可）
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -383,7 +384,7 @@ revoke update on public.users from authenticated;
 grant update (
   full_name, student_id, floor_number, room_number,
   faculty, grade_level, languages, nationalities, lived_countries,
-  instagram_handle, line_qr_path, self_intro
+  instagram_handle, line_qr_path, self_intro, avatar_url
 ) on public.users to authenticated;
 grant select, insert on public.users to authenticated;
 
@@ -547,6 +548,39 @@ using (bucket_id = 'event-posters' and public.is_ra());
 create policy "poster_ra_delete"
 on storage.objects for delete
 using (bucket_id = 'event-posters' and public.is_ra());
+
+
+-- ---------------------------------------------------------------------
+-- 13c. Storage バケット（プロフィールアイコン、公開・本人のみ書き込み）
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+create policy "avatars_select_public"
+on storage.objects for select
+using (bucket_id = 'avatars');
+
+create policy "avatars_insert_own"
+on storage.objects for insert
+with check (
+  bucket_id = 'avatars'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "avatars_update_own"
+on storage.objects for update
+using (
+  bucket_id = 'avatars'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "avatars_delete_own"
+on storage.objects for delete
+using (
+  bucket_id = 'avatars'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
 
 
 -- ---------------------------------------------------------------------
@@ -820,7 +854,8 @@ returns table (
   nationalities text[],
   lived_countries text[],
   instagram_handle text,
-  self_intro text
+  self_intro text,
+  avatar_url text
 )
 language sql
 security definer
@@ -830,7 +865,7 @@ as $$
   select
     u.id, u.full_name, u.role, u.floor_number, u.room_number,
     u.faculty, u.grade_level, u.languages, u.nationalities, u.lived_countries,
-    u.instagram_handle, u.self_intro
+    u.instagram_handle, u.self_intro, u.avatar_url
   from public.users u
   where (p_user_id is null or u.id = p_user_id)
     and u.moved_out_at is null

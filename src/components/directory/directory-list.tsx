@@ -9,6 +9,24 @@ import { formatRoomNumber } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { DirectoryProfileRow } from "@/types/database";
 
+function Avatar({ name, url }: { name: string | null; url: string | null }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
+      />
+    );
+  }
+  return (
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm">
+      {name?.charAt(0) ?? "?"}
+    </span>
+  );
+}
+
 /**
  * 寮生ディレクトリの一覧表示。件数がそれほど多くない寮という前提のもと、
  * サーバーへの再問い合わせなしでクライアント側の絞り込みのみで検索を実現する。
@@ -42,27 +60,25 @@ export function DirectoryList({
   return (
     <div className="flex flex-col gap-4">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={dict.directory.searchPlaceholder}
-          className="pl-9"
+          className="h-11 rounded-full pl-10 shadow-sm"
         />
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2.5 sm:grid-cols-2">
         {filtered.map((p) => (
           <Link
             key={p.id}
             href={`/directory/${p.id}`}
-            className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-accent"
+            className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card-hover"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
-              {p.full_name?.charAt(0) ?? "?"}
-            </span>
+            <Avatar name={p.full_name} url={p.avatar_url} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="flex items-center gap-1.5 truncate font-medium">
+              <span className="flex items-center gap-1.5 truncate font-medium transition-colors group-hover:text-primary">
                 {p.full_name ?? dict.common.notRegistered}
                 {p.role === "ra" && <Badge variant="default">RA</Badge>}
                 {p.id === currentUserId && (
@@ -78,7 +94,7 @@ export function DirectoryList({
           </Link>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-full text-center text-sm text-muted-foreground">
+          <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
             {dict.directory.noResults}
           </p>
         )}

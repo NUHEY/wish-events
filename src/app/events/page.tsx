@@ -45,16 +45,13 @@ export default async function EventsPage({
 
   return (
     <div className="relative flex flex-col gap-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-6 left-1/2 -z-10 h-56 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-6 -z-10 h-64 bg-hero-radial" />
 
       <PendingSurveyBanner userId={profile.id} />
 
-      <div className="flex flex-col gap-3 border-b border-border pb-5">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">{dict.home.title}</h1>
+      <div className="flex flex-col gap-3.5 border-b border-border pb-6">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1>
           <p className="text-sm text-muted-foreground">{dict.home.subtitle}</p>
         </div>
         <EventFilter />
@@ -67,7 +64,7 @@ export default async function EventsPage({
       )}
 
       {!hasUpcoming && !hasPast && (
-        <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border py-16 text-center">
+        <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
           <p className="text-sm font-medium">{dict.home.empty}</p>
           <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
         </div>

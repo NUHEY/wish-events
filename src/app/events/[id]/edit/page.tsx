@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EventForm } from "@/components/events/event-form";
 import { updateEvent } from "@/actions/events";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function EditEventPage({
@@ -23,7 +24,8 @@ export default async function EditEventPage({
   const updateWithId = updateEvent.bind(null, id);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto flex max-w-2xl flex-col gap-3">
+      <BackButton fallbackHref={`/events/${id}`} className="-ml-2" />
       <Card>
         <CardHeader>
           <CardTitle>{dict.eventForm.editTitle}</CardTitle>

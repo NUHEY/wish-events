@@ -34,6 +34,7 @@ export async function EventCard({
           src={event.poster_url}
           alt={title}
           emptyLabel={dict.event.noImage}
+          ratioClassName="aspect-[4/5]"
           className={cn(
             !isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]"
           )}

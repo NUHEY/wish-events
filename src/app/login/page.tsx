@@ -55,16 +55,13 @@ function LoginContent() {
 
   return (
     <div className="relative flex min-h-[85vh] items-center justify-center overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-hero-radial" />
       <div className="absolute right-0 top-0 p-2">
         <LocaleToggle />
       </div>
-      <Card className="relative w-full max-w-sm">
+      <Card className="relative w-full max-w-sm rounded-2xl shadow-elevated">
         <CardHeader className="items-center gap-3 pt-8 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-glow">
             W
           </span>
           <div className="flex flex-col gap-1">

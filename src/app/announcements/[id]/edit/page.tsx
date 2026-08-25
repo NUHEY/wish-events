@@ -3,6 +3,7 @@ import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementForm } from "@/components/announcements/announcement-form";
 import { updateAnnouncement } from "@/actions/announcements";
+import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function EditAnnouncementPage({
@@ -27,6 +28,7 @@ export default async function EditAnnouncementPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <BackButton fallbackHref="/" className="-ml-2 self-start" />
       <h1 className="text-xl font-bold">{dict.announcementForm.editTitle}</h1>
       <AnnouncementForm
         action={updateWithId}

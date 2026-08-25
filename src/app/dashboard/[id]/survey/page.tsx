@@ -6,6 +6,7 @@ import { SurveyActiveToggle } from "@/components/surveys/survey-active-toggle";
 import { saveSurvey } from "@/actions/surveys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function ManageSurveyPage({
@@ -53,6 +54,7 @@ export default async function ManageSurveyPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
+      <BackButton fallbackHref="/dashboard" className="-ml-2 self-start" />
       <h1 className="text-xl font-bold">
         {dict.surveys.manageTitle}: {event.title}
       </h1>

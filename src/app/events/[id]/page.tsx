@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
 import { EventPoster } from "@/components/events/event-poster";
+import { BackButton } from "@/components/layout/back-button";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { deleteEvent } from "@/actions/events";
@@ -51,7 +52,9 @@ export default async function EventDetailPage({
   const categoryLabel = dict.categories[event.category as EventCategory] ?? event.category;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <BackButton fallbackHref="/events" className="-ml-2" />
+
       <EventPoster
         src={event.poster_url}
         alt={title}

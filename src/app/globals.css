@@ -28,7 +28,7 @@
     --border: 220 13% 91%;
     --input: 220 13% 88%;
     --ring: 340 60% 28%;
-    --radius: 0.625rem;
+    --radius: 0.875rem;
   }
 }
 
@@ -49,4 +49,18 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* スクロールバーを少し細く、控えめな色にする（デザイン全体の上質感に合わせる） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--background));
 }

@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
+import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
 import { parseFullRoomNumber } from "@/lib/utils";
@@ -30,6 +31,7 @@ type InitialProfile = Pick<
   | "instagram_handle"
   | "line_qr_path"
   | "self_intro"
+  | "avatar_url"
 >;
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -66,6 +68,10 @@ export function ProfileForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <div className="pb-2">
+        <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="full_name">{dict.profile.fullNameLabel}</Label>
         <Input

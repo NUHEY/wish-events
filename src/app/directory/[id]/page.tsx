@@ -9,6 +9,7 @@ import { formatRoomNumber } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { BackButton } from "@/components/layout/back-button";
 import type { DirectoryProfileRow } from "@/types/database";
 
 function ChipList({ codes, list, locale }: { codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en" }) {
@@ -44,7 +45,7 @@ export default async function DirectoryProfilePage({
     const { data } = await supabase
       .from("users")
       .select(
-        "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path"
+        "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url"
       )
       .eq("id", id)
       .maybeSingle();
@@ -64,16 +65,23 @@ export default async function DirectoryProfilePage({
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <Link href="/directory" className="text-sm text-muted-foreground hover:text-foreground">
-        ← {dict.directory.backToDirectory}
-      </Link>
+      <BackButton fallbackHref="/directory" className="-ml-2" />
 
-      <Card>
+      <Card className="overflow-hidden rounded-2xl">
         <CardContent className="flex flex-col gap-5 p-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary text-xl font-semibold text-secondary-foreground">
-              {target.full_name?.charAt(0) ?? "?"}
-            </span>
+            {target.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={target.avatar_url}
+                alt=""
+                className="h-16 w-16 shrink-0 rounded-full object-cover shadow-sm"
+              />
+            ) : (
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-xl font-semibold text-secondary-foreground shadow-sm">
+                {target.full_name?.charAt(0) ?? "?"}
+              </span>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold">{target.full_name ?? dict.common.notRegistered}</h1>

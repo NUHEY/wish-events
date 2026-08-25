@@ -21,18 +21,15 @@ export default async function HomePage() {
 
   return (
     <div className="relative flex flex-col gap-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-6 left-1/2 -z-10 h-56 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-6 -z-10 h-64 bg-hero-radial" />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">{dict.homeFeed.title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-6">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-bold tracking-tight">{dict.homeFeed.title}</h1>
           <p className="text-sm text-muted-foreground">{dict.homeFeed.subtitle}</p>
         </div>
         {isRa && (
-          <Link href="/announcements/new" className={buttonVariants({ size: "sm" })}>
+          <Link href="/announcements/new" className={buttonVariants({ size: "sm", className: "rounded-full shadow-glow" })}>
             <Plus className="mr-1 h-4 w-4" />
             {dict.homeFeed.newButton}
           </Link>
@@ -46,7 +43,7 @@ export default async function HomePage() {
       )}
 
       {announcements && announcements.length === 0 && (
-        <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border py-16 text-center">
+        <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
           <p className="text-sm font-medium">{dict.homeFeed.empty}</p>
           <p className="text-xs text-muted-foreground">{dict.homeFeed.emptyHint}</p>
         </div>

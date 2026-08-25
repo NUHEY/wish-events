@@ -16,15 +16,23 @@ export function EventPoster({
   emptyLabel,
   className,
   priority,
+  ratioClassName = "aspect-[3/4]",
 }: {
   src: string | null;
   alt: string;
   emptyLabel: string;
   className?: string;
   priority?: boolean;
+  /**
+   * 縦横比を指定するTailwindユーティリティクラス（例: "aspect-[4/5]"）。
+   * 一覧のカードのようにスマホでの縦スクロール量を抑えたい場所ではデフォルトの
+   * 3/4より少し正方形に近い比率を渡す。動的なテンプレート文字列は
+   * Tailwindの静的解析で拾われないため、必ずリテラルの完全なクラス名を渡すこと。
+   */
+  ratioClassName?: string;
 }) {
   return (
-    <div className={cn("relative aspect-[3/4] w-full overflow-hidden bg-muted", className)}>
+    <div className={cn("relative w-full overflow-hidden bg-muted", ratioClassName, className)}>
       {src ? (
         <>
           <Image

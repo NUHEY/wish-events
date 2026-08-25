@@ -33,13 +33,13 @@ export function AnnouncementCard({
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden rounded-2xl transition-shadow duration-200 hover:shadow-card-hover">
       {announcement.cover_image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={announcement.cover_image_url}
           alt=""
-          className="max-h-72 w-full object-cover"
+          className="aspect-[16/9] w-full object-cover"
         />
       )}
       <div className="flex flex-col gap-2 p-4">

@@ -41,15 +41,23 @@ const config: Config = {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 6px)",
+        xl: "calc(var(--radius) + 6px)",
+        "2xl": "calc(var(--radius) + 12px)",
       },
       fontFamily: {
         sans: ["var(--font-noto-sans-jp)", "var(--font-inter)", "sans-serif"],
       },
       boxShadow: {
         card: "0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 6px -1px rgb(0 0 0 / 0.06)",
-        "card-hover": "0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)",
+        "card-hover": "0 8px 20px -4px rgb(0 0 0 / 0.10), 0 3px 8px -3px rgb(0 0 0 / 0.06)",
+        elevated: "0 12px 32px -8px rgb(0 0 0 / 0.16), 0 4px 12px -4px rgb(0 0 0 / 0.08)",
+        glow: "0 0 0 1px hsl(var(--primary) / 0.08), 0 8px 24px -6px hsl(var(--primary) / 0.18)",
+      },
+      backgroundImage: {
+        "hero-radial":
+          "radial-gradient(60% 60% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%)",
       },
     },
   },
