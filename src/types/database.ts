@@ -167,7 +167,13 @@ export type EventCardData = Pick<
   | "registration_closes_at"
 >;
 
-export type HomeLayoutSectionKey = "week_events" | "floor_events" | "announcements";
+export type HomeLayoutSectionKey =
+  | "week_events"
+  | "floor_events"
+  | "announcements"
+  | "featured_events"
+  | "popular_events"
+  | "friends_events";
 export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
 
 export interface HomeLayoutSectionRow {
@@ -570,6 +576,14 @@ export interface Database {
       event_community_profiles_v3: {
         Args: { profile_ids: string[] };
         Returns: { id: string; full_name: string | null; avatar_url: string | null; role: UserRole }[];
+      };
+      popular_upcoming_events: {
+        Args: { p_limit?: number };
+        Returns: { event_id: string; registration_count: number }[];
+      };
+      friends_attending_events: {
+        Args: Record<string, never>;
+        Returns: { event_id: string; friend_id: string }[];
       };
     };
     Enums: Record<string, never>;

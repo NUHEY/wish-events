@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
@@ -6,13 +7,44 @@ import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { EventCardData } from "@/types/database";
 
+export type EventCardFriend = { id: string; full_name: string | null; avatar_url: string | null };
+
+const FRIEND_AVATAR_MAX_VISIBLE = 4;
+
+/** カード左下に、参加している友達のアイコンを少し重ねて表示する（ホームの「友達が参加するイベント」用）。 */
+function FriendAvatarStack({ friends }: { friends: EventCardFriend[] }) {
+  const visible = friends.slice(0, FRIEND_AVATAR_MAX_VISIBLE);
+  const overflow = friends.length - visible.length;
+  return (
+    <div className="absolute bottom-2 left-2 flex items-center -space-x-2">
+      {visible.map((f) => (
+        <span key={f.id} className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-secondary text-[8px] font-semibold text-secondary-foreground ring-2 ring-card">
+          {f.avatar_url ? (
+            <Image src={f.avatar_url} alt="" width={20} height={20} className="h-full w-full object-cover" />
+          ) : (
+            f.full_name?.charAt(0) ?? "?"
+          )}
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[7px] font-semibold text-muted-foreground ring-2 ring-card">
+          +{overflow}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export async function EventCard({
   event,
   variant = "default",
+  attendingFriends,
 }: {
   event: EventCardData;
   /** "muted" は過去イベント一覧など、目立たせたくない場所で使う控えめな見た目。 */
   variant?: "default" | "muted";
+  /** 指定すると、カード左下に参加している友達のアイコンを重ねて表示する。 */
+  attendingFriends?: EventCardFriend[];
 }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -55,6 +87,7 @@ export async function EventCard({
           ) : (
             <span className="absolute bottom-2 right-2 rounded-full bg-emerald-600/90 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.freeLabel}</span>
           )}
+          {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
         </div>
         <CardContent className={cn("flex min-h-[76px] flex-col justify-between gap-1.5 p-2.5 sm:min-h-[88px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3

@@ -68,7 +68,14 @@ export const FACULTIES = [
  * ホーム画面（ポータル）のセクション設定。RAが表示/非表示・並び順・
  * アクセントカラー・タイトルをカスタマイズできる（home_layout_sectionsテーブル）。
  */
-export const HOME_SECTION_KEYS = ["week_events", "floor_events", "announcements"] as const;
+export const HOME_SECTION_KEYS = [
+  "week_events",
+  "floor_events",
+  "announcements",
+  "featured_events",
+  "popular_events",
+  "friends_events",
+] as const;
 export type HomeSectionKey = (typeof HOME_SECTION_KEYS)[number];
 
 export const HOME_ACCENT_KEYS = ["wine", "gold", "teal", "forest"] as const;

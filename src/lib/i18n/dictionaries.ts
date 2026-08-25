@@ -528,6 +528,18 @@ const ja = {
       empty: "現在、あなたの階限定のイベントはありません",
       noFloorNote: "階の情報が未設定のため表示できません",
     },
+    featuredEvents: {
+      title: "注目のイベント",
+      empty: "現在、注目のイベントはありません",
+    },
+    popularEvents: {
+      title: "人気のイベント",
+      empty: "まだ十分な申込みがあるイベントがありません",
+    },
+    friendsEvents: {
+      title: "友達が参加するイベント",
+      empty: "友達が参加予定のイベントはまだありません",
+    },
   },
   homeLayout: {
     navLabel: "ホーム画面編集",
@@ -537,6 +549,9 @@ const ja = {
       week_events: "今週のイベント",
       floor_events: "あなたの階のイベント",
       announcements: "お知らせ",
+      featured_events: "注目のイベント",
+      popular_events: "人気のイベント",
+      friends_events: "友達が参加するイベント",
     },
     visibleLabel: "表示する",
     accentLabel: "アクセントカラー",
@@ -1167,6 +1182,18 @@ const en: typeof ja = {
       empty: "There are no floor-only events for you right now",
       noFloorNote: "Your floor isn't set, so this can't be shown",
     },
+    featuredEvents: {
+      title: "Featured events",
+      empty: "There are no featured events right now",
+    },
+    popularEvents: {
+      title: "Popular events",
+      empty: "No events have enough sign-ups yet",
+    },
+    friendsEvents: {
+      title: "Events your friends are attending",
+      empty: "None of your friends are attending an upcoming event yet",
+    },
   },
   homeLayout: {
     navLabel: "Edit home page",
@@ -1176,6 +1203,9 @@ const en: typeof ja = {
       week_events: "This week's events",
       floor_events: "Your floor's events",
       announcements: "Announcements",
+      featured_events: "Featured events",
+      popular_events: "Popular events",
+      friends_events: "Events your friends are attending",
     },
     visibleLabel: "Show",
     accentLabel: "Accent color",
