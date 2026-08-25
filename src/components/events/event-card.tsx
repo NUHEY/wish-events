@@ -2,20 +2,17 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
-import { TeamAvatars } from "@/components/team/team-avatars";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventRow, TeamMemberRow } from "@/types/database";
+import type { EventRow } from "@/types/database";
 
 export async function EventCard({
   event,
   variant = "default",
-  members = [],
 }: {
   event: EventRow;
   /** "muted" は過去イベント一覧など、目立たせたくない場所で使う控えめな見た目。 */
   variant?: "default" | "muted";
-  members?: TeamMemberRow[];
 }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -56,7 +53,6 @@ export async function EventCard({
           <p className="text-xs text-muted-foreground sm:text-sm">
             {formatEventDateTime(event.event_date, locale)}
           </p>
-          <div className="min-h-7"><TeamAvatars members={members} allRa={event.all_ra_members} /></div>
         </CardContent>
       </Card>
     </Link>

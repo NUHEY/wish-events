@@ -18,12 +18,12 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
 ];
 
 /** モバイルは横スクロールのスナップ、sm以上はグリッドで表示するイベントカード列 */
-function EventScroller({ events, membersById }: { events: EventRow[]; membersById: Map<string, TeamMemberRow> }) {
+function EventScroller({ events }: { events: EventRow[] }) {
   return (
     <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-3">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
-          <EventCard event={event} members={(event.member_ids ?? []).map((id) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
+          <EventCard event={event} />
         </div>
       ))}
     </div>
@@ -141,7 +141,7 @@ export default async function HomePage() {
                   <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.weekEvents.title)} />
                 </div>
                 {weekEvents && weekEvents.length > 0 ? (
-                  <EventScroller events={weekEvents} membersById={membersById} />
+                  <EventScroller events={weekEvents} />
                 ) : (
                   <EmptyNote>{dict.homePortal.weekEvents.empty}</EmptyNote>
                 )}
@@ -160,7 +160,7 @@ export default async function HomePage() {
                 {profile.floor_number == null ? (
                   <EmptyNote>{dict.homePortal.floorEvents.noFloorNote}</EmptyNote>
                 ) : floorEvents.length > 0 ? (
-                  <EventScroller events={floorEvents} membersById={membersById} />
+                  <EventScroller events={floorEvents} />
                 ) : (
                   <EmptyNote>{dict.homePortal.floorEvents.empty}</EmptyNote>
                 )}

@@ -84,12 +84,16 @@ export async function voteEventPoll(pollId: string, optionIndex: number) {
   return { success: true };
 }
 
-export async function addEventComment(eventId: string, body: string) {
+export async function addEventComment(eventId: string, body: string, parentId?: string | null) {
   const profile = await getCurrentProfile();
   const text = body.trim();
   if (!text) return { error: "コメントを入力してください" };
   const supabase = await createClient();
-  const { error } = await supabase.from("event_comments").insert({ event_id: eventId, user_id: profile.id, body: text });
+  if (parentId) {
+    const { data: parent } = await supabase.from("event_comments").select("id, event_id, parent_id").eq("id", parentId).maybeSingle();
+    if (!parent || parent.event_id !== eventId || parent.parent_id) return { error: "返信先のコメントを確認できませんでした" };
+  }
+  const { error } = await supabase.from("event_comments").insert({ event_id: eventId, user_id: profile.id, body: text, parent_id: parentId ?? null });
   if (error) return { error: `コメントの投稿に失敗しました: ${error.message}` };
   revalidatePath(`/events/${eventId}`);
   return { success: true };

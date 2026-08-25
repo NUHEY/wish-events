@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+import { CalendarDays, CircleDollarSign, MapPin, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
@@ -12,10 +13,11 @@ import { EventShareButton } from "@/components/events/event-share-button";
 import { EventComments } from "@/components/community/event-comments";
 import { EventLikeButton } from "@/components/community/event-like-button";
 import { BackButton } from "@/components/layout/back-button";
+import { TeamAvatars } from "@/components/team/team-avatars";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { deleteEvent } from "@/actions/events";
-import type { EventCategory } from "@/types/database";
+import type { EventCategory, TeamMemberRow } from "@/types/database";
 
 export default async function EventDetailPage({
   params,
@@ -30,6 +32,10 @@ export default async function EventDetailPage({
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
+
+  const { data: teamRows } = event.member_ids?.length
+    ? await supabase.from("users").select("id, full_name, avatar_url").in("id", event.member_ids)
+    : { data: [] as TeamMemberRow[] };
 
   const { count } = await supabase
     .from("registrations")
@@ -58,7 +64,7 @@ export default async function EventDetailPage({
   const commentIds = (commentRows ?? []).map((comment) => comment.id);
   const commentUserIds = [...new Set((commentRows ?? []).map((comment) => comment.user_id))];
   const [{ data: commentUsers }, { data: likes }] = await Promise.all([
-    commentUserIds.length ? (supabase as any).rpc("event_community_profiles_v2", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
+    commentUserIds.length ? (supabase as any).rpc("event_community_profiles_v3", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
     commentIds.length ? supabase.from("event_comment_likes").select("comment_id, user_id").in("comment_id", commentIds) : Promise.resolve({ data: [] }),
   ]);
   const commentUsersById = new Map((commentUsers ?? []).map((user: { id: string; full_name: string | null; avatar_url: string | null; role: string }) => [user.id, user]));
@@ -111,28 +117,14 @@ export default async function EventDetailPage({
             </Badge>
           )}
         </div>
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{title}</h1>
-          <EventShareButton
-            eventId={event.id}
-            title={title}
-            categoryLabel={categoryLabel}
-            eventDate={event.event_date}
-            location={location}
-            audience={audience}
-            feeAmount={event.fee_amount}
-          />
-          <EventLikeButton eventId={event.id} count={(eventLikes ?? []).length} liked={(eventLikes ?? []).some((like) => like.user_id === profile.id)} />
+          <div className="flex shrink-0 items-center gap-1"><EventShareButton eventId={event.id} title={title} categoryLabel={categoryLabel} eventDate={event.event_date} location={location} audience={audience} feeAmount={event.fee_amount} /><EventLikeButton eventId={event.id} count={(eventLikes ?? []).length} liked={(eventLikes ?? []).some((like) => like.user_id === profile.id)} /></div>
         </div>
-        <dl className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-          <div>
-            <dt className="inline font-medium text-foreground">{dict.event.dateLabel}: </dt>
-            <dd className="inline">{formatEventDateTime(event.event_date, locale)}</dd>
-          </div>
+        <dl className="grid grid-cols-1 gap-x-5 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
+          <div className="flex items-start gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><dd>{formatEventDateTime(event.event_date, locale)}</dd></div>
           {location && (
-            <div>
-              <dt className="inline font-medium text-foreground">{dict.event.locationLabel}: </dt>
-              <dd className="inline">
+            <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><dd>
                 {location}
                 {event.location_url && (
                   <a
@@ -144,24 +136,17 @@ export default async function EventDetailPage({
                     {dict.event.locationLinkText}
                   </a>
                 )}
-              </dd>
-            </div>
+              </dd></div>
           )}
           {audience && (
-            <div>
-              <dt className="inline font-medium text-foreground">{dict.event.audienceLabel}: </dt>
-              <dd className="inline">{audience}</dd>
-            </div>
+            <div className="flex items-start gap-2"><UsersRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><dd>{audience}</dd></div>
           )}
           {!!event.fee_amount && (
-            <div>
-              <dt className="inline font-medium text-foreground">{dict.event.feeLabel}: </dt>
-              <dd className="inline">
+            <div className="flex items-start gap-2"><CircleDollarSign className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><dd>
                 {dict.event.feePrefix}
                 {event.fee_amount.toLocaleString()}
                 {dict.event.feeUnit}
-              </dd>
-            </div>
+              </dd></div>
           )}
           {event.contact_info && (
             <div>
@@ -170,6 +155,7 @@ export default async function EventDetailPage({
             </div>
           )}
         </dl>
+        {(event.all_ra_members || (teamRows ?? []).length > 0) && <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground"><TeamAvatars members={teamRows ?? []} allRa={event.all_ra_members} /><span>企画</span></div>}
       </div>
 
       {event.payment_info && (
