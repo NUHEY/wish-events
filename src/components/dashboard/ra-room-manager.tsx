@@ -17,6 +17,7 @@ import { formatRoomNumber } from "@/lib/utils";
 import { demoteUserToResident } from "@/actions/ra-rooms";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; currentUserId: string }) {
   const [pending, startTransition] = useTransition();
@@ -31,7 +32,7 @@ function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; curren
   }
 
   return (
-    <Table>
+    <><PendingFeedback active={pending} label="RA権限を更新しています…" /><Table>
       <TableHeader>
         <TableRow>
           <TableHead>{dict.raRooms.nameColumn}</TableHead>
@@ -68,7 +69,7 @@ function CurrentRaTable({ raUsers, currentUserId }: { raUsers: UserRow[]; curren
           </TableRow>
         )}
       </TableBody>
-    </Table>
+    </Table></>
   );
 }
 

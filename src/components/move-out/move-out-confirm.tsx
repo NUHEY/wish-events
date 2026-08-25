@@ -11,6 +11,7 @@ import { moveOut } from "@/actions/move-out";
 import { formatEventDateTime } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import type { EventCategory } from "@/types/database";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 export type MoveOutEvent = {
   id: string;
@@ -49,6 +50,7 @@ export function MoveOutConfirm({
 
   return (
     <>
+      <PendingFeedback active={pending} label="退寮手続きを更新しています…" />
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-bold tracking-tight">{dict.moveOut.title}</h1>
         <p className="text-sm text-muted-foreground">

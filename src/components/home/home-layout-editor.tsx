@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { HOME_ACCENT_HEX, HOME_ACCENT_KEYS, type HomeAccentKeyValue } from "@/lib/constants";
 import { saveHomeLayout, type HomeLayoutActionResult } from "@/actions/home-layout";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import type { HomeLayoutSectionRow } from "@/types/database";
 
 type SectionState = {
@@ -26,9 +27,7 @@ type SectionState = {
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? savingLabel : label}
-    </Button>
+    <><PendingFeedback active={pending} label={savingLabel} /><Button type="submit" disabled={pending}>{pending ? savingLabel : label}</Button></>
   );
 }
 

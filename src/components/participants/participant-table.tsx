@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import {
   Table,
   TableBody,
@@ -134,6 +135,7 @@ export function ParticipantTable({
 
   return (
     <div className="flex flex-col gap-3">
+      <PendingFeedback active={pending} label="参加者情報を更新しています…" />
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {dict.participants.count}: {filtered.length}

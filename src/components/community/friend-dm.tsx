@@ -16,6 +16,7 @@ import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { dmPairFolder } from "@/lib/utils";
 import { compressImageFile } from "@/lib/image-compress";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 type DirectMessage = {
   id: string;
@@ -273,6 +274,7 @@ export function FriendDm({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8f7f8] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
+      <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       <div
         ref={scrollRef}
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f5e9ef_0%,#fafafa_42%,#f8f7f8_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"

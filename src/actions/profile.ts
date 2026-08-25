@@ -38,6 +38,7 @@ export async function submitProfile(
     show_languages: formData.get("show_languages") === "on",
     show_nationalities: formData.get("show_nationalities") === "on",
   });
+  const returnTo = formData.get("return_to") === "profile" ? "profile" : "post-login";
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? dict.validation.genericError };
@@ -87,7 +88,9 @@ export async function submitProfile(
 
   revalidatePath("/", "layout");
   revalidatePath("/directory");
-  const nextPath = postLoginPath((newRole as UserRole | null) ?? profile.role);
+  const nextPath = returnTo === "profile"
+    ? `/directory/${profile.id}`
+    : postLoginPath((newRole as UserRole | null) ?? profile.role);
   const separator = nextPath.includes("?") ? "&" : "?";
   redirect(`${nextPath}${separator}saved=1`);
 }

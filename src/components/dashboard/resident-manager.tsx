@@ -18,6 +18,7 @@ import { formatRoomNumber } from "@/lib/utils";
 import { releaseRoom, resetAllRoomAssignments } from "@/actions/residents";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 function ResidentTable({ residents }: { residents: UserRow[] }) {
   const [pending, startTransition] = useTransition();
@@ -36,7 +37,7 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
   }
 
   return (
-    <Table>
+    <><PendingFeedback active={pending} label="寮生情報を更新しています…" /><Table>
       <TableHeader>
         <TableRow>
           <TableHead>{dict.residents.nameColumn}</TableHead>
@@ -73,7 +74,7 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
           </TableRow>
         )}
       </TableBody>
-    </Table>
+    </Table></>
   );
 }
 
@@ -102,6 +103,7 @@ function BulkResetPanel() {
 
   return (
     <Card className="border-destructive/30">
+      <PendingFeedback active={pending} label={dict.residents.resetting} />
       <CardHeader>
         <CardTitle className="text-base">{dict.residents.resetTitle}</CardTitle>
         <CardDescription>

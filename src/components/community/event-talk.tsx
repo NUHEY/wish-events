@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { ImageLightbox } from "@/components/community/image-lightbox";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 
@@ -698,6 +699,7 @@ function Composer({
 
   return (
     <div className="border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+      <PendingFeedback active={pending || uploading} label={uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       {isRa && (
         <div className="mb-2">
           <button

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { submitSurveyResponse, type AnswerInput } from "@/actions/surveys";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { SurveyQuestionRow } from "@/types/database";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 export function SurveyResponseForm({
   surveyId,
@@ -80,6 +81,7 @@ export function SurveyResponseForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <PendingFeedback active={pending} label="回答を送信しています…" />
       {sorted.map((q, index) => (
         <div key={q.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <Label>

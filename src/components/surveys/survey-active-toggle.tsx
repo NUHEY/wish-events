@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toggleSurveyActive } from "@/actions/surveys";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 export function SurveyActiveToggle({
   surveyId,
@@ -18,7 +19,7 @@ export function SurveyActiveToggle({
   const dict = useDict();
 
   return (
-    <Button
+    <><PendingFeedback active={pending} label="アンケート設定を更新しています…" /><Button
       size="sm"
       variant="outline"
       disabled={pending}
@@ -30,6 +31,6 @@ export function SurveyActiveToggle({
       }
     >
       {isActive ? dict.surveys.pauseButton : dict.surveys.resumeButton}
-    </Button>
+    </Button></>
   );
 }

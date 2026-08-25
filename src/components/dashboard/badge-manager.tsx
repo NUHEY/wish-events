@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBadge, deleteBadge, updateBadge, resetAllBadges, type BadgeActionResult } from "@/actions/badges";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -35,9 +36,7 @@ function criteriaTypeLabel(dict: ReturnType<typeof useDict>, criteriaType: Badge
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? "..." : label}
-    </Button>
+    <><PendingFeedback active={pending} label="バッジを保存しています…" /><Button type="submit" size="sm" disabled={pending}>{pending ? "保存中…" : label}</Button></>
   );
 }
 

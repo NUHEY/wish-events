@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { EventOptionActionResult } from "@/actions/event-options";
 
@@ -17,9 +18,7 @@ type OptionRow = { id: string; label_ja: string; label_en: string | null };
 function AddButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {label}
-    </Button>
+    <><PendingFeedback active={pending} label="選択肢を保存しています…" /><Button type="submit" size="sm" disabled={pending}>{pending ? "保存中…" : label}</Button></>
   );
 }
 
@@ -69,6 +68,7 @@ export function EventOptionManager({
 
   return (
     <Card className="rounded-2xl">
+      <PendingFeedback active={pending} label="選択肢を更新しています…" />
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
         <CardDescription>{subtitle}</CardDescription>

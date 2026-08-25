@@ -26,6 +26,7 @@ export default async function ProfileEditPage() {
             initialProfile={profile}
             initialLineQrSignedUrl={initialLineQrSignedUrl}
             submitLabel={dict.profile.submitEdit}
+            returnTo="profile"
           />
         </CardContent>
       </Card>

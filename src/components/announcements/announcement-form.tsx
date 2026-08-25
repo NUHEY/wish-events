@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { AnnouncementRow } from "@/types/database";
 import type { ActionResult } from "@/actions/announcements";
@@ -21,9 +22,7 @@ type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResu
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? savingLabel : label}
-    </Button>
+    <><PendingFeedback active={pending} label={savingLabel} /><Button type="submit" disabled={pending}>{pending ? savingLabel : label}</Button></>
   );
 }
 

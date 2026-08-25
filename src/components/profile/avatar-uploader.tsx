@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { User, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { uploadAvatar, removeAvatar } from "@/actions/avatar";
 
@@ -68,6 +69,7 @@ export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
 
   return (
     <div className="flex items-center gap-4">
+      <PendingFeedback active={pending} label={dict.profile.avatarUploading} />
       <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary shadow-sm">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

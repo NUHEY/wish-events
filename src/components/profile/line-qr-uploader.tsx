@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { uploadLineQr } from "@/actions/line-qr";
 
@@ -67,6 +68,7 @@ export function LineQrUploader({
 
   return (
     <div className="grid gap-2">
+      <PendingFeedback active={pending} label={dict.profile.lineUploading} />
       <p className="text-xs text-muted-foreground">{dict.profile.lineHint}</p>
 
       <div className="flex items-center gap-3">

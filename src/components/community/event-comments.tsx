@@ -9,6 +9,7 @@ import { addEventComment, deleteEventComment, toggleEventCommentLike } from "@/a
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 type Comment = {
   id: string;
@@ -128,6 +129,7 @@ export function EventComments({
 
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-5">
+      <PendingFeedback active={pending} label={body.trim() ? "コメントを送信しています…" : "コメントを更新しています…"} />
       <h2 className="font-bold">コメント（{visibleComments.length}）</h2>
       <div>
         {replyTo && (

@@ -14,6 +14,7 @@ import {
 import { formatEventDateTime } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { signalNavigation } from "@/lib/navigation-signal";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import type { RegistrationQuestionRow } from "@/types/database";
 
 type Answers = Record<string, string | string[]>;
@@ -162,6 +163,7 @@ export function RegistrationButton({
   if (isRegistered) {
     return (
       <div className="flex flex-col gap-2">
+        <PendingFeedback active={pending} label="参加登録を取り消しています…" />
         <Button onClick={handleCancel} disabled={pending} variant="outline" className="w-full sm:w-auto">
           {pending ? dict.event.processing : dict.event.cancelRegistration}
         </Button>
@@ -198,6 +200,7 @@ export function RegistrationButton({
   if (!requiresAnswers) {
     return (
       <div className="flex flex-col gap-2">
+        <PendingFeedback active={pending} label="イベントに申し込んでいます…" />
         <Button
           onClick={handleSimpleRegister}
           disabled={pending || isFull}
@@ -227,6 +230,7 @@ export function RegistrationButton({
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+      <PendingFeedback active={pending} label="イベントに申し込んでいます…" />
       <p className="text-sm font-medium">{dict.registrationQuestions.answerFormTitle}</p>
       {questions.map((q) => (
         <div key={q.id} className="grid gap-1.5">

@@ -8,6 +8,11 @@ alter table public.users
   add column if not exists show_languages boolean not null default true,
   add column if not exists show_nationalities boolean not null default true;
 
+-- usersは列単位でUPDATEを許可しているため、新しい列にも明示的な権限が必要。
+grant update (
+  profile_cover_url, show_past_events, show_sns, show_languages, show_nationalities
+) on public.users to authenticated;
+
 create index if not exists events_category_date_idx on public.events(category, event_date);
 create index if not exists registrations_user_registered_idx on public.registrations(user_id, registered_at desc);
 create index if not exists event_messages_event_created_desc_idx on public.event_messages(event_id, created_at desc);

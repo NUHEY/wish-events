@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
@@ -46,9 +47,7 @@ type InitialProfile = Pick<
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? pendingLabel : label}
-    </Button>
+    <><PendingFeedback active={pending} label={pendingLabel} /><Button type="submit" disabled={pending} className="w-full">{pending ? pendingLabel : label}</Button></>
   );
 }
 
@@ -56,10 +55,12 @@ export function ProfileForm({
   initialProfile,
   initialLineQrSignedUrl = null,
   submitLabel,
+  returnTo = "post-login",
 }: {
   initialProfile?: InitialProfile;
   initialLineQrSignedUrl?: string | null;
   submitLabel?: string;
+  returnTo?: "profile" | "post-login";
 }) {
   const dict = useDict();
   const locale = useLocale();
@@ -78,6 +79,7 @@ export function ProfileForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="return_to" value={returnTo} />
       <div className="pb-2">
         <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
       </div>

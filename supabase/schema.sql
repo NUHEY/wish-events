@@ -417,7 +417,8 @@ grant update (
   full_name, student_id, floor_number, room_number,
   faculty, grade_level, languages, nationalities, lived_countries,
   instagram_handle, line_qr_path, self_intro, avatar_url,
-  line_id, x_handle, profile_accent
+  line_id, x_handle, profile_accent,
+  profile_cover_url, show_past_events, show_sns, show_languages, show_nationalities
 ) on public.users to authenticated;
 grant select, insert on public.users to authenticated;
 

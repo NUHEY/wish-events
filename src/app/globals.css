@@ -37,6 +37,12 @@
   60%, 100% { transform: translateX(210%); }
 }
 
+@keyframes mobile-touch-feedback {
+  0% { opacity: 1; }
+  45% { opacity: 0.68; }
+  100% { opacity: 1; }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -68,4 +74,28 @@
   background-color: hsl(var(--muted-foreground) / 0.25);
   border-radius: 9999px;
   border: 2px solid hsl(var(--background));
+}
+
+/* タッチ端末ではPC向けの浮き上がりhoverを無効化し、短いタップアニメーションへ置き換える。 */
+@media (hover: none), (pointer: coarse) {
+  html { -webkit-tap-highlight-color: transparent; }
+  [class*="hover:-translate"]:hover,
+  [class*="hover:scale"]:hover,
+  .group:hover [class*="group-hover:scale"],
+  .group:hover [class*="group-hover:-translate"] {
+    transform: none !important;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:active {
+    animation: mobile-touch-feedback 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:active {
+    animation: none;
+  }
 }

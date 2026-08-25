@@ -11,6 +11,7 @@ import { REGISTRATION_QUESTION_TYPES, type RegistrationQuestionType } from "@/li
 import type { RegistrationQuestionRow } from "@/types/database";
 import type { ActionResult } from "@/actions/registration-questions";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 type DraftQuestion = {
   question_text: string;
@@ -25,9 +26,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   const dict = useDict();
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? dict.surveys.saving : dict.registrationQuestions.saveButton}
-    </Button>
+    <><PendingFeedback active={pending} label={dict.surveys.saving} /><Button type="submit" disabled={pending}>{pending ? dict.surveys.saving : dict.registrationQuestions.saveButton}</Button></>
   );
 }
 
