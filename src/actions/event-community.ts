@@ -28,6 +28,12 @@ export async function sendEventSurveyTool(eventId: string) {
   revalidatePath(`/talks/${eventId}`); return { success: true };
 }
 
+export async function markEventTalkRead(eventId: string) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+  await supabase.from("event_chat_reads").upsert({ event_id: eventId, user_id: profile.id, last_read_at: new Date().toISOString() });
+}
+
 export async function addEventComment(eventId: string, body: string) {
   const profile = await getCurrentProfile();
   const text = body.trim();

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ImagePlus, Send } from "lucide-react";
+import { ImagePlus, Send, Smile } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { sendEventMessage, sendEventSurveyTool } from "@/actions/event-community";
+import { markEventTalkRead, sendEventMessage, sendEventSurveyTool } from "@/actions/event-community";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
@@ -21,6 +21,7 @@ export function EventTalk({ eventId, currentUserId, messages, isRa }: { eventId:
     const channel = supabase.channel(`event-talk-${eventId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "event_messages", filter: `event_id=eq.${eventId}` }, () => router.refresh()).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [eventId, router]);
+  useEffect(() => { markEventTalkRead(eventId); }, [eventId, messages.length]);
   function submit(mediaPath?: string) {
     startTransition(async () => {
       const result = await sendEventMessage(eventId, body, mediaPath);
@@ -35,14 +36,14 @@ export function EventTalk({ eventId, currentUserId, messages, isRa }: { eventId:
     setUploading(false); if (uploadError) setError(`画像の送信に失敗しました: ${uploadError.message}`); else submit(path);
   }
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex max-h-[56vh] min-h-[20rem] flex-col gap-3 overflow-y-auto bg-secondary/20 p-4">
-        <div className="self-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">参加ありがとうございます。イベントに関するお知らせはここに届きます。</div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#fafafa] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[radial-gradient(circle_at_top,#f4edf0,transparent_44%)] p-3.5 sm:max-h-[56vh] sm:min-h-[20rem] sm:p-4">
+        <div className="self-center rounded-full bg-card/90 px-3 py-1 text-[11px] font-medium text-primary shadow-sm">参加ありがとうございます。イベントに関するお知らせはここに届きます。</div>
         {messages.map((message) => {
           const mine = message.sender_id === currentUserId;
-          return <div key={message.id} className={`flex max-w-[85%] gap-2 ${mine ? "self-end" : "self-start"}`}>
-            {!mine && (message.sender?.avatar_url ? <img src={message.sender.avatar_url} alt="" className="mt-1 h-7 w-7 rounded-full object-cover" /> : <span className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs">{message.sender?.full_name?.charAt(0) ?? "?"}</span>)}
-            <div className={`${mine ? "bg-primary text-primary-foreground" : "bg-background"} rounded-2xl px-3 py-2 shadow-sm`}>
+          return <div key={message.id} className={`flex max-w-[88%] gap-2 ${mine ? "self-end" : "self-start"}`}>
+            {!mine && (message.sender?.avatar_url ? <span className="relative mt-1"><img src={message.sender.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />{message.sender.role === "ra" && <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />}</span> : <span className="relative mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs">{message.sender?.full_name?.charAt(0) ?? "?"}{message.sender?.role === "ra" && <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />}</span>)}
+            <div className={`${mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-card text-foreground"} rounded-2xl px-3 py-2 shadow-sm`}>
               {!mine && <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">{message.sender?.full_name ?? "RA"}{message.sender?.role === "ra" && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] text-primary-foreground">RA</span>}</p>}
               <p className="whitespace-pre-wrap text-sm">{message.body}</p>
               {message.mediaUrl && <img src={message.mediaUrl} alt="トークに送信された画像" className="mt-2 max-h-72 rounded-xl object-cover" />}
@@ -52,10 +53,9 @@ export function EventTalk({ eventId, currentUserId, messages, isRa }: { eventId:
           </div>;
         })}
       </div>
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {isRa && <button type="button" onClick={() => startTransition(() => sendEventSurveyTool(eventId).then((result) => { if (result?.error) setError(result.error); else router.refresh(); }))} className="mb-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary">アンケート案内を送る</button>}
-        <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} maxLength={2000} placeholder="メッセージを入力" className="resize-none" />
-        <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-destructive">{error}</p><div className="flex gap-2"><label className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary"><ImagePlus className="h-4 w-4" /><input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = ""; }} /></label><Button size="sm" disabled={pending || !body.trim()} onClick={() => submit()}><Send className="h-4 w-4" />送信</Button></div></div>
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-secondary/45 px-2 py-1.5"><label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-background"><ImagePlus className="h-5 w-5" /><input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = ""; }} /></label><Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={1} maxLength={2000} placeholder="メッセージ..." className="min-h-10 border-0 bg-transparent py-2 shadow-none focus-visible:ring-0" /><Smile className="mb-2 h-5 w-5 shrink-0 text-muted-foreground" /><Button size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={pending || !body.trim()} onClick={() => submit()}><Send className="h-4 w-4" /></Button></div><p className="mt-1 text-xs text-destructive">{error}</p>
       </div>
     </div>
   );

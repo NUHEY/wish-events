@@ -19,6 +19,16 @@ export async function Header() {
     .maybeSingle();
 
   if (!profile) return null;
+  const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
+  const eventIds = (registrations ?? []).map((registration) => registration.event_id);
+  const [{ data: reads }, { data: messages }] = eventIds.length
+    ? await Promise.all([
+        supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id),
+        supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const lastReadByEvent = new Map((reads ?? []).map((read) => [read.event_id, read.last_read_at]));
+  const hasUnreadTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
 
   return (
     <>
@@ -31,7 +41,7 @@ export async function Header() {
               </span>
               <span className="text-lg font-bold tracking-tight">WISH Events</span>
             </Link>
-            <Nav role={profile.role} />
+            <Nav role={profile.role} hasUnreadTalk={hasUnreadTalk} />
           </div>
           <div className="flex items-center gap-2.5">
             <UserMenu
@@ -44,8 +54,7 @@ export async function Header() {
           </div>
         </div>
       </header>
-      <MobileTabBar
-      />
+      <MobileTabBar hasUnreadTalk={hasUnreadTalk} />
     </>
   );
 }

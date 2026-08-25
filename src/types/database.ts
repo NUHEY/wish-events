@@ -306,6 +306,12 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      event_chat_reads: {
+        Row: { event_id: string; user_id: string; last_read_at: string };
+        Insert: { event_id: string; user_id: string; last_read_at?: string };
+        Update: { last_read_at?: string };
+        Relationships: [];
+      };
       surveys: {
         Row: SurveyRow;
         Insert: Partial<SurveyRow> & {

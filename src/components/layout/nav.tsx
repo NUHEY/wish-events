@@ -42,7 +42,7 @@ function NavLink({
  * 寮生ディレクトリはメイン機能ではないため、ここではなくアバターメニューに
  * 格納している。モバイル幅ではこのナビ自体を隠し、下部タブバーに置き換える。
  */
-export function Nav({ role: _role }: { role: UserRole }) {
+export function Nav({ role: _role, hasUnreadTalk = false }: { role: UserRole; hasUnreadTalk?: boolean }) {
   const dict = useDict();
   return (
     <nav className="hidden items-center gap-1 sm:flex">
@@ -50,7 +50,7 @@ export function Nav({ role: _role }: { role: UserRole }) {
         {dict.nav.home}
       </NavLink>
       <NavLink href="/events">{dict.nav.events}</NavLink>
-      <NavLink href="/talks">トーク</NavLink>
+      <NavLink href="/talks"><span className="relative">トーク{hasUnreadTalk && <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-red-500" />}</span></NavLink>
     </nav>
   );
 }

@@ -11,11 +11,13 @@ function TabLink({
   icon: Icon,
   label,
   exact,
+  badge = false,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   exact?: boolean;
+  badge?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = exact ? pathname === href : pathname.startsWith(href);
@@ -27,7 +29,7 @@ function TabLink({
         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
-      <Icon className="h-5 w-5" />
+      <span className="relative"><Icon className="h-5 w-5" />{badge && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-card bg-red-500" />}</span>
       {label}
     </Link>
   );
@@ -39,8 +41,7 @@ function TabLink({
  * ページ間の行き来の体感速度を上げる。sm以上ではヘッダーの通常ナビに戻るため
  * このバー自体を非表示にする。
  */
-export function MobileTabBar({
-}: {}) {
+export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolean }) {
   const dict = useDict();
   return (
     <nav
@@ -49,7 +50,7 @@ export function MobileTabBar({
     >
       <TabLink href="/" icon={Home} label={dict.nav.home} exact />
       <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} />
-      <TabLink href="/talks" icon={MessageCircle} label="トーク" />
+      <TabLink href="/talks" icon={MessageCircle} label="トーク" badge={hasUnreadTalk} />
     </nav>
   );
 }
