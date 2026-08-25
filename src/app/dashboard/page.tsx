@@ -30,6 +30,9 @@ export default async function DashboardPage() {
           <Link href="/dashboard/residents" className={buttonVariants({ variant: "outline", size: "sm" })}>
             {dict.nav.residents}
           </Link>
+          <Link href="/dashboard/home-layout" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {dict.homeLayout.navLabel}
+          </Link>
           <Link href="/events/new" className={buttonVariants({ size: "sm" })}>
             {dict.dashboard.newEventButton}
           </Link>

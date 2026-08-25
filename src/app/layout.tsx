@@ -36,7 +36,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <LocaleProvider locale={locale}>
           <Header />
-          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
         </LocaleProvider>
       </body>
     </html>

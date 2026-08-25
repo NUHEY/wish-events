@@ -37,19 +37,19 @@ function NavLink({
 
 /**
  * RA向けの管理系リンク（イベント作成・管理ダッシュボード・RA管理・寮生管理）は
- * あえてこのグローバルナビには出さない。RAは代わりにヘッダーの小さいアイコン
- * （非RAには表示されない）から管理ダッシュボードに入り、そこから各管理画面へ
- * 遷移する。寮生ディレクトリは全ログインユーザー共通の機能なので常に表示する。
+ * あえてこのグローバルナビには出さない。RAは代わりにアバターメニューから
+ * 管理ダッシュボードに入り、そこから各管理画面へ遷移する。
+ * 寮生ディレクトリはメイン機能ではないため、ここではなくアバターメニューに
+ * 格納している。モバイル幅ではこのナビ自体を隠し、下部タブバーに置き換える。
  */
 export function Nav({ role: _role }: { role: UserRole }) {
   const dict = useDict();
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="hidden items-center gap-1 sm:flex">
       <NavLink href="/" exact>
         {dict.nav.home}
       </NavLink>
       <NavLink href="/events">{dict.nav.events}</NavLink>
-      <NavLink href="/directory">{dict.nav.directory}</NavLink>
     </nav>
   );
 }

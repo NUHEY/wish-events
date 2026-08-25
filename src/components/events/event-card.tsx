@@ -42,6 +42,11 @@ export async function EventCard({
         <CardContent className={cn("flex flex-col gap-2", isMuted ? "p-3" : "p-3.5")}>
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">{categoryLabel}</Badge>
+            {event.is_pinned && (
+              <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+                {dict.event.pinnedBadge}
+              </Badge>
+            )}
             {event.target_floors && event.target_floors.length > 0 && (
               <Badge variant="outline">
                 {event.target_floors.map((f) => `${f}${dict.event.floorUnit}`).join("・")}

@@ -321,17 +321,31 @@ export function EventForm({
                 defaultValue={initialEvent?.capacity ?? undefined}
               />
             </div>
-            <div className="grid gap-2 sm:w-1/2">
-              <Label>{dict.eventForm.registrationOpensLabel}</Label>
-              <DateTimePicker
-                name="registration_opens_at"
-                defaultValue={
-                  initialEvent?.registration_opens_at
-                    ? new Date(initialEvent.registration_opens_at).toISOString().slice(0, 16)
-                    : undefined
-                }
-              />
-              <p className="text-xs text-muted-foreground">{dict.eventForm.registrationOpensHint}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>{dict.eventForm.registrationOpensLabel}</Label>
+                <DateTimePicker
+                  name="registration_opens_at"
+                  defaultValue={
+                    initialEvent?.registration_opens_at
+                      ? new Date(initialEvent.registration_opens_at).toISOString().slice(0, 16)
+                      : undefined
+                  }
+                />
+                <p className="text-xs text-muted-foreground">{dict.eventForm.registrationOpensHint}</p>
+              </div>
+              <div className="grid gap-2">
+                <Label>{dict.eventForm.registrationClosesLabel}</Label>
+                <DateTimePicker
+                  name="registration_closes_at"
+                  defaultValue={
+                    initialEvent?.registration_closes_at
+                      ? new Date(initialEvent.registration_closes_at).toISOString().slice(0, 16)
+                      : undefined
+                  }
+                />
+                <p className="text-xs text-muted-foreground">{dict.eventForm.registrationClosesHint}</p>
+              </div>
             </div>
             <div className="grid gap-1.5">
               <p className="text-xs text-muted-foreground">
@@ -384,6 +398,47 @@ export function EventForm({
               : dict.eventForm.surveyInternalHintNew}
           </p>
         )}
+      </fieldset>
+
+      <fieldset className="grid gap-3 rounded-md border border-border p-3">
+        <legend className="px-1 text-sm font-medium">{dict.eventForm.advancedLegend}</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox name="is_pinned" defaultChecked={initialEvent?.is_pinned ?? false} />
+          {dict.eventForm.pinnedLabel}
+        </label>
+        <p className="-mt-1.5 text-xs text-muted-foreground">{dict.eventForm.pinnedHint}</p>
+
+        <div className="grid gap-2">
+          <Label htmlFor="location_url">{dict.eventForm.locationUrlLabel}</Label>
+          <Input
+            id="location_url"
+            name="location_url"
+            type="url"
+            defaultValue={initialEvent?.location_url ?? ""}
+            placeholder={dict.eventForm.locationUrlPlaceholder}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="contact_info">{dict.eventForm.contactInfoLabel}</Label>
+          <Input
+            id="contact_info"
+            name="contact_info"
+            defaultValue={initialEvent?.contact_info ?? ""}
+            placeholder={dict.eventForm.contactInfoPlaceholder}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="notes">{dict.eventForm.notesLabel}</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            rows={3}
+            defaultValue={initialEvent?.notes ?? ""}
+            placeholder={dict.eventForm.notesPlaceholder}
+          />
+        </div>
       </fieldset>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}

@@ -188,6 +188,13 @@ create table public.events (
   survey_type           text not null default 'none',  -- 'none' | 'external' | 'internal'
   survey_external_url   text,                            -- Googleフォーム等のURL
 
+  -- 詳細設定（すべて任意）
+  registration_closes_at timestamptz,  -- NULL=締切なし。過ぎるとRA以外は新規申込不可。
+  location_url            text,        -- 会場の地図等へのリンク
+  contact_info             text,        -- 問い合わせ先（担当RA名やLINE等）
+  notes                     text,        -- その他の備考
+  is_pinned                boolean not null default false,  -- ホームで優先的に上位表示
+
   created_by            uuid not null references public.users(id),
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
@@ -230,6 +237,11 @@ comment on column public.events.payment_info is '集金場所・集金方法な�
 comment on column public.events.publish_at is 'NULL=即公開。将来の日時を指定すると、その時刻まで一般寮生には一覧・詳細とも非表示（RAは常に閲覧可）。';
 comment on column public.events.registration_opens_at is 'NULL=定員に達していなければ即申込可。将来の日時を指定すると、その時刻まで申込ボタンが無効になる。';
 comment on column public.events.registration_requires_answers is 'trueの場合、申込前にregistration_questionsへの回答が必須になる。';
+comment on column public.events.registration_closes_at is 'NULL=締切なし。指定した日時を過ぎるとRA以外は新規申込不可になる。';
+comment on column public.events.location_url is '会場の地図等へのリンク（任意）。';
+comment on column public.events.contact_info is '問い合わせ先（任意、担当RA名やLINE等）。';
+comment on column public.events.notes is 'その他の備考（任意、詳細ページに表示）。';
+comment on column public.events.is_pinned is 'trueの場合、ホームの「今週のイベント」等で優先的に上位表示される。';
 
 create index events_event_date_idx on public.events (event_date);
 create index events_category_idx on public.events (category);
@@ -264,10 +276,11 @@ declare
   v_capacity integer;
   v_requires boolean;
   v_registration_opens_at timestamptz;
+  v_registration_closes_at timestamptz;
   v_current_count integer;
 begin
-  select capacity, requires_registration, registration_opens_at
-    into v_capacity, v_requires, v_registration_opens_at
+  select capacity, requires_registration, registration_opens_at, registration_closes_at
+    into v_capacity, v_requires, v_registration_opens_at, v_registration_closes_at
     from public.events
     where id = new.event_id
     for update;
@@ -283,6 +296,13 @@ begin
      and v_registration_opens_at > now()
      and not public.is_ra() then
     raise exception '申込受付開始前です';
+  end if;
+
+  -- registration_closes_at（申込締切日時）を過ぎた後はRA以外は新規申込不可。
+  if v_registration_closes_at is not null
+     and v_registration_closes_at < now()
+     and not public.is_ra() then
+    raise exception '申込は締め切りました';
   end if;
 
   select count(*) into v_current_count
@@ -1050,6 +1070,53 @@ comment on function public.directory_profiles(uuid) is
 revoke all on function public.directory_profiles(uuid) from public;
 revoke execute on function public.directory_profiles(uuid) from anon;
 grant execute on function public.directory_profiles(uuid) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 20. home_layout_sections テーブル（ホーム画面のRA向けレイアウト設定）
+-- ---------------------------------------------------------------------
+create table public.home_layout_sections (
+  id          uuid primary key default gen_random_uuid(),
+  section_key text not null unique,   -- 'week_events' | 'floor_events' | 'announcements'
+  visible     boolean not null default true,
+  position    integer not null,
+  accent      text,                  -- プリセットのアクセントカラーキー（null=デフォルト）
+  title_ja    text,                  -- セクションタイトルの上書き（nullでデフォルト文言）
+  title_en    text,
+  updated_at  timestamptz not null default now(),
+
+  constraint home_layout_sections_section_key_check
+    check (section_key in ('week_events', 'floor_events', 'announcements'))
+);
+
+comment on table public.home_layout_sections is 'ホーム画面（ポータル）のセクション表示設定。RAが表示/非表示・並び順・配色・タイトルをカスタマイズできる。';
+
+create trigger home_layout_sections_set_updated_at
+  before update on public.home_layout_sections
+  for each row execute function public.set_updated_at();
+
+insert into public.home_layout_sections (section_key, visible, position) values
+  ('week_events', true, 1),
+  ('floor_events', true, 2),
+  ('announcements', true, 3)
+on conflict (section_key) do nothing;
+
+alter table public.home_layout_sections enable row level security;
+
+-- 閲覧: 全ログインユーザー（ホーム画面のレンダリングに必要）
+create policy "home_layout_sections_select_all"
+on public.home_layout_sections for select
+using (true);
+
+-- 編集: RAのみ
+create policy "home_layout_sections_update_ra"
+on public.home_layout_sections for update
+using (public.is_ra())
+with check (public.is_ra());
+
+grant select on public.home_layout_sections to authenticated;
+grant update (visible, position, accent, title_ja, title_en) on public.home_layout_sections to authenticated;
+revoke select on public.home_layout_sections from anon;
 
 
 -- =====================================================================

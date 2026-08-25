@@ -85,6 +85,11 @@ export default async function EventDetailPage({
           {profile.role === "ra" && isUnpublished && (
             <Badge variant="destructive">{dict.event.unpublishedBadge}</Badge>
           )}
+          {event.is_pinned && (
+            <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
+              {dict.event.pinnedBadge}
+            </Badge>
+          )}
         </div>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{title}</h1>
@@ -105,7 +110,19 @@ export default async function EventDetailPage({
           {location && (
             <div>
               <dt className="inline font-medium text-foreground">{dict.event.locationLabel}: </dt>
-              <dd className="inline">{location}</dd>
+              <dd className="inline">
+                {location}
+                {event.location_url && (
+                  <a
+                    href={event.location_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-1.5 text-primary underline-offset-2 hover:underline"
+                  >
+                    {dict.event.locationLinkText}
+                  </a>
+                )}
+              </dd>
             </div>
           )}
           {audience && (
@@ -124,6 +141,12 @@ export default async function EventDetailPage({
               </dd>
             </div>
           )}
+          {event.contact_info && (
+            <div>
+              <dt className="inline font-medium text-foreground">{dict.event.contactInfoLabel}: </dt>
+              <dd className="inline">{event.contact_info}</dd>
+            </div>
+          )}
         </dl>
       </div>
 
@@ -131,6 +154,13 @@ export default async function EventDetailPage({
         <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
           <p className="mb-1 text-sm font-medium text-primary">{dict.event.paymentInfoTitle}</p>
           <p className="whitespace-pre-wrap text-sm text-foreground/90">{event.payment_info}</p>
+        </div>
+      )}
+
+      {event.notes && (
+        <div className="rounded-md border border-border bg-secondary/30 p-4">
+          <p className="mb-1 text-sm font-medium">{dict.event.notesTitle}</p>
+          <p className="whitespace-pre-wrap text-sm text-foreground/90">{event.notes}</p>
         </div>
       )}
 
@@ -154,6 +184,7 @@ export default async function EventDetailPage({
               isFull={isFull}
               questions={registrationQuestions ?? []}
               registrationOpensAt={event.registration_opens_at}
+              registrationClosesAt={event.registration_closes_at}
             />
           )}
         </div>

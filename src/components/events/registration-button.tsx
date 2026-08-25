@@ -80,12 +80,14 @@ export function RegistrationButton({
   isFull,
   questions = [],
   registrationOpensAt = null,
+  registrationClosesAt = null,
 }: {
   eventId: string;
   isRegistered: boolean;
   isFull: boolean;
   questions?: RegistrationQuestionRow[];
   registrationOpensAt?: string | null;
+  registrationClosesAt?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +98,7 @@ export function RegistrationButton({
   const locale = useLocale();
 
   const registrationOpen = !registrationOpensAt || new Date(registrationOpensAt).getTime() <= Date.now();
+  const registrationClosed = !!registrationClosesAt && new Date(registrationClosesAt).getTime() < Date.now();
   const requiresAnswers = questions.length > 0;
 
   function handleCancel() {
@@ -164,6 +167,17 @@ export function RegistrationButton({
           {dict.event.registrationNotYetOpenPrefix} {formatEventDateTime(registrationOpensAt!, locale)}
           {dict.event.registrationNotYetOpenSuffix}
         </p>
+      </div>
+    );
+  }
+
+  if (registrationClosed) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Button disabled className="w-full sm:w-auto">
+          {dict.event.register}
+        </Button>
+        <p className="text-xs text-muted-foreground">{dict.event.registrationClosedMessage}</p>
       </div>
     );
   }

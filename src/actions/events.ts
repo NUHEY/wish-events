@@ -35,9 +35,14 @@ function parseEventFormData(formData: FormData) {
     payment_info: formData.get("payment_info") ?? "",
     publish_at: formData.get("publish_at") ?? "",
     registration_opens_at: formData.get("registration_opens_at") ?? "",
+    registration_closes_at: formData.get("registration_closes_at") ?? "",
     target_floors: targetFloors,
     survey_type: formData.get("survey_type") ?? "none",
     survey_external_url: formData.get("survey_external_url") ?? "",
+    location_url: formData.get("location_url") ?? "",
+    contact_info: formData.get("contact_info") ?? "",
+    notes: formData.get("notes") ?? "",
+    is_pinned: formData.get("is_pinned") === "on",
   });
 }
 
@@ -76,10 +81,18 @@ export async function createEvent(
         parsed.data.requires_registration && parsed.data.registration_opens_at
           ? new Date(parsed.data.registration_opens_at).toISOString()
           : null,
+      registration_closes_at:
+        parsed.data.requires_registration && parsed.data.registration_closes_at
+          ? new Date(parsed.data.registration_closes_at).toISOString()
+          : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:
         parsed.data.survey_type === "external" ? parsed.data.survey_external_url : null,
+      location_url: parsed.data.location_url || null,
+      contact_info: parsed.data.contact_info || null,
+      notes: parsed.data.notes || null,
+      is_pinned: parsed.data.is_pinned,
       created_by: profile.id,
     })
     .select("id")
@@ -131,10 +144,18 @@ export async function updateEvent(
         parsed.data.requires_registration && parsed.data.registration_opens_at
           ? new Date(parsed.data.registration_opens_at).toISOString()
           : null,
+      registration_closes_at:
+        parsed.data.requires_registration && parsed.data.registration_closes_at
+          ? new Date(parsed.data.registration_closes_at).toISOString()
+          : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:
         parsed.data.survey_type === "external" ? parsed.data.survey_external_url : null,
+      location_url: parsed.data.location_url || null,
+      contact_info: parsed.data.contact_info || null,
+      notes: parsed.data.notes || null,
+      is_pinned: parsed.data.is_pinned,
     })
     .eq("id", eventId);
 

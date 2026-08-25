@@ -21,6 +21,8 @@ export const eventSchema = z
     // 空文字は「即公開/即申込可」を意味するnullとして扱う。
     publish_at: z.string().trim().optional().default(""),
     registration_opens_at: z.string().trim().optional().default(""),
+    // 空文字は「締切なし」を意味するnullとして扱う。
+    registration_closes_at: z.string().trim().optional().default(""),
     target_floors: z
       .array(z.coerce.number().refine((v) => (FLOORS as readonly number[]).includes(v)))
       .optional()
@@ -32,6 +34,16 @@ export const eventSchema = z
       .optional()
       .or(z.literal(""))
       .default(""),
+    // 詳細設定（すべて任意）
+    location_url: z
+      .string()
+      .url("有効なURLを入力してください")
+      .optional()
+      .or(z.literal(""))
+      .default(""),
+    contact_info: z.string().trim().max(500).optional().default(""),
+    notes: z.string().trim().max(2000).optional().default(""),
+    is_pinned: z.boolean().default(false),
   })
   .refine(
     (data) => !data.requires_registration || !!data.capacity,
@@ -45,6 +57,16 @@ export const eventSchema = z
     {
       message: "外部アンケートを選択した場合はURLを入力してください",
       path: ["survey_external_url"],
+    }
+  )
+  .refine(
+    (data) =>
+      !data.registration_opens_at ||
+      !data.registration_closes_at ||
+      new Date(data.registration_closes_at).getTime() > new Date(data.registration_opens_at).getTime(),
+    {
+      message: "申込締切は申込開始より後の日時にしてください",
+      path: ["registration_closes_at"],
     }
   );
 

@@ -81,8 +81,27 @@ export interface EventRow {
   target_floors: number[] | null;
   survey_type: SurveyType;
   survey_external_url: string | null;
+  registration_closes_at: string | null;
+  location_url: string | null;
+  contact_info: string | null;
+  notes: string | null;
+  is_pinned: boolean;
   created_by: string;
   created_at: string;
+  updated_at: string;
+}
+
+export type HomeLayoutSectionKey = "week_events" | "floor_events" | "announcements";
+export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
+
+export interface HomeLayoutSectionRow {
+  id: string;
+  section_key: HomeLayoutSectionKey;
+  visible: boolean;
+  position: number;
+  accent: string | null;
+  title_ja: string | null;
+  title_en: string | null;
   updated_at: string;
 }
 
@@ -271,6 +290,15 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<AnnouncementRow>;
+        Relationships: [];
+      };
+      home_layout_sections: {
+        Row: HomeLayoutSectionRow;
+        Insert: Partial<HomeLayoutSectionRow> & {
+          section_key: HomeLayoutSectionKey;
+          position: number;
+        };
+        Update: Partial<HomeLayoutSectionRow>;
         Relationships: [];
       };
     };

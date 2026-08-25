@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 
 export async function Header() {
   const supabase = await createClient();
@@ -21,28 +22,39 @@ export async function Header() {
   if (!profile) return null;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-card/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-5">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground shadow-sm">
-              W
-            </span>
-            <span className="text-lg font-bold tracking-tight">WISH Events</span>
-          </Link>
-          <Nav role={profile.role} />
+    <>
+      <header className="sticky top-0 z-10 border-b border-border bg-card/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
+          <div className="flex items-center gap-5">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground shadow-sm">
+                W
+              </span>
+              <span className="text-lg font-bold tracking-tight">WISH Events</span>
+            </Link>
+            <Nav role={profile.role} />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <LocaleToggle />
+            <div className="hidden sm:block">
+              <UserMenu
+                fullName={profile.full_name}
+                role={profile.role}
+                floorNumber={profile.floor_number}
+                roomNumber={profile.room_number}
+                avatarUrl={profile.avatar_url}
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <LocaleToggle />
-          <UserMenu
-            fullName={profile.full_name}
-            role={profile.role}
-            floorNumber={profile.floor_number}
-            roomNumber={profile.room_number}
-            avatarUrl={profile.avatar_url}
-          />
-        </div>
-      </div>
-    </header>
+      </header>
+      <MobileTabBar
+        role={profile.role}
+        fullName={profile.full_name}
+        floorNumber={profile.floor_number}
+        roomNumber={profile.room_number}
+        avatarUrl={profile.avatar_url}
+      />
+    </>
   );
 }

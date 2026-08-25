@@ -54,6 +54,19 @@ export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): st
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${weekdays[d.getDay()]}) ${time}`;
 }
 
+/**
+ * 「今週」の終わり（日曜 23:59:59）を返す。ホームの「今週のイベント」セクションで、
+ * 現在時刻から今週末までに開催されるイベントを絞り込むために使う。
+ */
+export function endOfThisWeek(from: Date = new Date()): Date {
+  const d = new Date(from);
+  const day = d.getDay(); // 0=日 〜 6=土
+  const daysUntilSunday = day === 0 ? 0 : 7 - day;
+  d.setDate(d.getDate() + daysUntilSunday);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
 /** オブジェクトの配列をCSV文字列に変換する（Excel対応のためUTF-8 BOM付き） */
 export function toCsv(
   rows: Record<string, string | number | null | undefined>[],

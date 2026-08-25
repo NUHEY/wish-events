@@ -64,6 +64,23 @@ export const FACULTIES = [
   "その他",
 ] as const;
 
+/**
+ * ホーム画面（ポータル）のセクション設定。RAが表示/非表示・並び順・
+ * アクセントカラー・タイトルをカスタマイズできる（home_layout_sectionsテーブル）。
+ */
+export const HOME_SECTION_KEYS = ["week_events", "floor_events", "announcements"] as const;
+export type HomeSectionKey = (typeof HOME_SECTION_KEYS)[number];
+
+export const HOME_ACCENT_KEYS = ["wine", "gold", "teal", "forest"] as const;
+export type HomeAccentKeyValue = (typeof HOME_ACCENT_KEYS)[number];
+
+export const HOME_ACCENT_HEX: Record<HomeAccentKeyValue, string> = {
+  wine: "#7A2140",
+  gold: "#C79A3B",
+  teal: "#0E8074",
+  forest: "#2F6B4F",
+};
+
 export const GRADE_LEVELS = [
   "学部1年",
   "学部2年",
