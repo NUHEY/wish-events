@@ -87,7 +87,7 @@ export async function saveSurvey(
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath(`/dashboard/${eventId}/survey`);
-  redirect(`/dashboard/${eventId}/survey`);
+  redirect(`/dashboard/${eventId}/survey?saved=1`);
 }
 
 export async function toggleSurveyActive(surveyId: string, isActive: boolean) {

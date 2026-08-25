@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -106,7 +107,10 @@ export function RegistrationButton({
     startTransition(async () => {
       const result = await cancelRegistration(eventId);
       if (result?.error) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success(dict.toast.cancelled);
+        router.refresh();
+      }
     });
   }
 
@@ -115,7 +119,10 @@ export function RegistrationButton({
     startTransition(async () => {
       const result = await registerForEvent(eventId);
       if (result?.error) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success(dict.toast.registered);
+        router.refresh();
+      }
     });
   }
 
@@ -140,6 +147,7 @@ export function RegistrationButton({
       const result = await registerForEventWithAnswers(eventId, payload);
       if (result?.error) setError(result.error);
       else {
+        toast.success(dict.toast.registered);
         setExpanded(false);
         router.refresh();
       }

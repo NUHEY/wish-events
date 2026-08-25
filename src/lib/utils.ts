@@ -34,37 +34,90 @@ export function parseFullRoomNumber(
 }
 
 /**
- * 日時を整形する。
+ * このサイトの利用者は全員日本国内(WISH寮)にいる前提のため、日時は常に
+ * JST(Asia/Tokyo, UTC+9固定・サマータイム無し)で保存・表示を統一する。
+ *
+ * 注意: Server Component/Server ActionはNode.jsサーバー上で実行されるため、
+ * `new Date(...).getHours()`のようなローカルタイムゾーン依存のメソッドは
+ * サーバーの実行タイムゾーン（多くの場合UTC）に左右され、RAが入力した時刻と
+ * 寮生が閲覧する時刻がズレる原因になる。そのため日時のやり取りは
+ * 必ずこのファイルのヘルパー経由でJSTに固定して行うこと。
+ */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * UTC ISO文字列（またはDate）を「JSTの壁時計時刻」を表すDateにシフトする内部ヘルパー。
+ * シフト後のDateに対してgetUTCXXX()を呼ぶと、実行環境のタイムゾーンに関わらず
+ * 常にJSTでの年月日時分が得られる。
+ */
+function shiftToJstWallClock(input: string | Date): Date {
+  const t = typeof input === "string" ? new Date(input).getTime() : input.getTime();
+  return new Date(t + JST_OFFSET_MS);
+}
+
+/**
+ * DateTimePicker等が出す"YYYY-MM-DDTHH:mm"形式の壁時計文字列を、
+ * それがJSTとして入力されたものとみなし、DB保存用のUTC ISO文字列に変換する。
+ * （`new Date("YYYY-MM-DDTHH:mm").toISOString()`のような単純変換は、
+ * Server Action実行環境のタイムゾーン扱いになってしまい不正確なため使わない）
+ */
+export function jstWallClockToUtcIso(value: string): string {
+  return new Date(`${value}:00+09:00`).toISOString();
+}
+
+/**
+ * DBに保存されたUTC ISO文字列を、DateTimePickerのdefaultValueに渡すための
+ * "YYYY-MM-DDTHH:mm"形式のJST壁時計文字列に変換する。
+ * （`new Date(iso).toISOString().slice(0, 16)`はUTCのままなので使わない）
+ */
+export function utcIsoToJstWallClockInput(iso: string): string {
+  const d = shiftToJstWallClock(iso);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+/**
+ * 日時を整形する（常にJSTで表示）。
  * ja: "2026年8月24日(月) 18:00"
  * en: "Aug 24, 2026 (Mon) 18:00"
  */
 export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): string {
-  const d = new Date(iso);
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const d = shiftToJstWallClock(iso);
+  const time = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 
   if (locale === "en") {
     const weekdaysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const monthsEn = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    return `${monthsEn[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} (${weekdaysEn[d.getDay()]}) ${time}`;
+    return `${monthsEn[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()} (${weekdaysEn[d.getUTCDay()]}) ${time}`;
   }
 
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${weekdays[d.getDay()]}) ${time}`;
+  return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${weekdays[d.getUTCDay()]}) ${time}`;
 }
 
 /**
- * 「今週」の終わり（日曜 23:59:59）を返す。ホームの「今週のイベント」セクションで、
- * 現在時刻から今週末までに開催されるイベントを絞り込むために使う。
+ * 「今週」の終わり（JSTの日曜 23:59:59.999）に対応するUTC時刻を返す。
+ * ホームの「今週のイベント」セクションで、現在時刻から今週末までに開催される
+ * イベントを絞り込むために使う。サーバーの実行タイムゾーンに関わらずJST基準の
+ * 「週」になるよう、JST壁時計時刻で計算してからUTCに戻す。
  */
 export function endOfThisWeek(from: Date = new Date()): Date {
-  const d = new Date(from);
-  const day = d.getDay(); // 0=日 〜 6=土
+  const jst = shiftToJstWallClock(from);
+  const day = jst.getUTCDay(); // 0=日 〜 6=土（JST基準）
   const daysUntilSunday = day === 0 ? 0 : 7 - day;
-  d.setDate(d.getDate() + daysUntilSunday);
-  d.setHours(23, 59, 59, 999);
-  return d;
+  const endOfWeekAsJstNaiveUtc = Date.UTC(
+    jst.getUTCFullYear(),
+    jst.getUTCMonth(),
+    jst.getUTCDate() + daysUntilSunday,
+    23, 59, 59, 999
+  );
+  return new Date(endOfWeekAsJstNaiveUtc - JST_OFFSET_MS);
 }
 
 /** オブジェクトの配列をCSV文字列に変換する（Excel対応のためUTF-8 BOM付き） */

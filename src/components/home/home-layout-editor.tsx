@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,11 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
         title_en: s.title_en ?? "",
       }))
   );
+
+  useEffect(() => {
+    if (state?.success) toast.success(dict.homeLayout.saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   function move(index: number, dir: -1 | 1) {
     setSections((prev) => {

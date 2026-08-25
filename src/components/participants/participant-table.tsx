@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -67,6 +68,7 @@ export function ParticipantTable({
   function handleRemove(userId: string) {
     startTransition(async () => {
       await removeRegistrationAsRa(eventId, userId);
+      toast.success(dict.toast.removed);
       router.refresh();
     });
   }

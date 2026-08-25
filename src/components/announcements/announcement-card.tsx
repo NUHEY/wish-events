@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Pin, Pencil, Trash2 } from "lucide-react";
@@ -28,6 +29,7 @@ export function AnnouncementCard({
     if (!window.confirm(dict.announcementForm.confirmDelete)) return;
     startTransition(async () => {
       await deleteAnnouncement(announcement.id);
+      toast.success(dict.toast.deleted);
       router.refresh();
     });
   }
@@ -54,7 +56,7 @@ export function AnnouncementCard({
             <Badge variant="secondary">{announcement.category_label}</Badge>
           )}
           <span className="ml-auto text-xs text-muted-foreground">
-            {new Date(announcement.created_at).toLocaleDateString("ja-JP")}
+            {new Date(announcement.created_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
           </span>
         </div>
         <h3 className="text-lg font-semibold leading-snug">{announcement.title}</h3>

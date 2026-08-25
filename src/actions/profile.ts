@@ -71,5 +71,7 @@ export async function submitProfile(
 
   revalidatePath("/", "layout");
   revalidatePath("/directory");
-  redirect(postLoginPath((newRole as UserRole | null) ?? profile.role));
+  const nextPath = postLoginPath((newRole as UserRole | null) ?? profile.role);
+  const separator = nextPath.includes("?") ? "&" : "?";
+  redirect(`${nextPath}${separator}saved=1`);
 }

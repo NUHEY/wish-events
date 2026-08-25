@@ -1119,6 +1119,96 @@ grant update (visible, position, accent, title_ja, title_en) on public.home_layo
 revoke select on public.home_layout_sections from anon;
 
 
+-- ---------------------------------------------------------------------
+-- 21. event_location_options / event_audience_options
+--     イベント作成フォームの「開催場所」「対象者」欄で、RAが選択肢を追加・削除
+--     できるようにするためのマスタテーブル。events側のlocation/location_en/
+--     target_audience/target_audience_enは引き続き自由記述のtext列のままとし
+--     （既存データとの互換性を保つため）、フォーム側でdatalistの候補として
+--     これらの選択肢を提示する運用とする。
+-- ---------------------------------------------------------------------
+create table public.event_location_options (
+  id          uuid primary key default gen_random_uuid(),
+  label_ja    text not null,
+  label_en    text,
+  position    integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+comment on table public.event_location_options is 'イベント作成フォームの「開催場所」欄でRAが管理する選択肢一覧（自由記述と併用可）。';
+
+create index event_location_options_position_idx on public.event_location_options (position);
+
+alter table public.event_location_options enable row level security;
+
+create policy "event_location_options_select_all"
+on public.event_location_options for select
+using (true);
+
+create policy "event_location_options_insert_ra"
+on public.event_location_options for insert
+with check (public.is_ra());
+
+create policy "event_location_options_update_ra"
+on public.event_location_options for update
+using (public.is_ra())
+with check (public.is_ra());
+
+create policy "event_location_options_delete_ra"
+on public.event_location_options for delete
+using (public.is_ra());
+
+grant select, insert, update, delete on public.event_location_options to authenticated;
+revoke select on public.event_location_options from anon;
+
+create table public.event_audience_options (
+  id          uuid primary key default gen_random_uuid(),
+  label_ja    text not null,
+  label_en    text,
+  position    integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+comment on table public.event_audience_options is 'イベント作成フォームの「対象者」欄でRAが管理する選択肢一覧（自由記述と併用可）。';
+
+create index event_audience_options_position_idx on public.event_audience_options (position);
+
+alter table public.event_audience_options enable row level security;
+
+create policy "event_audience_options_select_all"
+on public.event_audience_options for select
+using (true);
+
+create policy "event_audience_options_insert_ra"
+on public.event_audience_options for insert
+with check (public.is_ra());
+
+create policy "event_audience_options_update_ra"
+on public.event_audience_options for update
+using (public.is_ra())
+with check (public.is_ra());
+
+create policy "event_audience_options_delete_ra"
+on public.event_audience_options for delete
+using (public.is_ra());
+
+grant select, insert, update, delete on public.event_audience_options to authenticated;
+revoke select on public.event_audience_options from anon;
+
+-- 初期データ：WISHでよく使われる開催場所・対象者の例をいくつか投入しておく
+insert into public.event_location_options (label_ja, label_en, position) values
+  ('1階ラウンジ', '1F Lounge', 0),
+  ('多目的室', 'Multipurpose Room', 1),
+  ('キッチンスタジオ', 'Kitchen Studio', 2),
+  ('中庭', 'Courtyard', 3);
+
+insert into public.event_audience_options (label_ja, label_en, position) values
+  ('全寮生', 'All residents', 0),
+  ('新入寮生', 'New residents', 1),
+  ('日本人学生', 'Japanese students', 2),
+  ('留学生', 'International students', 3);
+
+
 -- =====================================================================
 -- RAへの昇格/降格:
 --   通常は /dashboard/ra-rooms （RA管理画面）からRA個室の部屋番号を

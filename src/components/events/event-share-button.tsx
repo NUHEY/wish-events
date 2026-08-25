@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2 } from "lucide-react";
+import { Link2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { drawRoundedRect, wrapText, canvasToBlob, shareOrDownloadImage } from "@/lib/canvas-share";
 import { formatEventDateTime } from "@/lib/utils";
@@ -114,6 +114,7 @@ async function renderEventShareImage(opts: {
 }
 
 export function EventShareButton({
+  eventId,
   title,
   categoryLabel,
   eventDate,
@@ -121,6 +122,7 @@ export function EventShareButton({
   audience,
   feeAmount,
 }: {
+  eventId: string;
   title: string;
   categoryLabel: string;
   eventDate: string;
@@ -130,12 +132,14 @@ export function EventShareButton({
 }) {
   const dict = useDict();
   const locale = useLocale();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [imagePending, setImagePending] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
-  async function handleClick() {
-    setError(null);
-    setPending(true);
+  async function handleImageShare() {
+    setImageError(null);
+    setImagePending(true);
     try {
       const canvas = await renderEventShareImage({
         title,
@@ -143,24 +147,59 @@ export function EventShareButton({
         dateText: formatEventDateTime(eventDate, locale),
         location,
         audience,
-        feeText: feeAmount ? `${dict.event.feePrefix}${feeAmount.toLocaleString()}${dict.event.feeUnit}` : null,
+        feeText: feeAmount
+          ? `${dict.event.feePrefix}${feeAmount.toLocaleString()}${dict.event.feeUnit}`
+          : null,
       });
       const blob = await canvasToBlob(canvas);
       await shareOrDownloadImage(blob, `${title}.png`, title);
     } catch {
-      setError(dict.event.shareImageError);
+      setImageError(dict.event.shareImageError);
     } finally {
-      setPending(false);
+      setImagePending(false);
+    }
+  }
+
+  async function handleUrlShare() {
+    setUrlError(null);
+    const url = `${window.location.origin}/events/${eventId}`;
+    const nav = navigator as Navigator & {
+      share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+    };
+
+    if (nav.share) {
+      try {
+        await nav.share({ title, text: title, url });
+        return;
+      } catch {
+        // ユーザーが共有シートをキャンセルした場合など。何もしない。
+        return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch {
+      setUrlError(dict.event.shareUrlError);
     }
   }
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Button variant="outline" size="sm" onClick={handleClick} disabled={pending}>
-        <Share2 className="h-3.5 w-3.5" />
-        {pending ? dict.event.shareImageGenerating : dict.event.shareImageButton}
-      </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={handleUrlShare}>
+          <Link2 className="h-3.5 w-3.5" />
+          {urlCopied ? dict.event.shareUrlCopied : dict.event.shareUrlButton}
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleImageShare} disabled={imagePending}>
+          <Share2 className="h-3.5 w-3.5" />
+          {imagePending ? dict.event.shareImageGenerating : dict.event.shareImageButton}
+        </Button>
+      </div>
+      {imageError && <p className="text-xs text-destructive">{imageError}</p>}
+      {urlError && <p className="text-xs text-destructive">{urlError}</p>}
     </div>
   );
 }

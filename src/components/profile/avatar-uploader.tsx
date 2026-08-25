@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { User, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -45,6 +46,7 @@ export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
         setError(result.error);
         setPreviewUrl(initialUrl);
       } else {
+        toast.success(dict.toast.saved);
         router.refresh();
       }
     });
@@ -58,6 +60,7 @@ export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
         setError(result.error);
       } else {
         setPreviewUrl(null);
+        toast.success(dict.toast.removed);
         router.refresh();
       }
     });

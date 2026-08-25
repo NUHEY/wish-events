@@ -44,7 +44,7 @@ export async function createAnnouncement(
   }
 
   revalidatePath("/");
-  redirect("/");
+  redirect("/?created=1");
 }
 
 export async function updateAnnouncement(
@@ -76,7 +76,7 @@ export async function updateAnnouncement(
   }
 
   revalidatePath("/");
-  redirect("/");
+  redirect("/?updated=1");
 }
 
 export async function deleteAnnouncement(announcementId: string) {

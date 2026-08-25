@@ -94,6 +94,7 @@ export default async function EventDetailPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{title}</h1>
           <EventShareButton
+            eventId={event.id}
             title={title}
             categoryLabel={categoryLabel}
             eventDate={event.event_date}

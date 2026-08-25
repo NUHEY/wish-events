@@ -51,6 +51,7 @@ function formatDateShort(iso: string | null, locale: Locale): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "Asia/Tokyo",
   }).format(new Date(iso));
 }
 

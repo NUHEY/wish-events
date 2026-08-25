@@ -21,6 +21,11 @@ export default async function EditEventPage({
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
 
+  const [{ data: locationOptions }, { data: audienceOptions }] = await Promise.all([
+    supabase.from("event_location_options").select("*").order("position", { ascending: true }),
+    supabase.from("event_audience_options").select("*").order("position", { ascending: true }),
+  ]);
+
   const updateWithId = updateEvent.bind(null, id);
 
   return (
@@ -31,7 +36,13 @@ export default async function EditEventPage({
           <CardTitle>{dict.eventForm.editTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <EventForm action={updateWithId} initialEvent={event} submitLabel={dict.eventForm.editSubmit} />
+          <EventForm
+            action={updateWithId}
+            initialEvent={event}
+            submitLabel={dict.eventForm.editSubmit}
+            locationOptions={locationOptions ?? []}
+            audienceOptions={audienceOptions ?? []}
+          />
         </CardContent>
       </Card>
     </div>

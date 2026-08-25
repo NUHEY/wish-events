@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRa } from "@/lib/auth";
 import { eventSchema } from "@/lib/validations/event";
+import { jstWallClockToUtcIso } from "@/lib/utils";
 
 export type ActionResult = { error?: string } | void;
 
@@ -71,19 +72,19 @@ export async function createEvent(
       location_en: parsed.data.location_en || null,
       target_audience: parsed.data.target_audience || null,
       target_audience_en: parsed.data.target_audience_en || null,
-      event_date: new Date(parsed.data.event_date).toISOString(),
+      event_date: jstWallClockToUtcIso(parsed.data.event_date),
       requires_registration: parsed.data.requires_registration,
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
-      publish_at: parsed.data.publish_at ? new Date(parsed.data.publish_at).toISOString() : null,
+      publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
         parsed.data.requires_registration && parsed.data.registration_opens_at
-          ? new Date(parsed.data.registration_opens_at).toISOString()
+          ? jstWallClockToUtcIso(parsed.data.registration_opens_at)
           : null,
       registration_closes_at:
         parsed.data.requires_registration && parsed.data.registration_closes_at
-          ? new Date(parsed.data.registration_closes_at).toISOString()
+          ? jstWallClockToUtcIso(parsed.data.registration_closes_at)
           : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
@@ -105,7 +106,7 @@ export async function createEvent(
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath("/dashboard");
-  redirect(`/events/${data.id}`);
+  redirect(`/events/${data.id}?created=1`);
 }
 
 export async function updateEvent(
@@ -134,19 +135,19 @@ export async function updateEvent(
       location_en: parsed.data.location_en || null,
       target_audience: parsed.data.target_audience || null,
       target_audience_en: parsed.data.target_audience_en || null,
-      event_date: new Date(parsed.data.event_date).toISOString(),
+      event_date: jstWallClockToUtcIso(parsed.data.event_date),
       requires_registration: parsed.data.requires_registration,
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
-      publish_at: parsed.data.publish_at ? new Date(parsed.data.publish_at).toISOString() : null,
+      publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
         parsed.data.requires_registration && parsed.data.registration_opens_at
-          ? new Date(parsed.data.registration_opens_at).toISOString()
+          ? jstWallClockToUtcIso(parsed.data.registration_opens_at)
           : null,
       registration_closes_at:
         parsed.data.requires_registration && parsed.data.registration_closes_at
-          ? new Date(parsed.data.registration_closes_at).toISOString()
+          ? jstWallClockToUtcIso(parsed.data.registration_closes_at)
           : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
@@ -167,7 +168,7 @@ export async function updateEvent(
   revalidatePath("/events");
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/dashboard");
-  redirect(`/events/${eventId}`);
+  redirect(`/events/${eventId}?updated=1`);
 }
 
 export async function deleteEvent(eventId: string) {

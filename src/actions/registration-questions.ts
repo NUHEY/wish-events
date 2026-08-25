@@ -59,5 +59,5 @@ export async function saveRegistrationQuestions(
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath(`/events/${eventId}/questions`);
-  redirect(`/events/${eventId}/questions`);
+  redirect(`/events/${eventId}/questions?saved=1`);
 }

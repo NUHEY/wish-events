@@ -1,4 +1,5 @@
 import { requireRa } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { EventForm } from "@/components/events/event-form";
 import { createEvent } from "@/actions/events";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +8,14 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function NewEventPage() {
   await requireRa();
+  const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
+
+  const [{ data: locationOptions }, { data: audienceOptions }] = await Promise.all([
+    supabase.from("event_location_options").select("*").order("position", { ascending: true }),
+    supabase.from("event_audience_options").select("*").order("position", { ascending: true }),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-3">
@@ -18,7 +25,12 @@ export default async function NewEventPage() {
           <CardTitle>{dict.eventForm.createTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <EventForm action={createEvent} submitLabel={dict.eventForm.createSubmit} />
+          <EventForm
+            action={createEvent}
+            submitLabel={dict.eventForm.createSubmit}
+            locationOptions={locationOptions ?? []}
+            audienceOptions={audienceOptions ?? []}
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
+import { AppToaster } from "@/components/layout/app-toaster";
+import { SavedToastWatcher } from "@/components/layout/saved-toast-watcher";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
@@ -37,6 +40,10 @@ export default async function RootLayout({
         <LocaleProvider locale={locale}>
           <Header />
           <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
+          <AppToaster />
+          <Suspense fallback={null}>
+            <SavedToastWatcher />
+          </Suspense>
         </LocaleProvider>
       </body>
     </html>

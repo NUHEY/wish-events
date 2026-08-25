@@ -105,6 +105,22 @@ export interface HomeLayoutSectionRow {
   updated_at: string;
 }
 
+export interface EventLocationOptionRow {
+  id: string;
+  label_ja: string;
+  label_en: string | null;
+  position: number;
+  created_at: string;
+}
+
+export interface EventAudienceOptionRow {
+  id: string;
+  label_ja: string;
+  label_en: string | null;
+  position: number;
+  created_at: string;
+}
+
 export interface RegistrationRow {
   id: string;
   event_id: string;
@@ -299,6 +315,18 @@ export interface Database {
           position: number;
         };
         Update: Partial<HomeLayoutSectionRow>;
+        Relationships: [];
+      };
+      event_location_options: {
+        Row: EventLocationOptionRow;
+        Insert: Partial<EventLocationOptionRow> & { label_ja: string };
+        Update: Partial<EventLocationOptionRow>;
+        Relationships: [];
+      };
+      event_audience_options: {
+        Row: EventAudienceOptionRow;
+        Insert: Partial<EventAudienceOptionRow> & { label_ja: string };
+        Update: Partial<EventAudienceOptionRow>;
         Relationships: [];
       };
     };

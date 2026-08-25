@@ -14,8 +14,9 @@ import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
+import { utcIsoToJstWallClockInput } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { EventRow } from "@/types/database";
+import type { EventRow, EventLocationOptionRow, EventAudienceOptionRow } from "@/types/database";
 import type { ActionResult } from "@/actions/events";
 
 type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -33,10 +34,14 @@ export function EventForm({
   action,
   initialEvent,
   submitLabel,
+  locationOptions = [],
+  audienceOptions = [],
 }: {
   action: FormAction;
   initialEvent?: EventRow;
   submitLabel: string;
+  locationOptions?: EventLocationOptionRow[];
+  audienceOptions?: EventAudienceOptionRow[];
 }) {
   const dict = useDict();
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
@@ -185,19 +190,39 @@ export function EventForm({
           <Input
             id="location"
             name="location"
+            list="location-options-ja"
             defaultValue={initialEvent?.location ?? ""}
             placeholder={dict.eventForm.locationPlaceholder}
           />
+          <datalist id="location-options-ja">
+            {locationOptions.map((o) => (
+              <option key={o.id} value={o.label_ja} />
+            ))}
+          </datalist>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="location_en">{dict.eventForm.locationEnLabel}</Label>
           <Input
             id="location_en"
             name="location_en"
+            list="location-options-en"
             defaultValue={initialEvent?.location_en ?? ""}
             placeholder={dict.eventForm.locationEnPlaceholder}
           />
+          <datalist id="location-options-en">
+            {locationOptions
+              .filter((o) => o.label_en)
+              .map((o) => (
+                <option key={o.id} value={o.label_en ?? ""} />
+              ))}
+          </datalist>
         </div>
+        <p className="-mt-1 text-xs text-muted-foreground sm:col-span-2">
+          {dict.eventForm.optionsManageHint}{" "}
+          <Link href="/dashboard/event-options" className="text-primary hover:underline">
+            {dict.eventOptions.navLabel}
+          </Link>
+        </p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
@@ -206,18 +231,32 @@ export function EventForm({
           <Input
             id="target_audience"
             name="target_audience"
+            list="audience-options-ja"
             defaultValue={initialEvent?.target_audience ?? ""}
             placeholder={dict.eventForm.audiencePlaceholder}
           />
+          <datalist id="audience-options-ja">
+            {audienceOptions.map((o) => (
+              <option key={o.id} value={o.label_ja} />
+            ))}
+          </datalist>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="target_audience_en">{dict.eventForm.audienceEnLabel}</Label>
           <Input
             id="target_audience_en"
             name="target_audience_en"
+            list="audience-options-en"
             defaultValue={initialEvent?.target_audience_en ?? ""}
             placeholder={dict.eventForm.audienceEnPlaceholder}
           />
+          <datalist id="audience-options-en">
+            {audienceOptions
+              .filter((o) => o.label_en)
+              .map((o) => (
+                <option key={o.id} value={o.label_en ?? ""} />
+              ))}
+          </datalist>
         </div>
       </div>
 
@@ -260,9 +299,7 @@ export function EventForm({
           name="event_date"
           required
           defaultValue={
-            initialEvent
-              ? new Date(initialEvent.event_date).toISOString().slice(0, 16)
-              : undefined
+            initialEvent ? utcIsoToJstWallClockInput(initialEvent.event_date) : undefined
           }
         />
       </div>
@@ -273,7 +310,7 @@ export function EventForm({
           name="publish_at"
           defaultValue={
             initialEvent?.publish_at
-              ? new Date(initialEvent.publish_at).toISOString().slice(0, 16)
+              ? utcIsoToJstWallClockInput(initialEvent.publish_at)
               : undefined
           }
         />
@@ -328,7 +365,7 @@ export function EventForm({
                   name="registration_opens_at"
                   defaultValue={
                     initialEvent?.registration_opens_at
-                      ? new Date(initialEvent.registration_opens_at).toISOString().slice(0, 16)
+                      ? utcIsoToJstWallClockInput(initialEvent.registration_opens_at)
                       : undefined
                   }
                 />
@@ -340,7 +377,7 @@ export function EventForm({
                   name="registration_closes_at"
                   defaultValue={
                     initialEvent?.registration_closes_at
-                      ? new Date(initialEvent.registration_closes_at).toISOString().slice(0, 16)
+                      ? utcIsoToJstWallClockInput(initialEvent.registration_closes_at)
                       : undefined
                   }
                 />

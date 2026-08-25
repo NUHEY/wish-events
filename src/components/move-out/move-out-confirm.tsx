@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { PartyPopper, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,10 @@ export function MoveOutConfirm({
     startTransition(async () => {
       const result = await moveOut();
       if (result?.error) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success(dict.toast.saved);
+        router.refresh();
+      }
     });
   }
 
