@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { addEventComment, deleteEventComment, toggleEventCommentLike } from "@/actions/event-community";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AvatarRing } from "@/components/profile/avatar-ring";
 
 type Comment = {
   id: string;
@@ -235,26 +236,20 @@ function CommentItem({
   canDelete: boolean;
   reply?: boolean;
 }) {
-  const isRa = comment.user?.role?.toLowerCase() === "ra";
-
   return (
     <div className="flex gap-2.5">
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs">
-        {comment.user?.avatar_url ? (
-          <Image src={comment.user.avatar_url} alt="" width={32} height={32} className="h-full w-full object-cover" />
-        ) : (
-          displayName(comment).charAt(0)
-        )}
-        {isRa && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-primary" />}
-      </span>
+      <AvatarRing role={comment.user?.role} size={32}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs">
+          {comment.user?.avatar_url ? (
+            <Image src={comment.user.avatar_url} alt="" width={32} height={32} className="h-full w-full object-cover" />
+          ) : (
+            displayName(comment).charAt(0)
+          )}
+        </span>
+      </AvatarRing>
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-relaxed">
           <span className="font-semibold">{displayName(comment)}</span>
-          {isRa && (
-            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary align-middle">
-              RA
-            </span>
-          )}
           <span className="ml-1.5 whitespace-pre-wrap break-words">{comment.body}</span>
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

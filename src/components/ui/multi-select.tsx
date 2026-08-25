@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { X, ChevronDown } from "lucide-react";
+import { Check, Search, X, ChevronDown } from "lucide-react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { cn } from "@/lib/utils";
 
 export type MultiSelectOption = { code: string; label: string };
@@ -28,16 +29,18 @@ export function MultiSelect({
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const [chipsRef] = useAutoAnimate({ duration: 140 });
+  const [resultsRef] = useAutoAnimate({ duration: 120 });
 
   const labelFor = React.useCallback(
     (code: string) => options.find((o) => o.code === code)?.label ?? code,
     [options]
   );
 
+  const normalizedQuery = query.trim().toLocaleLowerCase();
   const filtered = options
     .filter((o) => !selected.includes(o.code))
-    .filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
-    .slice(0, 30);
+    .filter((o) => `${o.label} ${o.code}`.toLocaleLowerCase().includes(normalizedQuery));
 
   function addOption(code: string) {
     setSelected((s) => (s.includes(code) ? s : [...s, code]));
@@ -65,13 +68,14 @@ export function MultiSelect({
       ))}
 
       <div
-        className="flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 text-sm shadow-sm focus-within:ring-2 focus-within:ring-ring"
+        ref={chipsRef}
+        className="flex min-h-11 w-full flex-wrap items-center gap-1.5 rounded-xl border border-input bg-background px-2.5 py-1.5 text-sm shadow-sm transition-colors hover:border-foreground/30 focus-within:ring-2 focus-within:ring-ring"
         onClick={() => setOpen(true)}
       >
         {selected.map((code) => (
           <span
             key={code}
-            className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+            className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground"
           >
             {labelFor(code)}
             <button
@@ -95,25 +99,31 @@ export function MultiSelect({
           }}
           onFocus={() => setOpen(true)}
           placeholder={selected.length === 0 ? placeholder : undefined}
-          className="min-w-[8rem] flex-1 bg-transparent py-0.5 text-sm outline-none placeholder:text-muted-foreground"
+          className="min-w-[8rem] flex-1 bg-transparent py-1 text-[16px] outline-none placeholder:text-muted-foreground sm:text-sm"
         />
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </div>
 
-      {open && filtered.length > 0 && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-card p-1 shadow-card-hover">
-          {filtered.map((o) => (
-            <button
-              key={o.code}
-              type="button"
-              onClick={() => addOption(o.code)}
-              className={cn(
-                "block w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
+      {open && (
+        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-card shadow-elevated">
+          <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-muted-foreground">
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="truncate text-xs">{query ? `${filtered.length}件の候補` : `全${options.length}件から検索`}</span>
+          </div>
+          <div ref={resultsRef} className="max-h-64 overflow-y-auto overscroll-contain p-1.5">
+            {filtered.map((o) => (
+              <button
+                key={o.code}
+                type="button"
+                onClick={() => addOption(o.code)}
+                className={cn("flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none")}
+              >
+                <span>{o.label}</span>
+                <span className="ml-3 shrink-0 text-[10px] font-medium uppercase text-muted-foreground">{o.code}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && <div className="flex items-center justify-center gap-2 px-3 py-8 text-sm text-muted-foreground"><Check className="h-4 w-4" />該当する候補はありません</div>}
+          </div>
         </div>
       )}
     </div>

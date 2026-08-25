@@ -12,7 +12,7 @@ import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
-import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
+import { LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { parseFullRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { submitProfile } from "@/actions/profile";

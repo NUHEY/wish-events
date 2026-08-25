@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -182,7 +183,7 @@ export function ParticipantTable({
                 <TableCell>{facultyLabel(p.faculty) || "-"}</TableCell>
                 <TableCell>{gradeLevelLabel(p.grade_level) || "-"}</TableCell>
                 <TableCell>{formatEventDateTime(p.registered_at, locale)}</TableCell>
-                {collectionRequired && <TableCell><select value={p.payment_status} disabled={pending} onChange={(e) => setPayment(p, e.target.value as "unpaid" | "paid" | "waived")} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="unpaid">未払い</option><option value="paid">支払い済み</option><option value="waived">免除</option></select></TableCell>}
+                {collectionRequired && <TableCell><Select value={p.payment_status} disabled={pending} onChange={(e) => setPayment(p, e.target.value as "unpaid" | "paid" | "waived")} className="h-9 min-w-28"><option value="unpaid">未払い</option><option value="paid">支払い済み</option><option value="waived">免除</option></Select></TableCell>}
                 {questions.map((q) => (
                   <TableCell key={q.id}>{p.answers?.[q.id] || "-"}</TableCell>
                 ))}

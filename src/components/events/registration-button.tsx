@@ -13,6 +13,7 @@ import {
 } from "@/actions/registrations";
 import { formatEventDateTime } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import { signalNavigation } from "@/lib/navigation-signal";
 import type { RegistrationQuestionRow } from "@/types/database";
 
 type Answers = Record<string, string | string[]>;
@@ -121,7 +122,9 @@ export function RegistrationButton({
       if (result?.error) setError(result.error);
       else {
         toast.success(dict.toast.registered);
-        router.push(result.talkHref ?? `/talks/${eventId}?joined=1`);
+        const href = result.talkHref ?? `/talks/${eventId}?joined=1`;
+        signalNavigation(href);
+        router.push(href);
       }
     });
   }
@@ -149,7 +152,9 @@ export function RegistrationButton({
       else {
         toast.success(dict.toast.registered);
         setExpanded(false);
-        router.push(result.talkHref ?? `/talks/${eventId}?joined=1`);
+        const href = result.talkHref ?? `/talks/${eventId}?joined=1`;
+        signalNavigation(href);
+        router.push(href);
       }
     });
   }

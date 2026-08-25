@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { getFriendRelation } from "@/actions/friends";
@@ -7,12 +7,15 @@ import { getInitialDirectMessages } from "@/actions/direct-messages";
 import { FriendDm } from "@/components/community/friend-dm";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { BackButton } from "@/components/layout/back-button";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 
 const INITIAL_MESSAGE_LIMIT = 50;
 
 type CommunityProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string };
 
 export default async function FriendDmPage({ params }: { params: Promise<{ friendId: string }> }) {
+  const friendDmState = await getFeatureFlagState("friend_dm");
+  if (friendDmState === "hidden") redirect("/talks");
   const { friendId } = await params;
   const profile = await getCurrentProfile();
   if (friendId === profile.id) notFound();

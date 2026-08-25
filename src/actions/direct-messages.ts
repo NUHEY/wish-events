@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import type { DirectMessageRow } from "@/types/database";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 
 /** event_community_profiles_v3() の返り値（最小プロフィール）。 */
 type CommunityProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string };
@@ -113,6 +114,7 @@ export async function getDirectMessagesByIds(friendId: string, ids: string[]) {
  * ここでの事前チェックはUX向上（分かりやすいエラーメッセージ）のためのもの。
  */
 export async function sendDirectMessage(friendId: string, body: string, mediaPaths: string[] = []) {
+  if ((await getFeatureFlagState("friend_dm")) === "hidden") return { error: "友達とのトークは現在公開されていません。" };
   const profile = await getCurrentProfile();
   const text = body.trim();
   if (!text && mediaPaths.length === 0) return { error: "メッセージを入力してください" };

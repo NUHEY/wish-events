@@ -1,8 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { FeatureFlagState } from "@/lib/feature-flags";
+import { signalNavigation } from "@/lib/navigation-signal";
 
 const TABS = ["events", "friends"] as const;
 export type TalksTab = (typeof TABS)[number];
@@ -13,14 +15,20 @@ const LABELS: Record<TalksTab, string> = { events: "イベント", friends: "友
  * トーク画面を「イベント」（参加イベントのお知らせ・会話）と「友達」
  * （友達同士の1:1メッセージ）の2タブに分けるためのセグメントボタン。
  */
-export function TalksTabBar({ hasUnreadFriends = false }: { hasUnreadFriends?: boolean }) {
+export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden" }: { hasUnreadFriends?: boolean; friendDmState?: FeatureFlagState }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const active = (searchParams.get("tab") as TalksTab | null) ?? "events";
+  const routeActive = (searchParams.get("tab") as TalksTab | null) ?? "events";
+  const [active, setActive] = useState<TalksTab>(routeActive);
   const [pending, startTransition] = useTransition();
+  const visibleTabs = friendDmState === "hidden" ? TABS.filter((tab) => tab !== "friends") : TABS;
+
+  useEffect(() => setActive(routeActive), [routeActive]);
 
   function setTab(tab: TalksTab) {
+    if (pending || tab === active) return;
+    setActive(tab);
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "events") {
       params.delete("tab");
@@ -28,8 +36,9 @@ export function TalksTabBar({ hasUnreadFriends = false }: { hasUnreadFriends?: b
       params.set("tab", tab);
     }
     const qs = params.toString();
+    signalNavigation(qs ? `${pathname}?${qs}` : pathname);
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   }
 
@@ -38,25 +47,27 @@ export function TalksTabBar({ hasUnreadFriends = false }: { hasUnreadFriends?: b
       role="tablist"
       aria-label="talks tab"
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity",
+        "grid w-full shrink-0 grid-cols-2 items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity sm:w-[252px]",
+        visibleTabs.length === 1 && "grid-cols-1 sm:w-[126px]",
         pending && "opacity-60"
       )}
     >
-      {TABS.map((tab) => (
+      {visibleTabs.map((tab) => (
         <button
           key={tab}
           type="button"
           role="tab"
           aria-selected={active === tab}
+          disabled={pending}
           onClick={() => setTab(tab)}
           className={cn(
-            "relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+            "relative min-w-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-wait",
             active === tab
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
-          {LABELS[tab]}
+          <span className="inline-flex items-center gap-1">{LABELS[tab]}{tab === "friends" && friendDmState === "beta" && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-white/20 text-white" : "bg-primary/10 text-primary")}>BETA</span>}</span>
           {tab === "friends" && hasUnreadFriends && active !== tab && (
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
           )}

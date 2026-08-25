@@ -249,6 +249,47 @@ export async function prepareEventDetailsToolDraft(eventId: string) {
   return { body: `イベントの日時・場所・持ち物などは、詳細ページで確認できます。\n${url}` };
 }
 
+/** RAがイベント詳細を、通常の吹き出しではないサイト内カードとして送る。 */
+export async function sendEventDetailsTool(eventId: string) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("event_messages").insert({
+    event_id: eventId,
+    sender_id: profile.id,
+    body: "日時・場所・持ち物など、最新のイベント情報を確認できます。",
+    message_type: "tool",
+    action_url: `/events/${eventId}`,
+    action_label: "イベント詳細を確認",
+  }).select().single();
+  if (error) return { error: `案内を送信できませんでした: ${error.message}` };
+  revalidatePath(`/talks/${eventId}`);
+  revalidatePath("/talks");
+  return { success: true, message: data };
+}
+
+/** RAが設定済みアンケートを、回答先が明確なサイト専用カードとして送る。 */
+export async function sendEventSurveyTool(eventId: string) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  const supabase = await createClient();
+  const { data: event } = await supabase.from("events").select("survey_type, survey_external_url").eq("id", eventId).maybeSingle();
+  if (!event || event.survey_type === "none") return { error: "このイベントにはアンケートが設定されていません" };
+  const actionUrl = event.survey_type === "external" && event.survey_external_url ? event.survey_external_url : `/events/${eventId}/survey`;
+  const { data, error } = await supabase.from("event_messages").insert({
+    event_id: eventId,
+    sender_id: profile.id,
+    body: "イベントをより良くするため、回答にご協力ください。",
+    message_type: "tool",
+    action_url: actionUrl,
+    action_label: "アンケートに回答",
+  }).select().single();
+  if (error) return { error: `アンケートを送信できませんでした: ${error.message}` };
+  revalidatePath(`/talks/${eventId}`);
+  revalidatePath("/talks");
+  return { success: true, message: data };
+}
+
 export async function markEventTalkRead(eventId: string) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();

@@ -13,6 +13,7 @@ export type EventCategory =
   | "サポーター募集"
   | "その他";
 export type SurveyType = "none" | "external" | "internal";
+export type FeatureFlagState = "public" | "beta" | "hidden";
 export type QuestionType =
   | "text"
   | "single_choice"
@@ -363,6 +364,13 @@ export interface TeamMemberRow {
   avatar_url: string | null;
 }
 
+export interface FeatureFlagRow {
+  key: string;
+  state: FeatureFlagState;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -564,6 +572,12 @@ export interface Database {
         Row: FriendRequestRow;
         Insert: Partial<FriendRequestRow> & { requester_id: string; addressee_id: string };
         Update: Partial<FriendRequestRow>;
+        Relationships: [];
+      };
+      feature_flags: {
+        Row: FeatureFlagRow;
+        Insert: Partial<FeatureFlagRow> & { key: string };
+        Update: Partial<FeatureFlagRow>;
         Relationships: [];
       };
     };

@@ -3,7 +3,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getLocale, getDictionary, findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n";
+import { getLocale, getDictionary } from "@/lib/i18n";
+import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
 import { AtSign, Instagram, MessageCircle } from "lucide-react";
@@ -106,10 +108,11 @@ export default async function DirectoryProfilePage({
     .map((b) => ({ icon: b.icon, label: locale === "en" && b.label_en ? b.label_en : b.label, description: locale === "en" && b.description_en ? b.description_en : b.description }));
 
   const isSelf = viewer.id === target.id;
-  const [lineQrSignedUrl, friendRelation, incomingRequests] = await Promise.all([
+  const [lineQrSignedUrl, friendRelation, incomingRequests, friendDmState] = await Promise.all([
     lineQrPath ? getLineQrSignedUrl(lineQrPath) : Promise.resolve(null),
     isSelf ? Promise.resolve(null) : getFriendRelation(target.id),
     isSelf ? getIncomingFriendRequests() : Promise.resolve([]),
+    getFeatureFlagState("friend_dm"),
   ]);
   const accentHex = target.profile_accent
     ? PROFILE_ACCENT_HEX[target.profile_accent as ProfileAccentKey]
@@ -158,7 +161,7 @@ export default async function DirectoryProfilePage({
             </div>
             {!isSelf && friendRelation && (
               <div className="flex shrink-0 items-center gap-2">
-                {friendRelation.status === "friends" && (
+                {friendRelation.status === "friends" && friendDmState !== "hidden" && (
                   <Link
                     href={`/talks/friends/${target.id}`}
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

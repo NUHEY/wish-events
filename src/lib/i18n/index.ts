@@ -3,7 +3,7 @@ import { dictionaries, type Dictionary } from "./dictionaries";
 import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, isLocale, type Locale } from "./locales";
 
 export type { Locale, Dictionary };
-export { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE_NAME, LANGUAGES, COUNTRIES, findLabel, isLocale } from "./locales";
+export { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE_NAME, isLocale } from "./locales";
 export { dictionaries };
 
 /** Server Component / Server Action から呼ぶ。Cookieに保存されたロケールを読む。 */

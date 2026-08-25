@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getFriendDmThreads } from "@/actions/direct-messages";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { TalksTabBar, type TalksTab } from "@/components/community/talks-tab-bar";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 
 type EventThread = {
   event_id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null;
@@ -20,18 +21,18 @@ function compactTime(value: string | null) {
 
 export default async function TalksPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: tabParam } = await searchParams;
-  const tab: TalksTab = tabParam === "friends" ? "friends" : "events";
-  const supabase = await createClient();
+  const [supabase, friendDmState] = await Promise.all([createClient(), getFeatureFlagState("friend_dm")]);
+  const tab: TalksTab = tabParam === "friends" && friendDmState !== "hidden" ? "friends" : "events";
   const [{ data: eventRows }, friendResult] = await Promise.all([
     tab === "events" ? supabase.rpc("event_talk_threads") : Promise.resolve({ data: [] as EventThread[] }),
-    tab === "friends" ? getFriendDmThreads() : supabase.rpc("has_unread_direct_messages"),
+    tab === "friends" ? getFriendDmThreads() : friendDmState === "hidden" ? Promise.resolve({ data: false }) : supabase.rpc("has_unread_direct_messages"),
   ]);
   const rooms = (eventRows ?? []) as EventThread[];
   const friendThreads = tab === "friends" ? friendResult as Awaited<ReturnType<typeof getFriendDmThreads>> : [];
   const hasUnreadFriends = tab === "friends" ? friendThreads.some((thread) => thread.unread) : !!(friendResult as { data: boolean | null }).data;
 
   return <div className="mx-auto flex max-w-2xl flex-col gap-4">
-    <div className="flex items-end justify-between gap-3 border-b border-border pb-3"><div><h1 className="text-2xl font-bold">メッセージ</h1><p className="mt-0.5 text-sm text-muted-foreground">イベントと友達からの新着を確認できます。</p></div><TalksTabBar hasUnreadFriends={hasUnreadFriends} /></div>
+    <div className="flex flex-col items-stretch gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-bold">メッセージ</h1><p className="mt-0.5 text-sm text-muted-foreground">イベントと友達からの新着を確認できます。</p></div><TalksTabBar hasUnreadFriends={hasUnreadFriends} friendDmState={friendDmState} /></div>
     {tab === "events" ? <div className="divide-y divide-border/70">{rooms.map((event) => {
       const preview = event.last_message_type === "image" ? `写真が届きました` : event.last_message_body?.trim() || "イベントのトークを開く";
       return <Link key={event.event_id} href={`/talks/${event.event_id}`} className="group flex items-center gap-3 px-1 py-3 transition-colors active:bg-secondary/60 sm:hover:bg-secondary/35">

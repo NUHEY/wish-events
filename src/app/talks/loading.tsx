@@ -1,21 +1,3 @@
 export default function TalksLoading() {
-  return (
-    <div className="mx-auto flex max-w-2xl animate-pulse flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <div className="h-7 w-24 rounded-md bg-secondary" />
-        <div className="h-4 w-64 rounded-md bg-secondary/70" />
-      </div>
-      <div className="flex flex-col gap-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-            <div className="h-14 w-14 rounded-xl bg-secondary/70" />
-            <div className="flex-1">
-              <div className="h-4 w-2/3 rounded-md bg-secondary/70" />
-              <div className="mt-2 h-3 w-1/3 rounded-md bg-secondary/50" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <div className="mx-auto flex max-w-2xl animate-pulse flex-col gap-4 motion-reduce:animate-none"><div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="h-7 w-32 rounded-xl bg-secondary" /><div className="mt-2 h-3 w-56 rounded-xl bg-secondary/70" /></div><div className="h-9 w-full rounded-full bg-secondary/70 sm:w-[252px]" /></div><div className="divide-y divide-border/70">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center gap-3 py-3"><div className="h-[58px] w-[58px] shrink-0 rounded-full bg-secondary/75" /><div className="flex-1"><div className="h-4 w-2/3 rounded-lg bg-secondary" /><div className="mt-2 h-3 w-5/6 rounded-lg bg-secondary/60" /></div><div className="h-3 w-8 rounded-lg bg-secondary/60" /></div>)}</div></div>;
 }

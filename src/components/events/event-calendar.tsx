@@ -6,6 +6,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, toJstDateKey } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import { signalNavigation } from "@/lib/navigation-signal";
 
 const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"];
 const WEEKDAYS_EN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -62,6 +63,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   const datesWithEvents = useMemo(() => new Set(eventDates.map(toJstDateKey)), [eventDates]);
 
   function navigateWithParams(mutate: (params: URLSearchParams) => void) {
+    if (pending) return;
     const params = new URLSearchParams(searchParams.toString());
     // 日付系の絞り込みは常に排他（同時に有効なのは1種類だけ）にする。
     params.delete("date");
@@ -70,7 +72,9 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
     params.delete("month");
     mutate(params);
     const qs = params.toString();
-    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    signalNavigation(href);
+    startTransition(() => router.replace(href, { scroll: false }));
   }
 
   function selectSingleDate(dateKey: string) {

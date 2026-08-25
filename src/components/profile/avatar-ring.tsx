@@ -24,7 +24,7 @@ export function AvatarRing({
   children: React.ReactNode;
   className?: string;
 }) {
-  const isRa = role === "ra";
+  const isRa = role?.toLowerCase() === "ra";
   const isGold = !isRa && (eventCount ?? 0) >= AVATAR_RING_GOLD_THRESHOLD;
 
   if (!isRa && !isGold) return <>{children}</>;

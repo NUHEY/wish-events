@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { signalNavigation } from "@/lib/navigation-signal";
 
 const STATUSES = ["all", "upcoming", "past"] as const;
 export type EventStatus = (typeof STATUSES)[number];
@@ -22,6 +23,7 @@ export function EventStatusFilter() {
   const [pending, startTransition] = useTransition();
 
   function setStatus(status: EventStatus) {
+    if (pending || status === active) return;
     const params = new URLSearchParams(searchParams.toString());
     if (status === "all") {
       params.delete("status");
@@ -29,8 +31,10 @@ export function EventStatusFilter() {
       params.set("status", status);
     }
     const qs = params.toString();
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    signalNavigation(href);
     startTransition(() => {
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      router.replace(href, { scroll: false });
     });
   }
 
@@ -55,6 +59,7 @@ export function EventStatusFilter() {
           type="button"
           role="tab"
           aria-selected={active === status}
+          disabled={pending}
           onClick={() => setStatus(status)}
           className={cn(
             "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { EVENT_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { signalNavigation } from "@/lib/navigation-signal";
 
 export function EventFilter() {
   const router = useRouter();
@@ -34,9 +35,11 @@ export function EventFilter() {
   }, [pathname]);
 
   function setCategory(category: string | null) {
+    if (pending) return;
     const href = buildHref(category);
+    signalNavigation(href);
     startTransition(() => {
-      router.push(href);
+      router.replace(href, { scroll: false });
     });
   }
 
@@ -44,6 +47,7 @@ export function EventFilter() {
     <div className={cn("flex flex-wrap gap-2 transition-opacity", pending && "opacity-60")}>
       <button
         type="button"
+        disabled={pending}
         onClick={() => setCategory(null)}
         className={cn(
           "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
@@ -58,6 +62,7 @@ export function EventFilter() {
         <button
           key={c}
           type="button"
+          disabled={pending}
           onClick={() => setCategory(c)}
           className={cn(
             "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
