@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { LocaleToggle } from "@/components/layout/locale-toggle";
 import type { UserRole } from "@/types/database";
 
 /**
@@ -91,6 +92,10 @@ export function UserMenu({
             {formatRoomNumber(floorNumber, roomNumber)}
           </span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1.5">
+          <LocaleToggle />
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/talks" className="cursor-pointer">

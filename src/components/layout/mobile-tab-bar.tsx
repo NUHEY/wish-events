@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Home, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UserMenu } from "@/components/layout/user-menu";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { UserRole } from "@/types/database";
 
 function TabLink({
   href,
@@ -42,18 +40,7 @@ function TabLink({
  * このバー自体を非表示にする。
  */
 export function MobileTabBar({
-  role,
-  fullName,
-  floorNumber,
-  roomNumber,
-  avatarUrl,
-}: {
-  role: UserRole;
-  fullName: string | null;
-  floorNumber: number | null;
-  roomNumber: string | null;
-  avatarUrl: string | null;
-}) {
+}: {}) {
   const dict = useDict();
   return (
     <nav
@@ -63,14 +50,6 @@ export function MobileTabBar({
       <TabLink href="/" icon={Home} label={dict.nav.home} exact />
       <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} />
       <TabLink href="/talks" icon={MessageCircle} label="トーク" />
-      <UserMenu
-        variant="tab"
-        fullName={fullName}
-        role={role}
-        floorNumber={floorNumber}
-        roomNumber={roomNumber}
-        avatarUrl={avatarUrl}
-      />
     </nav>
   );
 }

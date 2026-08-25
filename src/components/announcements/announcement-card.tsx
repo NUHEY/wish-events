@@ -4,8 +4,6 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Pin, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +37,6 @@ export function AnnouncementCard({
 
   return (
     <Card className="overflow-hidden rounded-2xl transition-shadow duration-200 hover:shadow-card-hover">
-      {announcement.cover_image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={announcement.cover_image_url}
-          alt=""
-          className="aspect-[16/9] w-full object-cover"
-        />
-      )}
       <div className="flex flex-col gap-2 p-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {announcement.pinned && (
@@ -62,11 +52,7 @@ export function AnnouncementCard({
             {new Date(announcement.created_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
           </span>
         </div>
-        <h3 className="text-lg font-semibold leading-snug">{announcement.title}</h3>
-        <TeamAvatars members={members} allRa={announcement.all_ra_members} />
-        <div className="prose prose-sm max-w-none text-foreground/90">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{announcement.body}</ReactMarkdown>
-        </div>
+        <Link href={`/announcements/${announcement.id}`} className="text-lg font-semibold leading-snug transition-colors hover:text-primary">{announcement.title}</Link>
         {isRa && (
           <div className="mt-2 hidden gap-2 border-t border-border pt-3 sm:flex">
             <Link

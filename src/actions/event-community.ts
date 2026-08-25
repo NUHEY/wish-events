@@ -37,3 +37,14 @@ export async function toggleEventCommentLike(commentId: string, eventId: string,
   revalidatePath(`/events/${eventId}`);
   return { success: true };
 }
+
+export async function toggleEventLike(eventId: string, liked: boolean) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+  const { error } = liked
+    ? await supabase.from("event_likes").delete().eq("event_id", eventId).eq("user_id", profile.id)
+    : await supabase.from("event_likes").insert({ event_id: eventId, user_id: profile.id });
+  if (error) return { error: `いいねの更新に失敗しました: ${error.message}` };
+  revalidatePath(`/events/${eventId}`);
+  return { success: true };
+}

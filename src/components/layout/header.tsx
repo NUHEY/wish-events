@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
-import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 
 export async function Header() {
@@ -35,25 +34,17 @@ export async function Header() {
             <Nav role={profile.role} />
           </div>
           <div className="flex items-center gap-2.5">
-            <LocaleToggle />
-            <div className="hidden sm:block">
-              <UserMenu
-                fullName={profile.full_name}
-                role={profile.role}
-                floorNumber={profile.floor_number}
-                roomNumber={profile.room_number}
-                avatarUrl={profile.avatar_url}
-              />
-            </div>
+            <UserMenu
+              fullName={profile.full_name}
+              role={profile.role}
+              floorNumber={profile.floor_number}
+              roomNumber={profile.room_number}
+              avatarUrl={profile.avatar_url}
+            />
           </div>
         </div>
       </header>
       <MobileTabBar
-        role={profile.role}
-        fullName={profile.full_name}
-        floorNumber={profile.floor_number}
-        roomNumber={profile.room_number}
-        avatarUrl={profile.avatar_url}
       />
     </>
   );

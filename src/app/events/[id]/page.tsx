@@ -10,6 +10,7 @@ import { RegistrationButton } from "@/components/events/registration-button";
 import { EventPoster } from "@/components/events/event-poster";
 import { EventShareButton } from "@/components/events/event-share-button";
 import { EventComments } from "@/components/community/event-comments";
+import { EventLikeButton } from "@/components/community/event-like-button";
 import { BackButton } from "@/components/layout/back-button";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
@@ -41,6 +42,7 @@ export default async function EventDetailPage({
     .eq("event_id", id)
     .eq("user_id", profile.id)
     .maybeSingle();
+  const { data: eventLikes } = await supabase.from("event_likes").select("user_id").eq("event_id", id);
 
   const { data: registrationQuestions } = await supabase
     .from("registration_questions")
@@ -56,10 +58,10 @@ export default async function EventDetailPage({
   const commentIds = (commentRows ?? []).map((comment) => comment.id);
   const commentUserIds = [...new Set((commentRows ?? []).map((comment) => comment.user_id))];
   const [{ data: commentUsers }, { data: likes }] = await Promise.all([
-    commentUserIds.length ? (supabase as any).rpc("event_community_profiles", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
+    commentUserIds.length ? (supabase as any).rpc("event_community_profiles_v2", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
     commentIds.length ? supabase.from("event_comment_likes").select("comment_id, user_id").in("comment_id", commentIds) : Promise.resolve({ data: [] }),
   ]);
-  const commentUsersById = new Map((commentUsers ?? []).map((user: { id: string; full_name: string | null; avatar_url: string | null }) => [user.id, user]));
+  const commentUsersById = new Map((commentUsers ?? []).map((user: { id: string; full_name: string | null; avatar_url: string | null; role: string }) => [user.id, user]));
   const comments = (commentRows ?? []).map((comment) => ({
     ...comment,
     user: commentUsersById.get(comment.user_id) ?? null,
@@ -120,6 +122,7 @@ export default async function EventDetailPage({
             audience={audience}
             feeAmount={event.fee_amount}
           />
+          <EventLikeButton eventId={event.id} count={(eventLikes ?? []).length} liked={(eventLikes ?? []).some((like) => like.user_id === profile.id)} />
         </div>
         <dl className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
           <div>
@@ -232,7 +235,7 @@ export default async function EventDetailPage({
       <EventComments eventId={event.id} comments={comments} />
 
       {profile.role === "ra" && (
-        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="hidden flex-wrap gap-2 border-t border-border pt-4 sm:flex">
           <Link href={`/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             {dict.event.editButton}
           </Link>

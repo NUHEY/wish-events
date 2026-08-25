@@ -18,6 +18,7 @@ create table if not exists public.event_messages (
 );
 
 create index if not exists event_messages_event_created_idx on public.event_messages(event_id, created_at);
+alter publication supabase_realtime add table public.event_messages;
 
 create table if not exists public.event_comments (
   id uuid primary key default gen_random_uuid(),
@@ -37,9 +38,17 @@ create table if not exists public.event_comment_likes (
   primary key (comment_id, user_id)
 );
 
+create table if not exists public.event_likes (
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
 alter table public.event_messages enable row level security;
 alter table public.event_comments enable row level security;
 alter table public.event_comment_likes enable row level security;
+alter table public.event_likes enable row level security;
 
 create or replace function public.can_access_event_talk(target_event_id uuid)
 returns boolean language sql security definer stable set search_path = public
@@ -51,11 +60,11 @@ as $$
 $$;
 
 -- メッセージ・コメント画面に必要な公開プロフィールだけを返す（email等は出さない）。
-create or replace function public.event_community_profiles(profile_ids uuid[])
-returns table (id uuid, full_name text, avatar_url text)
+create or replace function public.event_community_profiles_v2(profile_ids uuid[])
+returns table (id uuid, full_name text, avatar_url text, role text)
 language sql security definer stable set search_path = public
 as $$
-  select u.id, u.full_name, u.avatar_url
+  select u.id, u.full_name, u.avatar_url, u.role
   from public.users u
   where u.id = any(profile_ids);
 $$;
@@ -82,3 +91,10 @@ create policy "event_comment_likes_insert_own"
 on public.event_comment_likes for insert with check (user_id = auth.uid());
 create policy "event_comment_likes_delete_own"
 on public.event_comment_likes for delete using (user_id = auth.uid());
+
+create policy "event_likes_select_authenticated"
+on public.event_likes for select using (auth.uid() is not null);
+create policy "event_likes_insert_own"
+on public.event_likes for insert with check (user_id = auth.uid());
+create policy "event_likes_delete_own"
+on public.event_likes for delete using (user_id = auth.uid());

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutDashboard, MapPinHouse, Settings2, Users } from "lucide-react";
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,19 +29,11 @@ export default async function DashboardPage() {
       <div className="hidden flex-col gap-4 sm:flex">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{dict.dashboard.title}</h1>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/ra-rooms" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {dict.nav.raRooms}
-          </Link>
-          <Link href="/dashboard/residents" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {dict.nav.residents}
-          </Link>
-          <Link href="/dashboard/home-layout" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {dict.homeLayout.navLabel}
-          </Link>
-          <Link href="/dashboard/event-options" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {dict.eventOptions.navLabel}
-          </Link>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Link href="/dashboard/ra-rooms" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}><MapPinHouse className="h-4 w-4" />{dict.nav.raRooms}</Link>
+          <Link href="/dashboard/residents" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}><Users className="h-4 w-4" />{dict.nav.residents}</Link>
+          <Link href="/dashboard/home-layout" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}><LayoutDashboard className="h-4 w-4" />{dict.homeLayout.navLabel}</Link>
+          <Link href="/dashboard/event-options" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}><Settings2 className="h-4 w-4" />{dict.eventOptions.navLabel}</Link>
           <Link href="/events/new" className={buttonVariants({ size: "sm" })}>
             {dict.dashboard.newEventButton}
           </Link>

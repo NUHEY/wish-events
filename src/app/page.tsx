@@ -197,11 +197,9 @@ export default async function HomePage() {
                 </div>
               )}
 
-              <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0">
+              <div className="flex flex-col gap-3">
                 {(announcements as AnnouncementRow[] | null)?.map((a) => (
-                  <div key={a.id} className="w-[17rem] shrink-0 snap-start sm:w-auto">
-                    <AnnouncementCard announcement={a} isRa={isRa} members={(a.member_ids ?? []).map((id: string) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
-                  </div>
+                  <AnnouncementCard key={a.id} announcement={a} isRa={isRa} members={(a.member_ids ?? []).map((id: string) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
                 ))}
               </div>
             </section>

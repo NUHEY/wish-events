@@ -279,6 +279,12 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      event_likes: {
+        Row: { event_id: string; user_id: string; created_at: string };
+        Insert: { event_id: string; user_id: string };
+        Update: never;
+        Relationships: [];
+      };
       surveys: {
         Row: SurveyRow;
         Insert: Partial<SurveyRow> & {
