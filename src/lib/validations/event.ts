@@ -44,6 +44,8 @@ export const eventSchema = z
     contact_info: z.string().trim().max(500).optional().default(""),
     notes: z.string().trim().max(2000).optional().default(""),
     is_pinned: z.boolean().default(false),
+    member_ids: z.array(z.string().uuid()).optional().default([]),
+    all_ra_members: z.boolean().default(false),
   })
   .refine(
     (data) => !data.requires_registration || !!data.capacity,

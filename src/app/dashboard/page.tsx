@@ -20,7 +20,12 @@ export default async function DashboardPage() {
     .order("event_date", { ascending: false });
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
+      <div className="rounded-2xl border border-border bg-secondary/30 p-6 text-center sm:hidden">
+        <h1 className="text-lg font-bold">管理機能はパソコンでご利用ください</h1>
+        <p className="mt-2 text-sm text-muted-foreground">イベントの作成・編集や参加者管理は、画面の広いパソコンで行うと安全でスムーズです。</p>
+      </div>
+      <div className="hidden flex-col gap-4 sm:flex">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{dict.dashboard.title}</h1>
         <div className="flex flex-wrap gap-2">
@@ -100,6 +105,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground">{dict.dashboard.noEvents}</p>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

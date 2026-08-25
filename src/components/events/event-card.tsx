@@ -2,17 +2,20 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
+import { TeamAvatars } from "@/components/team/team-avatars";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventRow } from "@/types/database";
+import type { EventRow, TeamMemberRow } from "@/types/database";
 
 export async function EventCard({
   event,
   variant = "default",
+  members = [],
 }: {
   event: EventRow;
   /** "muted" は過去イベント一覧など、目立たせたくない場所で使う控えめな見た目。 */
   variant?: "default" | "muted";
+  members?: TeamMemberRow[];
 }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -34,12 +37,12 @@ export async function EventCard({
           src={event.poster_url}
           alt={title}
           emptyLabel={dict.event.noImage}
-          ratioClassName="aspect-[4/5]"
+          ratioClassName="aspect-[4/3] sm:aspect-[4/5]"
           className={cn(
             !isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]"
           )}
         />
-        <CardContent className={cn("flex flex-col gap-2", isMuted ? "p-3" : "p-3.5")}>
+        <CardContent className={cn("flex flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">{categoryLabel}</Badge>
             {event.is_pinned && (
@@ -63,15 +66,16 @@ export async function EventCard({
           </div>
           <h3
             className={cn(
-              "line-clamp-2 font-semibold leading-snug transition-colors group-hover:text-primary",
+              "line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-base",
               isMuted && "text-sm"
             )}
           >
             {title}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground sm:text-sm">
             {formatEventDateTime(event.event_date, locale)}
           </p>
+          <TeamAvatars members={members} allRa={event.all_ra_members} />
         </CardContent>
       </Card>
     </Link>

@@ -86,6 +86,8 @@ export interface EventRow {
   contact_info: string | null;
   notes: string | null;
   is_pinned: boolean;
+  member_ids: string[];
+  all_ra_members: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -199,9 +201,18 @@ export interface AnnouncementRow {
   body: string;
   cover_image_url: string | null;
   pinned: boolean;
+  member_ids: string[];
+  all_ra_members: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+/** イベント・お知らせの企画メンバー表示に必要な最小限のプロフィール。 */
+export interface TeamMemberRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface Database {

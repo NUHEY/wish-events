@@ -194,6 +194,8 @@ create table public.events (
   contact_info             text,        -- 問い合わせ先（担当RA名やLINE等）
   notes                     text,        -- その他の備考
   is_pinned                boolean not null default false,  -- ホームで優先的に上位表示
+  member_ids               uuid[] not null default '{}', -- 企画メンバー（RA）のusers.id
+  all_ra_members           boolean not null default false, -- RA全員が企画メンバー
 
   created_by            uuid not null references public.users(id),
   created_at            timestamptz not null default now(),
@@ -1004,6 +1006,8 @@ create table public.announcements (
   body             text not null,
   cover_image_url  text,
   pinned           boolean not null default false,
+  member_ids       uuid[] not null default '{}',
+  all_ra_members   boolean not null default false,
   created_by       uuid not null references public.users(id),
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()

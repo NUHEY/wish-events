@@ -15,6 +15,8 @@ function parseAnnouncementFormData(formData: FormData) {
     body: formData.get("body"),
     cover_image_url: formData.get("cover_image_url") ?? "",
     pinned: formData.get("pinned") === "on",
+    member_ids: formData.getAll("member_ids").map(String),
+    all_ra_members: formData.get("all_ra_members") === "on",
   });
 }
 
@@ -36,6 +38,8 @@ export async function createAnnouncement(
     body: parsed.data.body,
     cover_image_url: parsed.data.cover_image_url || null,
     pinned: parsed.data.pinned,
+    member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
+    all_ra_members: parsed.data.all_ra_members,
     created_by: profile.id,
   });
 
@@ -68,6 +72,8 @@ export async function updateAnnouncement(
       body: parsed.data.body,
       cover_image_url: parsed.data.cover_image_url || null,
       pinned: parsed.data.pinned,
+      member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
+      all_ra_members: parsed.data.all_ra_members,
     })
     .eq("id", announcementId);
 

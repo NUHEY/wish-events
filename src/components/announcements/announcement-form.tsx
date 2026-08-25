@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TeamPicker } from "@/components/team/team-picker";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { AnnouncementRow } from "@/types/database";
+import type { AnnouncementRow, TeamMemberRow } from "@/types/database";
 import type { ActionResult } from "@/actions/announcements";
 
 type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -29,10 +30,12 @@ export function AnnouncementForm({
   action,
   initialAnnouncement,
   submitLabel,
+  teamMembers = [],
 }: {
   action: FormAction;
   initialAnnouncement?: AnnouncementRow;
   submitLabel: string;
+  teamMembers?: TeamMemberRow[];
 }) {
   const dict = useDict();
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
@@ -140,6 +143,12 @@ export function AnnouncementForm({
         <Checkbox name="pinned" defaultChecked={initialAnnouncement?.pinned ?? false} />
         {dict.announcementForm.pinnedLabel}
       </label>
+
+      <TeamPicker
+        members={teamMembers}
+        initialMemberIds={initialAnnouncement?.member_ids ?? []}
+        initialAllRa={initialAnnouncement?.all_ra_members ?? false}
+      />
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 

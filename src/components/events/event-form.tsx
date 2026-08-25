@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { TeamPicker } from "@/components/team/team-picker";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 import { utcIsoToJstWallClockInput } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { EventRow, EventLocationOptionRow, EventAudienceOptionRow } from "@/types/database";
+import type { EventRow, EventLocationOptionRow, EventAudienceOptionRow, TeamMemberRow } from "@/types/database";
 import type { ActionResult } from "@/actions/events";
 
 type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -36,12 +37,14 @@ export function EventForm({
   submitLabel,
   locationOptions = [],
   audienceOptions = [],
+  teamMembers = [],
 }: {
   action: FormAction;
   initialEvent?: EventRow;
   submitLabel: string;
   locationOptions?: EventLocationOptionRow[];
   audienceOptions?: EventAudienceOptionRow[];
+  teamMembers?: TeamMemberRow[];
 }) {
   const dict = useDict();
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
@@ -477,6 +480,12 @@ export function EventForm({
           />
         </div>
       </fieldset>
+
+      <TeamPicker
+        members={teamMembers}
+        initialMemberIds={initialEvent?.member_ids ?? []}
+        initialAllRa={initialEvent?.all_ra_members ?? false}
+      />
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 

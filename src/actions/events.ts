@@ -44,6 +44,8 @@ function parseEventFormData(formData: FormData) {
     contact_info: formData.get("contact_info") ?? "",
     notes: formData.get("notes") ?? "",
     is_pinned: formData.get("is_pinned") === "on",
+    member_ids: formData.getAll("member_ids").map(String),
+    all_ra_members: formData.get("all_ra_members") === "on",
   });
 }
 
@@ -94,6 +96,8 @@ export async function createEvent(
       contact_info: parsed.data.contact_info || null,
       notes: parsed.data.notes || null,
       is_pinned: parsed.data.is_pinned,
+      member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
+      all_ra_members: parsed.data.all_ra_members,
       created_by: profile.id,
     })
     .select("id")
@@ -157,6 +161,8 @@ export async function updateEvent(
       contact_info: parsed.data.contact_info || null,
       notes: parsed.data.notes || null,
       is_pinned: parsed.data.is_pinned,
+      member_ids: parsed.data.all_ra_members ? [] : parsed.data.member_ids,
+      all_ra_members: parsed.data.all_ra_members,
     })
     .eq("id", eventId);
 

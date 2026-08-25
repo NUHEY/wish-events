@@ -9,7 +9,7 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { endOfThisWeek } from "@/lib/utils";
 import { HOME_ACCENT_HEX } from "@/lib/constants";
 import type { HomeAccentKeyValue } from "@/lib/constants";
-import type { EventRow, HomeLayoutSectionRow } from "@/types/database";
+import type { AnnouncementRow, EventRow, HomeLayoutSectionRow, TeamMemberRow } from "@/types/database";
 
 const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "week_events", section_key: "week_events", visible: true, position: 1, accent: null, title_ja: null, title_en: null, updated_at: "" },
@@ -18,12 +18,12 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
 ];
 
 /** モバイルは横スクロールのスナップ、sm以上はグリッドで表示するイベントカード列 */
-function EventScroller({ events }: { events: EventRow[] }) {
+function EventScroller({ events, membersById }: { events: EventRow[]; membersById: Map<string, TeamMemberRow> }) {
   return (
     <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-3">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
-          <EventCard event={event} />
+          <EventCard event={event} members={(event.member_ids ?? []).map((id) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
         </div>
       ))}
     </div>
@@ -78,6 +78,12 @@ export default async function HomePage() {
     floorEvents = data ?? [];
   }
 
+  const memberIds = [...new Set([...((weekEvents ?? []).flatMap((event) => event.member_ids ?? [])), ...floorEvents.flatMap((event) => event.member_ids ?? []), ...(announcements ?? []).flatMap((announcement) => announcement.member_ids ?? [])])];
+  const { data: teamMembers } = memberIds.length
+    ? await supabase.from("users").select("id, full_name, avatar_url").in("id", memberIds)
+    : { data: [] as TeamMemberRow[] };
+  const membersById = new Map((teamMembers ?? []).map((member) => [member.id, member]));
+
   const sections =
     layoutRows && layoutRows.length === FALLBACK_SECTIONS.length ? layoutRows : FALLBACK_SECTIONS;
 
@@ -117,7 +123,7 @@ export default async function HomePage() {
         {isRa && (
           <Link
             href="/dashboard/home-layout"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
+            className={buttonVariants({ variant: "outline", size: "sm", className: "hidden sm:inline-flex" })}
           >
             <Settings2 className="mr-1 h-3.5 w-3.5" />
             {dict.homePortal.customizeButton}
@@ -133,12 +139,9 @@ export default async function HomePage() {
               <section key={s.id} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                   <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.weekEvents.title)} />
-                  <Link href="/events" className="text-sm font-medium text-primary hover:underline">
-                    {dict.homePortal.weekEvents.viewAll}
-                  </Link>
                 </div>
                 {weekEvents && weekEvents.length > 0 ? (
-                  <EventScroller events={weekEvents} />
+                  <EventScroller events={weekEvents} membersById={membersById} />
                 ) : (
                   <EmptyNote>{dict.homePortal.weekEvents.empty}</EmptyNote>
                 )}
@@ -157,7 +160,7 @@ export default async function HomePage() {
                 {profile.floor_number == null ? (
                   <EmptyNote>{dict.homePortal.floorEvents.noFloorNote}</EmptyNote>
                 ) : floorEvents.length > 0 ? (
-                  <EventScroller events={floorEvents} />
+                  <EventScroller events={floorEvents} membersById={membersById} />
                 ) : (
                   <EmptyNote>{dict.homePortal.floorEvents.empty}</EmptyNote>
                 )}
@@ -173,7 +176,7 @@ export default async function HomePage() {
                 {isRa && (
                   <Link
                     href="/announcements/new"
-                    className={buttonVariants({ size: "sm", className: "rounded-full shadow-glow" })}
+                    className={buttonVariants({ size: "sm", className: "hidden rounded-full shadow-glow sm:inline-flex" })}
                   >
                     <Plus className="mr-1 h-4 w-4" />
                     {dict.homeFeed.newButton}
@@ -194,9 +197,11 @@ export default async function HomePage() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-4">
-                {announcements?.map((a) => (
-                  <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
+              <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0">
+                {(announcements as AnnouncementRow[] | null)?.map((a) => (
+                  <div key={a.id} className="w-[17rem] shrink-0 snap-start sm:w-auto">
+                    <AnnouncementCard announcement={a} isRa={isRa} members={(a.member_ids ?? []).map((id: string) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
+                  </div>
                 ))}
               </div>
             </section>

@@ -6,6 +6,8 @@ export const announcementSchema = z.object({
   body: z.string().trim().min(1, "本文を入力してください"),
   cover_image_url: z.string().url().optional().or(z.literal("")).default(""),
   pinned: z.boolean().default(false),
+  member_ids: z.array(z.string().uuid()).optional().default([]),
+  all_ra_members: z.boolean().default(false),
 });
 
 export type AnnouncementInput = z.infer<typeof announcementSchema>;

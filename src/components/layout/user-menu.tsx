@@ -104,7 +104,7 @@ export function UserMenu({
             {dict.nav.directory}
           </Link>
         </DropdownMenuItem>
-        {role === "ra" && (
+        {role === "ra" && variant !== "tab" && (
           <DropdownMenuItem asChild>
             <Link href="/dashboard" className="cursor-pointer">
               <LayoutDashboard className="h-4 w-4" />

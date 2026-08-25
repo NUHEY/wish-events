@@ -5,7 +5,7 @@ import { EventCard } from "@/components/events/event-card";
 import { EventFilter } from "@/components/events/event-filter";
 import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { EventCategory } from "@/types/database";
+import type { EventCategory, TeamMemberRow } from "@/types/database";
 
 export default async function EventsPage({
   searchParams,
@@ -42,6 +42,12 @@ export default async function EventsPage({
 
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
+  const memberIds = [...new Set([...(upcomingEvents ?? []), ...(pastEvents ?? [])].flatMap((event) => event.member_ids ?? []))];
+  const { data: memberRows } = memberIds.length
+    ? await supabase.from("users").select("id, full_name, avatar_url").in("id", memberIds)
+    : { data: [] as TeamMemberRow[] };
+  const membersById = new Map((memberRows ?? []).map((member) => [member.id, member]));
+  const eventMembers = (ids: string[]) => ids.map((id) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member);
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -75,9 +81,9 @@ export default async function EventsPage({
       )}
 
       {hasUpcoming && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingEvents!.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} members={eventMembers(event.member_ids ?? [])} />
           ))}
         </div>
       )}
@@ -90,7 +96,7 @@ export default async function EventsPage({
           </summary>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {pastEvents!.map((event) => (
-              <EventCard key={event.id} event={event} variant="muted" />
+              <EventCard key={event.id} event={event} variant="muted" members={eventMembers(event.member_ids ?? [])} />
             ))}
           </div>
         </details>

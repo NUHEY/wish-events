@@ -10,16 +10,19 @@ import { Pin, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TeamAvatars } from "@/components/team/team-avatars";
 import { deleteAnnouncement } from "@/actions/announcements";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { AnnouncementRow } from "@/types/database";
+import type { AnnouncementRow, TeamMemberRow } from "@/types/database";
 
 export function AnnouncementCard({
   announcement,
   isRa,
+  members = [],
 }: {
   announcement: AnnouncementRow;
   isRa: boolean;
+  members?: TeamMemberRow[];
 }) {
   const dict = useDict();
   const router = useRouter();
@@ -60,11 +63,12 @@ export function AnnouncementCard({
           </span>
         </div>
         <h3 className="text-lg font-semibold leading-snug">{announcement.title}</h3>
+        <TeamAvatars members={members} allRa={announcement.all_ra_members} />
         <div className="prose prose-sm max-w-none text-foreground/90">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{announcement.body}</ReactMarkdown>
         </div>
         {isRa && (
-          <div className="mt-2 flex gap-2 border-t border-border pt-3">
+          <div className="mt-2 hidden gap-2 border-t border-border pt-3 sm:flex">
             <Link
               href={`/announcements/${announcement.id}/edit`}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"

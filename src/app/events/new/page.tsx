@@ -12,9 +12,10 @@ export default async function NewEventPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [{ data: locationOptions }, { data: audienceOptions }] = await Promise.all([
+  const [{ data: locationOptions }, { data: audienceOptions }, { data: teamMembers }] = await Promise.all([
     supabase.from("event_location_options").select("*").order("position", { ascending: true }),
     supabase.from("event_audience_options").select("*").order("position", { ascending: true }),
+    supabase.from("users").select("id, full_name, avatar_url").eq("role", "ra").order("full_name"),
   ]);
 
   return (
@@ -30,6 +31,7 @@ export default async function NewEventPage() {
             submitLabel={dict.eventForm.createSubmit}
             locationOptions={locationOptions ?? []}
             audienceOptions={audienceOptions ?? []}
+            teamMembers={teamMembers ?? []}
           />
         </CardContent>
       </Card>
