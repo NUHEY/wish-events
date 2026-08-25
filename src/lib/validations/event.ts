@@ -14,7 +14,7 @@ export const eventSchema = z
     target_audience: z.string().trim().optional().default(""),
     target_audience_en: z.string().trim().optional().default(""),
     event_date: z.string().min(1, "開催日時を入力してください"),
-    requires_registration: z.boolean().default(false),
+    requires_registration: z.boolean().default(true),
     capacity: z.coerce.number().int().positive().optional().nullable(),
     fee_amount: z.coerce.number().int().min(0).optional().nullable(),
     payment_info: z.string().trim().optional().default(""),
@@ -47,13 +47,6 @@ export const eventSchema = z
     member_ids: z.array(z.string().uuid()).optional().default([]),
     all_ra_members: z.boolean().default(false),
   })
-  .refine(
-    (data) => !data.requires_registration || !!data.capacity,
-    {
-      message: "事前申し込みを有効にする場合は定員を入力してください",
-      path: ["capacity"],
-    }
-  )
   .refine(
     (data) => data.survey_type !== "external" || !!data.survey_external_url,
     {

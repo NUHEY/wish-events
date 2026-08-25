@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TeamPicker } from "@/components/team/team-picker";
+import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { AnnouncementRow, TeamMemberRow } from "@/types/database";
 import type { ActionResult } from "@/actions/announcements";
@@ -45,9 +46,7 @@ export function AnnouncementForm({
   const [body, setBody] = useState(initialAnnouncement?.body ?? "");
   const [showPreview, setShowPreview] = useState(false);
 
-  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handleCoverFile(file: File) {
     setUploading(true);
     setUploadError(null);
 
@@ -98,19 +97,11 @@ export function AnnouncementForm({
 
       <div className="grid gap-2">
         <Label htmlFor="cover">{dict.announcementForm.coverLabel}</Label>
-        <Input id="cover" type="file" accept="image/*" onChange={handleCoverChange} />
+        <ImageDropzone value={coverImageUrl} onFile={handleCoverFile} disabled={uploading} label={dict.announcementForm.coverLabel} />
         {uploading && (
           <p className="text-sm text-muted-foreground">{dict.eventForm.uploading}</p>
         )}
         {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
-        {coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={coverImageUrl}
-            alt="cover preview"
-            className="mt-2 h-40 w-auto rounded-md border object-cover"
-          />
-        )}
       </div>
 
       <div className="grid gap-2">

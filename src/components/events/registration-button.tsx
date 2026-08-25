@@ -121,7 +121,7 @@ export function RegistrationButton({
       if (result?.error) setError(result.error);
       else {
         toast.success(dict.toast.registered);
-        router.refresh();
+        router.push(result.talkHref ?? `/talks/${eventId}?joined=1`);
       }
     });
   }
@@ -149,7 +149,7 @@ export function RegistrationButton({
       else {
         toast.success(dict.toast.registered);
         setExpanded(false);
-        router.refresh();
+        router.push(result.talkHref ?? `/talks/${eventId}?joined=1`);
       }
     });
   }

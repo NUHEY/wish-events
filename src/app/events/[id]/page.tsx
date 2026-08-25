@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
 import { EventPoster } from "@/components/events/event-poster";
 import { EventShareButton } from "@/components/events/event-share-button";
+import { EventComments } from "@/components/community/event-comments";
 import { BackButton } from "@/components/layout/back-button";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
@@ -41,13 +42,30 @@ export default async function EventDetailPage({
     .eq("user_id", profile.id)
     .maybeSingle();
 
-  const { data: registrationQuestions } = event.requires_registration
-    ? await supabase
-        .from("registration_questions")
-        .select("*")
-        .eq("event_id", id)
-        .order("position", { ascending: true })
-    : { data: [] };
+  const { data: registrationQuestions } = await supabase
+    .from("registration_questions")
+    .select("*")
+    .eq("event_id", id)
+    .order("position", { ascending: true });
+
+  const { data: commentRows } = await supabase
+    .from("event_comments")
+    .select("*")
+    .eq("event_id", id)
+    .order("created_at", { ascending: false });
+  const commentIds = (commentRows ?? []).map((comment) => comment.id);
+  const commentUserIds = [...new Set((commentRows ?? []).map((comment) => comment.user_id))];
+  const [{ data: commentUsers }, { data: likes }] = await Promise.all([
+    commentUserIds.length ? (supabase as any).rpc("event_community_profiles", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
+    commentIds.length ? supabase.from("event_comment_likes").select("comment_id, user_id").in("comment_id", commentIds) : Promise.resolve({ data: [] }),
+  ]);
+  const commentUsersById = new Map((commentUsers ?? []).map((user: { id: string; full_name: string | null; avatar_url: string | null }) => [user.id, user]));
+  const comments = (commentRows ?? []).map((comment) => ({
+    ...comment,
+    user: commentUsersById.get(comment.user_id) ?? null,
+    likeCount: (likes ?? []).filter((like) => like.comment_id === comment.id).length,
+    likedByMe: (likes ?? []).some((like) => like.comment_id === comment.id && like.user_id === profile.id),
+  }));
 
   const registeredCount = count ?? 0;
   const isFull = event.capacity != null && registeredCount >= event.capacity;
@@ -171,12 +189,9 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      {event.requires_registration && (
-        <div className="flex flex-col gap-2 rounded-md border border-border p-4">
-          <p className="text-sm">
-            {dict.event.registrationStatus}: <span className="font-semibold">{registeredCount}</span> /{" "}
-            {event.capacity}
-            {dict.event.peopleUnit}
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">
+            {event.capacity != null ? <>{dict.event.registrationStatus}: <span className="font-semibold text-foreground">{registeredCount}</span> / {event.capacity}{dict.event.peopleUnit}</> : <>参加受付中 · 定員なし</>}
           </p>
           {!isPast && (
             <RegistrationButton
@@ -188,8 +203,8 @@ export default async function EventDetailPage({
               registrationClosesAt={event.registration_closes_at}
             />
           )}
+          {!!myRegistration && <Link href={`/talks/${event.id}`} className="text-sm font-medium text-primary hover:underline">イベントのトークを見る</Link>}
         </div>
-      )}
 
       {isPast && event.survey_type !== "none" && (
         <div className="rounded-md border border-border p-4">
@@ -214,6 +229,8 @@ export default async function EventDetailPage({
         </div>
       )}
 
+      <EventComments eventId={event.id} comments={comments} />
+
       {profile.role === "ra" && (
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <Link href={`/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -225,7 +242,7 @@ export default async function EventDetailPage({
           >
             {dict.event.participantsButton}
           </Link>
-          {event.requires_registration && (
+          {true && (
             <Link
               href={`/events/${event.id}/questions`}
               className={buttonVariants({ variant: "outline", size: "sm" })}

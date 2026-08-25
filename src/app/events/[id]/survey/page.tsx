@@ -55,8 +55,8 @@ export default async function EventSurveyPage({
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-3">
       <BackButton fallbackHref={`/events/${id}`} className="-ml-2" />
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden rounded-2xl shadow-elevated">
+        <CardHeader className="border-b border-border bg-secondary/30">
           <CardTitle>{survey.title}</CardTitle>
           <CardDescription>{event.title}</CardDescription>
         </CardHeader>

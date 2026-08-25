@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home } from "lucide-react";
+import { CalendarDays, Home, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/layout/user-menu";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -62,6 +62,7 @@ export function MobileTabBar({
     >
       <TabLink href="/" icon={Home} label={dict.nav.home} exact />
       <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} />
+      <TabLink href="/talks" icon={MessageCircle} label="トーク" />
       <UserMenu
         variant="tab"
         fullName={fullName}

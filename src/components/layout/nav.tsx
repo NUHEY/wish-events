@@ -50,6 +50,7 @@ export function Nav({ role: _role }: { role: UserRole }) {
         {dict.nav.home}
       </NavLink>
       <NavLink href="/events">{dict.nav.events}</NavLink>
+      <NavLink href="/talks">トーク</NavLink>
     </nav>
   );
 }

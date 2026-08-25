@@ -33,37 +33,18 @@ export async function EventCard({
             : "group-hover:-translate-y-0.5 group-hover:border-foreground/15 group-hover:shadow-card-hover"
         )}
       >
-        <EventPoster
-          src={event.poster_url}
-          alt={title}
-          emptyLabel={dict.event.noImage}
-          ratioClassName="aspect-[4/3] sm:aspect-[4/5]"
-          className={cn(
-            !isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]"
-          )}
-        />
-        <CardContent className={cn("flex flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="secondary">{categoryLabel}</Badge>
-            {event.is_pinned && (
-              <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
-                {dict.event.pinnedBadge}
-              </Badge>
-            )}
-            {event.target_floors && event.target_floors.length > 0 && (
-              <Badge variant="outline">
-                {event.target_floors.map((f) => `${f}${dict.event.floorUnit}`).join("・")}
-                {dict.event.limitedFloors}
-              </Badge>
-            )}
-            {!!event.fee_amount && (
-              <Badge variant="outline" className="border-primary/25 text-primary">
-                {dict.event.feePrefix}
-                {event.fee_amount.toLocaleString()}
-                {dict.event.feeUnit}
-              </Badge>
-            )}
-          </div>
+        <div className="relative">
+          <EventPoster
+            src={event.poster_url}
+            alt={title}
+            emptyLabel={dict.event.noImage}
+            ratioClassName="aspect-[4/3] sm:aspect-[4/5]"
+            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]")}
+          />
+          <Badge variant="secondary" className="absolute left-2 top-2 bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
+          {!!event.fee_amount && <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>}
+        </div>
+        <CardContent className={cn("flex h-[104px] flex-col justify-between gap-1.5 p-2.5 sm:h-[122px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
               "line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-base",
@@ -75,7 +56,7 @@ export async function EventCard({
           <p className="text-xs text-muted-foreground sm:text-sm">
             {formatEventDateTime(event.event_date, locale)}
           </p>
-          <TeamAvatars members={members} allRa={event.all_ra_members} />
+          <div className="min-h-7"><TeamAvatars members={members} allRa={event.all_ra_members} /></div>
         </CardContent>
       </Card>
     </Link>

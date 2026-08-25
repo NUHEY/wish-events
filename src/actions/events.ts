@@ -30,7 +30,7 @@ function parseEventFormData(formData: FormData) {
     target_audience: formData.get("target_audience") ?? "",
     target_audience_en: formData.get("target_audience_en") ?? "",
     event_date: formData.get("event_date"),
-    requires_registration: formData.get("requires_registration") === "on",
+    requires_registration: true,
     capacity: capacityRaw ? Number(capacityRaw) : undefined,
     fee_amount: feeAmountRaw ? Number(feeAmountRaw) : undefined,
     payment_info: formData.get("payment_info") ?? "",
@@ -75,17 +75,17 @@ export async function createEvent(
       target_audience: parsed.data.target_audience || null,
       target_audience_en: parsed.data.target_audience_en || null,
       event_date: jstWallClockToUtcIso(parsed.data.event_date),
-      requires_registration: parsed.data.requires_registration,
-      capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
+      requires_registration: true,
+      capacity: parsed.data.capacity ?? null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
       publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
-        parsed.data.requires_registration && parsed.data.registration_opens_at
+        parsed.data.registration_opens_at
           ? jstWallClockToUtcIso(parsed.data.registration_opens_at)
           : null,
       registration_closes_at:
-        parsed.data.requires_registration && parsed.data.registration_closes_at
+        parsed.data.registration_closes_at
           ? jstWallClockToUtcIso(parsed.data.registration_closes_at)
           : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
@@ -140,17 +140,17 @@ export async function updateEvent(
       target_audience: parsed.data.target_audience || null,
       target_audience_en: parsed.data.target_audience_en || null,
       event_date: jstWallClockToUtcIso(parsed.data.event_date),
-      requires_registration: parsed.data.requires_registration,
-      capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
+      requires_registration: true,
+      capacity: parsed.data.capacity ?? null,
       fee_amount: parsed.data.fee_amount ?? null,
       payment_info: parsed.data.payment_info || null,
       publish_at: parsed.data.publish_at ? jstWallClockToUtcIso(parsed.data.publish_at) : null,
       registration_opens_at:
-        parsed.data.requires_registration && parsed.data.registration_opens_at
+        parsed.data.registration_opens_at
           ? jstWallClockToUtcIso(parsed.data.registration_opens_at)
           : null,
       registration_closes_at:
-        parsed.data.requires_registration && parsed.data.registration_closes_at
+        parsed.data.registration_closes_at
           ? jstWallClockToUtcIso(parsed.data.registration_closes_at)
           : null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,

@@ -19,7 +19,8 @@ export async function registerForEvent(eventId: string) {
   }
 
   revalidatePath(`/events/${eventId}`);
-  return { success: true };
+  revalidatePath("/talks");
+  return { success: true, talkHref: `/talks/${eventId}?joined=1` };
 }
 
 export type RegistrationAnswerInput = {
@@ -38,7 +39,7 @@ export type RegistrationAnswerInput = {
 export async function registerForEventWithAnswers(
   eventId: string,
   answers: RegistrationAnswerInput[]
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; talkHref?: string }> {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
@@ -75,7 +76,8 @@ export async function registerForEventWithAnswers(
   }
 
   revalidatePath(`/events/${eventId}`);
-  return { success: true };
+  revalidatePath("/talks");
+  return { success: true, talkHref: `/talks/${eventId}?joined=1` };
 }
 
 export async function cancelRegistration(eventId: string) {

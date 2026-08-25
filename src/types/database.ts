@@ -130,6 +130,23 @@ export interface RegistrationRow {
   registered_at: string;
 }
 
+export interface EventMessageRow {
+  id: string;
+  event_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+}
+
+export interface EventCommentRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SurveyRow {
   id: string;
   event_id: string;
@@ -242,6 +259,24 @@ export interface Database {
           user_id: string;
         };
         Update: Partial<RegistrationRow>;
+        Relationships: [];
+      };
+      event_messages: {
+        Row: EventMessageRow;
+        Insert: Partial<EventMessageRow> & { event_id: string; sender_id: string; body: string };
+        Update: Partial<EventMessageRow>;
+        Relationships: [];
+      };
+      event_comments: {
+        Row: EventCommentRow;
+        Insert: Partial<EventCommentRow> & { event_id: string; user_id: string; body: string };
+        Update: Partial<EventCommentRow>;
+        Relationships: [];
+      };
+      event_comment_likes: {
+        Row: { comment_id: string; user_id: string; created_at: string };
+        Insert: { comment_id: string; user_id: string };
+        Update: never;
         Relationships: [];
       };
       surveys: {

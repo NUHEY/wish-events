@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DoorOpen, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
+import { DoorOpen, LayoutDashboard, LogOut, Menu, MessageCircle, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -92,6 +92,12 @@ export function UserMenu({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/talks" className="cursor-pointer">
+            <MessageCircle className="h-4 w-4" />
+            トーク
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/profile/edit" className="cursor-pointer">
             <UserRound className="h-4 w-4" />

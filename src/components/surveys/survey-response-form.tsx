@@ -75,15 +75,15 @@ export function SurveyResponseForm({
   }
 
   if (done) {
-    return <p className="rounded-md border border-border bg-secondary p-4 text-sm">{dict.surveys.thanks}</p>;
+    return <p className="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center text-sm font-medium text-primary">{dict.surveys.thanks}</p>;
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {sorted.map((q) => (
-        <div key={q.id} className="flex flex-col gap-2">
+      {sorted.map((q, index) => (
+        <div key={q.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <Label>
-            {q.question_text}
+            <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{index + 1}</span>{q.question_text}
             {q.is_required && <span className="ml-1 text-destructive">*</span>}
           </Label>
 
@@ -95,9 +95,9 @@ export function SurveyResponseForm({
           )}
 
           {q.question_type === "rating" && (
-            <div className="flex gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {["1", "2", "3", "4", "5"].map((n) => (
-                <label key={n} className="flex flex-col items-center gap-1 text-sm">
+                <label key={n} className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-2 text-sm transition-colors ${answers[q.id] === n ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"}`}>
                   <input
                     type="radio"
                     name={`rating-${q.id}`}
@@ -112,7 +112,7 @@ export function SurveyResponseForm({
 
           {q.question_type === "single_choice" &&
             (q.options ?? []).map((opt) => (
-              <label key={opt} className="flex items-center gap-2 text-sm">
+              <label key={opt} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors ${answers[q.id] === opt ? "border-primary bg-primary/5" : "border-border hover:bg-secondary"}`}>
                 <input
                   type="radio"
                   name={`choice-${q.id}`}
@@ -125,7 +125,7 @@ export function SurveyResponseForm({
 
           {q.question_type === "multiple_choice" &&
             (q.options ?? []).map((opt) => (
-              <label key={opt} className="flex items-center gap-2 text-sm">
+              <label key={opt} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors ${((answers[q.id] as string[]) ?? []).includes(opt) ? "border-primary bg-primary/5" : "border-border hover:bg-secondary"}`}>
                 <Checkbox
                   checked={((answers[q.id] as string[]) ?? []).includes(opt)}
                   onCheckedChange={() => toggleOption(q.id, opt, true)}
@@ -138,7 +138,7 @@ export function SurveyResponseForm({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={pending} className="w-fit">
+      <Button type="submit" disabled={pending} className="w-full sm:w-fit">
         {pending ? dict.surveys.submitting : dict.surveys.submitButton}
       </Button>
     </form>

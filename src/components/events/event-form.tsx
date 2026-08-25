@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { TeamPicker } from "@/components/team/team-picker";
+import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 import { utcIsoToJstWallClockInput } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -51,18 +52,13 @@ export function EventForm({
   const [posterUrl, setPosterUrl] = useState(initialEvent?.poster_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [requiresRegistration, setRequiresRegistration] = useState(
-    initialEvent?.requires_registration ?? false
-  );
   const [surveyType, setSurveyType] = useState(initialEvent?.survey_type ?? "none");
   const [description, setDescription] = useState(initialEvent?.description ?? "");
   const [descriptionEn, setDescriptionEn] = useState(initialEvent?.description_en ?? "");
   const [showPreview, setShowPreview] = useState(false);
   const [showPreviewEn, setShowPreviewEn] = useState(false);
 
-  async function handlePosterChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handlePosterFile(file: File) {
     setUploading(true);
     setUploadError(null);
 
@@ -127,13 +123,9 @@ export function EventForm({
 
       <div className="grid gap-2">
         <Label htmlFor="poster">{dict.eventForm.posterLabel}</Label>
-        <Input id="poster" type="file" accept="image/*" onChange={handlePosterChange} />
+        <ImageDropzone value={posterUrl} onFile={handlePosterFile} disabled={uploading} label={dict.eventForm.posterLabel} />
         {uploading && <p className="text-sm text-muted-foreground">{dict.eventForm.uploading}</p>}
         {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
-        {posterUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={posterUrl} alt="poster preview" className="mt-2 h-40 w-auto rounded-md border object-cover" />
-        )}
       </div>
 
       <div className="grid gap-2">
@@ -338,26 +330,17 @@ export function EventForm({
         </div>
       </fieldset>
 
-      <fieldset className="grid gap-3 rounded-md border border-border p-3">
-        <legend className="px-1 text-sm font-medium">{dict.eventForm.registrationLegend}</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox
-            name="requires_registration"
-            checked={requiresRegistration}
-            onCheckedChange={(checked) => setRequiresRegistration(checked === true)}
-          />
-          {dict.eventForm.registrationRequired}
-        </label>
-        {requiresRegistration && (
+      <fieldset className="grid gap-3 rounded-xl border border-border bg-secondary/20 p-3.5">
+        <legend className="px-1 text-sm font-semibold">参加受付</legend>
+        <p className="text-xs text-muted-foreground">すべてのイベントで参加受付を行います。定員は必要なときだけ設定してください。</p>
           <>
             <div className="grid gap-2 sm:w-1/3">
-              <Label htmlFor="capacity">{dict.eventForm.capacityLabel}</Label>
+              <Label htmlFor="capacity">定員（空欄なら無制限）</Label>
               <Input
                 id="capacity"
                 name="capacity"
                 type="number"
                 min={1}
-                required={requiresRegistration}
                 defaultValue={initialEvent?.capacity ?? undefined}
               />
             </div>
@@ -403,7 +386,6 @@ export function EventForm({
               )}
             </div>
           </>
-        )}
       </fieldset>
 
       <fieldset className="grid gap-3 rounded-md border border-border p-3">
