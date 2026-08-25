@@ -146,11 +146,29 @@ export interface EventMessageRow {
   event_id: string;
   sender_id: string;
   body: string;
-  message_type: "text" | "image" | "tool";
+  message_type: "text" | "image" | "tool" | "poll";
   media_path: string | null;
   action_url: string | null;
   action_label: string | null;
+  poll_id: string | null;
   created_at: string;
+}
+
+export interface EventMessageReactionRow {
+  message_id: string;
+  user_id: string;
+  emoji: "❤️" | "👍" | "🎉" | "😂" | "👀";
+  created_at: string;
+}
+
+export interface EventPollRow {
+  id: string;
+  event_id: string;
+  question: string;
+  options: string[];
+  created_by: string;
+  created_at: string;
+  closes_at: string | null;
 }
 
 export interface EventCommentRow {
@@ -286,6 +304,24 @@ export interface Database {
         Row: EventMessageRow;
         Insert: Partial<EventMessageRow> & { event_id: string; sender_id: string; body: string };
         Update: Partial<EventMessageRow>;
+        Relationships: [];
+      };
+      event_message_reactions: {
+        Row: EventMessageReactionRow;
+        Insert: EventMessageReactionRow;
+        Update: never;
+        Relationships: [];
+      };
+      event_polls: {
+        Row: EventPollRow;
+        Insert: Partial<EventPollRow> & { event_id: string; question: string; options: string[]; created_by: string };
+        Update: Partial<EventPollRow>;
+        Relationships: [];
+      };
+      event_poll_votes: {
+        Row: { poll_id: string; user_id: string; option_index: number; created_at: string };
+        Insert: { poll_id: string; user_id: string; option_index: number };
+        Update: { option_index?: number };
         Relationships: [];
       };
       event_comments: {

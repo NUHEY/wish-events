@@ -9,11 +9,11 @@ export async function sendEventMessage(eventId: string, body: string, mediaPath?
   const text = body.trim();
   if (!text && !mediaPath) return { error: "メッセージを入力してください" };
   const supabase = await createClient();
-  const { error } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: text, message_type: mediaPath ? "image" : "text", media_path: mediaPath ?? null });
+  const { data, error } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: text, message_type: mediaPath ? "image" : "text", media_path: mediaPath ?? null }).select().single();
   if (error) return { error: `送信に失敗しました: ${error.message}` };
   revalidatePath(`/talks/${eventId}`);
   revalidatePath("/talks");
-  return { success: true };
+  return { success: true, message: data };
 }
 
 export async function sendEventSurveyTool(eventId: string) {
@@ -28,10 +28,60 @@ export async function sendEventSurveyTool(eventId: string) {
   revalidatePath(`/talks/${eventId}`); return { success: true };
 }
 
+export async function sendEventDetailsTool(eventId: string) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_messages").insert({
+    event_id: eventId,
+    sender_id: profile.id,
+    body: "イベントの日時・場所・持ち物などは、詳細ページで確認できます。",
+    message_type: "tool",
+    action_url: `/events/${eventId}`,
+    action_label: "イベント詳細を確認する",
+  });
+  if (error) return { error: `案内を送信できませんでした: ${error.message}` };
+  revalidatePath(`/talks/${eventId}`);
+  return { success: true };
+}
+
 export async function markEventTalkRead(eventId: string) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
   await supabase.from("event_chat_reads").upsert({ event_id: eventId, user_id: profile.id, last_read_at: new Date().toISOString() });
+}
+
+export async function toggleEventMessageReaction(messageId: string, emoji: "❤️" | "👍" | "🎉" | "😂" | "👀", active: boolean) {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+  const { error } = active
+    ? await supabase.from("event_message_reactions").delete().eq("message_id", messageId).eq("user_id", profile.id).eq("emoji", emoji)
+    : await supabase.from("event_message_reactions").insert({ message_id: messageId, user_id: profile.id, emoji });
+  if (error) return { error: `リアクションを更新できませんでした: ${error.message}` };
+  return { success: true };
+}
+
+export async function createEventPoll(eventId: string, question: string, rawOptions: string[]) {
+  const profile = await getCurrentProfile();
+  if (profile.role !== "ra") return { error: "投票を作成できるのはRAのみです" };
+  const options = rawOptions.map((option) => option.trim()).filter(Boolean).slice(0, 4);
+  if (!question.trim() || options.length < 2) return { error: "質問と2つ以上の選択肢を入力してください" };
+  const supabase = await createClient();
+  const { data: poll, error: pollError } = await supabase.from("event_polls").insert({ event_id: eventId, question: question.trim(), options, created_by: profile.id }).select().single();
+  if (pollError || !poll) return { error: `投票を作成できませんでした: ${pollError?.message ?? "不明なエラー"}` };
+  const { error: messageError } = await supabase.from("event_messages").insert({ event_id: eventId, sender_id: profile.id, body: "新しい投票が届きました。", message_type: "poll", poll_id: poll.id });
+  if (messageError) return { error: `投票を送信できませんでした: ${messageError.message}` };
+  revalidatePath(`/talks/${eventId}`);
+  return { success: true };
+}
+
+export async function voteEventPoll(pollId: string, optionIndex: number) {
+  const profile = await getCurrentProfile();
+  if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex > 3) return { error: "投票内容が正しくありません" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_poll_votes").upsert({ poll_id: pollId, user_id: profile.id, option_index: optionIndex });
+  if (error) return { error: `投票できませんでした: ${error.message}` };
+  return { success: true };
 }
 
 export async function addEventComment(eventId: string, body: string) {
