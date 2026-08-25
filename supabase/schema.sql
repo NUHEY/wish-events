@@ -167,6 +167,11 @@ create table public.events (
   requires_registration boolean not null default false,
   capacity              integer,
 
+  -- 参加費（円）。NULLまたは0は無料イベントとして扱う。
+  fee_amount            integer,
+  -- 集金場所・集金方法などの案内文（任意）。
+  payment_info          text,
+
   -- 配信対象フロア。NULL または空配列 = 全フロア対象。
   -- 例: '{3,11}' なら3階・11階の寮生のみ一覧・詳細に表示される（RAには常に全件表示）。
   target_floors         integer[],
@@ -184,6 +189,9 @@ create table public.events (
 
   constraint events_capacity_check
     check (capacity is null or capacity > 0),
+
+  constraint events_fee_amount_check
+    check (fee_amount is null or fee_amount >= 0),
 
   constraint events_capacity_required_when_registration
     check (not requires_registration or capacity is not null),
@@ -209,6 +217,8 @@ comment on column public.events.title_en is '英語タイトル（任意）。NU
 comment on column public.events.description_en is '英語本文（任意、Markdown）。NULLまたは空文字の場合、英語表示時も description をそのまま表示する。';
 comment on column public.events.location_en is '英語の開催場所（任意）。NULLまたは空文字の場合、英語表示時も location をそのまま表示する。';
 comment on column public.events.target_audience_en is '英語の対象者（任意）。NULLまたは空文字の場合、英語表示時も target_audience をそのまま表示する。';
+comment on column public.events.fee_amount is '参加費（円）。nullまたは0は無料イベント。';
+comment on column public.events.payment_info is '集金場所・集金方法などの案内文（任意）。';
 
 create index events_event_date_idx on public.events (event_date);
 create index events_category_idx on public.events (category);

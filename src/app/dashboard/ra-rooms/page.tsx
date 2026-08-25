@@ -9,18 +9,11 @@ export default async function RaRoomsPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [{ data: rooms }, { data: raUsers }] = await Promise.all([
-    supabase
-      .from("ra_rooms")
-      .select("*")
-      .order("floor_number", { ascending: true })
-      .order("room_number", { ascending: true }),
-    supabase
-      .from("users")
-      .select("*")
-      .eq("role", "ra")
-      .order("floor_number", { ascending: true }),
-  ]);
+  const { data: raUsers } = await supabase
+    .from("users")
+    .select("*")
+    .eq("role", "ra")
+    .order("floor_number", { ascending: true });
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,7 +21,7 @@ export default async function RaRoomsPage() {
         <h1 className="text-2xl font-bold">{dict.raRooms.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.raRooms.subtitle}</p>
       </div>
-      <RaRoomManager rooms={rooms ?? []} raUsers={raUsers ?? []} currentUserId={profile.id} />
+      <RaRoomManager raUsers={raUsers ?? []} currentUserId={profile.id} />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -8,6 +7,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RegistrationButton } from "@/components/events/registration-button";
+import { EventPoster } from "@/components/events/event-poster";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { deleteEvent } from "@/actions/events";
@@ -52,15 +52,13 @@ export default async function EventDetailPage({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-muted">
-        {event.poster_url ? (
-          <Image src={event.poster_url} alt={title} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            {dict.event.noImage}
-          </div>
-        )}
-      </div>
+      <EventPoster
+        src={event.poster_url}
+        alt={title}
+        emptyLabel={dict.event.noImage}
+        className="max-h-[70vh] rounded-lg"
+        priority
+      />
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -90,8 +88,25 @@ export default async function EventDetailPage({
               <dd className="inline">{audience}</dd>
             </div>
           )}
+          {!!event.fee_amount && (
+            <div>
+              <dt className="inline font-medium text-foreground">{dict.event.feeLabel}: </dt>
+              <dd className="inline">
+                {dict.event.feePrefix}
+                {event.fee_amount.toLocaleString()}
+                {dict.event.feeUnit}
+              </dd>
+            </div>
+          )}
         </dl>
       </div>
+
+      {event.payment_info && (
+        <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
+          <p className="mb-1 text-sm font-medium text-primary">{dict.event.paymentInfoTitle}</p>
+          <p className="whitespace-pre-wrap text-sm text-foreground/90">{event.payment_info}</p>
+        </div>
+      )}
 
       {description && (
         <div className="prose prose-sm max-w-none rounded-md border border-border p-4">

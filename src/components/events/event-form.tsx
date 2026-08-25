@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { EventRow } from "@/types/database";
@@ -219,12 +220,43 @@ export function EventForm({
         </div>
       </div>
 
+      <fieldset className="grid gap-3 rounded-md border border-border p-3">
+        <legend className="px-1 text-sm font-medium">{dict.eventForm.feeLegend}</legend>
+        <div className="grid gap-2 sm:w-1/3">
+          <Label htmlFor="fee_amount">{dict.eventForm.feeAmountLabel}</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="fee_amount"
+              name="fee_amount"
+              type="number"
+              min={0}
+              step={1}
+              placeholder={dict.eventForm.feeAmountPlaceholder}
+              defaultValue={initialEvent?.fee_amount ?? undefined}
+            />
+            <span className="whitespace-nowrap text-sm text-muted-foreground">
+              {dict.eventForm.feeUnit}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">{dict.eventForm.feeAmountHint}</p>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="payment_info">{dict.eventForm.paymentInfoLabel}</Label>
+          <Textarea
+            id="payment_info"
+            name="payment_info"
+            rows={3}
+            placeholder={dict.eventForm.paymentInfoPlaceholder}
+            defaultValue={initialEvent?.payment_info ?? ""}
+          />
+          <p className="text-xs text-muted-foreground">{dict.eventForm.paymentInfoHint}</p>
+        </div>
+      </fieldset>
+
       <div className="grid gap-2 sm:w-1/2">
-        <Label htmlFor="event_date">{dict.eventForm.dateLabel}</Label>
-        <Input
-          id="event_date"
+        <Label>{dict.eventForm.dateLabel}</Label>
+        <DateTimePicker
           name="event_date"
-          type="datetime-local"
           required
           defaultValue={
             initialEvent

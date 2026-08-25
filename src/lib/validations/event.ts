@@ -16,6 +16,8 @@ export const eventSchema = z
     event_date: z.string().min(1, "開催日時を入力してください"),
     requires_registration: z.boolean().default(false),
     capacity: z.coerce.number().int().positive().optional().nullable(),
+    fee_amount: z.coerce.number().int().min(0).optional().nullable(),
+    payment_info: z.string().trim().optional().default(""),
     target_floors: z
       .array(z.coerce.number().refine((v) => (FLOORS as readonly number[]).includes(v)))
       .optional()

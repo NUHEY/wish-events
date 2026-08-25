@@ -15,6 +15,7 @@ function parseEventFormData(formData: FormData) {
     .filter((v) => !Number.isNaN(v));
 
   const capacityRaw = formData.get("capacity");
+  const feeAmountRaw = formData.get("fee_amount");
 
   return eventSchema.safeParse({
     title: formData.get("title"),
@@ -30,6 +31,8 @@ function parseEventFormData(formData: FormData) {
     event_date: formData.get("event_date"),
     requires_registration: formData.get("requires_registration") === "on",
     capacity: capacityRaw ? Number(capacityRaw) : undefined,
+    fee_amount: feeAmountRaw ? Number(feeAmountRaw) : undefined,
+    payment_info: formData.get("payment_info") ?? "",
     target_floors: targetFloors,
     survey_type: formData.get("survey_type") ?? "none",
     survey_external_url: formData.get("survey_external_url") ?? "",
@@ -64,6 +67,8 @@ export async function createEvent(
       event_date: new Date(parsed.data.event_date).toISOString(),
       requires_registration: parsed.data.requires_registration,
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
+      fee_amount: parsed.data.fee_amount ?? null,
+      payment_info: parsed.data.payment_info || null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:
@@ -111,6 +116,8 @@ export async function updateEvent(
       event_date: new Date(parsed.data.event_date).toISOString(),
       requires_registration: parsed.data.requires_registration,
       capacity: parsed.data.requires_registration ? parsed.data.capacity : null,
+      fee_amount: parsed.data.fee_amount ?? null,
+      payment_info: parsed.data.payment_info || null,
       target_floors: parsed.data.target_floors.length ? parsed.data.target_floors : null,
       survey_type: parsed.data.survey_type,
       survey_external_url:

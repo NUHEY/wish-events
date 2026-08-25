@@ -70,6 +70,8 @@ export interface EventRow {
   event_date: string;
   requires_registration: boolean;
   capacity: number | null;
+  fee_amount: number | null;
+  payment_info: string | null;
   target_floors: number[] | null;
   survey_type: SurveyType;
   survey_external_url: string | null;
