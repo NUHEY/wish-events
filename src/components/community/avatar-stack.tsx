@@ -13,7 +13,7 @@ export function AvatarStack({ participants, total }: { participants: Participant
   return (
     <div className="flex shrink-0 items-center -space-x-2.5">
       {visible.map((p) => (
-        <AvatarRing key={p.id} role={p.role} className="ring-2 ring-card">
+        <AvatarRing key={p.id} role={p.role} size={26} className="ring-2 ring-card">
           {p.avatar_url ? (
             <Image src={p.avatar_url} alt="" width={26} height={26} className="h-[26px] w-[26px] rounded-full object-cover" />
           ) : (

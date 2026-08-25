@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRow } from "@/types/database";
@@ -15,8 +16,16 @@ import type { UserRow } from "@/types/database";
  * middleware側で再度 / に戻されるため「/ → /profile/setup → /login → /」
  * の無限リダイレクトループになってしまっていた。
  * そのため、行が存在しない場合はここでスタブ行を作成して復旧する。
+ *
+ * React cache()でラップしているのは、1回のページ表示（1リクエスト）の中で
+ * 複数の箇所（ページ本体・friends.tsやevent-community.ts等の各サーバー
+ * アクション）から独立にgetCurrentProfile()が呼ばれるケースが多く、
+ * その都度auth.getUser()とusersテーブルへの問い合わせが重複発生していた
+ * ため。寮生800人超が同時に使う無料枠のDB負荷を減らす目的で、同一
+ * リクエスト内では最初の1回の結果を使い回すようにする（別リクエスト
+ * （別ページ表示）ではキャッシュされず、常に最新の状態を取得する）。
  */
-export async function getCurrentProfile(): Promise<UserRow> {
+export const getCurrentProfile = cache(async (): Promise<UserRow> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,7 +65,7 @@ export async function getCurrentProfile(): Promise<UserRow> {
 
   console.error("Failed to provision public.users row", insertError);
   redirect("/login");
-}
+});
 
 /** RAでなければホームへリダイレクトする */
 export async function requireRa(): Promise<UserRow> {

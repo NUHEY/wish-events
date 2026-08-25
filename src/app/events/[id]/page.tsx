@@ -53,14 +53,16 @@ export default async function EventDetailPage({
   // 実行し、往復のレイテンシが積み重ならないようにしている。
   const [
     { data: event },
-    { count },
+    { data: registrationCountRaw },
     { data: myRegistration },
     { data: eventLikes },
     { data: registrationQuestions },
     { data: commentRows },
   ] = await Promise.all([
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
-    supabase.from("registrations").select("id", { count: "exact", head: true }).eq("event_id", id),
+    // registrationsはRLSで本人+RA以外は直接SELECT/COUNTできないため、
+    // 参加人数だけを安全に返すSECURITY DEFINER関数（event_registration_count）を使う。
+    supabase.rpc("event_registration_count", { p_event_id: id }),
     supabase
       .from("registrations")
       .select("id, registration_payments(status)")
@@ -97,7 +99,7 @@ export default async function EventDetailPage({
     likedByMe: (likes ?? []).some((like) => like.comment_id === comment.id && like.user_id === profile.id),
   }));
 
-  const registeredCount = count ?? 0;
+  const registeredCount = registrationCountRaw ?? 0;
   const isFull = event.capacity != null && registeredCount >= event.capacity;
   const isPast = new Date(event.event_date).getTime() < Date.now();
   const isUnpublished = !!event.publish_at && new Date(event.publish_at).getTime() > Date.now();

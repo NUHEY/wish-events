@@ -13,7 +13,7 @@ import type { DirectoryProfileRow } from "@/types/database";
 
 function Avatar({ name, url, role }: { name: string | null; url: string | null; role?: string }) {
   return (
-    <AvatarRing role={role}>
+    <AvatarRing role={role} size={44}>
       {url ? (
         <Image
           src={url}

@@ -145,16 +145,70 @@ export async function getOlderEventMessages(eventId: string, beforeCreatedAt: st
 
 /**
  * イベントトークの参加者アイコン表示用に、参加登録者のプロフィールを取得する。
- * registrations/users は本人+RA以外は直接SELECTできないため、
- * 既存の event_community_profiles_v3（SECURITY DEFINER）で件数分だけ解決する。
+ * registrationsテーブルはRLSで本人+RA以外は直接SELECTできないため
+ * （＝素朴に.from("registrations")すると自分の分しか返らない不具合があった）、
+ * 参加者のuser_idだけを安全に返すSECURITY DEFINER関数event_registration_user_ids
+ * 経由で取得し、プロフィール自体は既存のevent_community_profiles_v3で解決する。
+ * 表示される最大7人は「最近登録した順（新しい順）」になるよう並べる。
  */
 export async function getEventTalkParticipants(eventId: string) {
   const supabase = await createClient();
-  const { data: registrations } = await supabase.from("registrations").select("user_id").eq("event_id", eventId);
-  const userIds = [...new Set((registrations ?? []).map((r) => r.user_id))];
+  const { data: registrations } = await supabase
+    .rpc("event_registration_user_ids", { p_event_id: eventId })
+    .returns<{ user_id: string; registered_at: string }[]>();
+  const userIds = (registrations ?? []).map((r) => r.user_id);
   if (userIds.length === 0) return { participants: [] as CommunityProfile[], total: 0 };
-  const { data: profiles } = await supabase.rpc("event_community_profiles_v3", { profile_ids: userIds });
-  return { participants: (profiles ?? []) as CommunityProfile[], total: userIds.length };
+  const { data: profiles } = await supabase
+    .rpc("event_community_profiles_v3", { profile_ids: userIds })
+    .returns<CommunityProfile[]>();
+  const profilesById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const ordered = userIds.map((id) => profilesById.get(id)).filter((p): p is CommunityProfile => !!p);
+  return { participants: ordered, total: userIds.length };
+}
+
+/**
+ * トーク一覧（/talks）で各イベント行にAvatarStackを出すためのバッチ版。
+ * イベントごとに個別クエリを投げると一覧の行数分N+1になってしまうため、
+ * event_registration_user_ids_batch（SECURITY DEFINER）で全イベント分を
+ * 一括取得してJS側でイベントごとにグルーピングし、表示に必要な上位7人分の
+ * プロフィールだけをまとめて1回のRPCで解決する。
+ */
+export async function getEventTalkParticipantsBatch(eventIds: string[], perEventLimit = 7) {
+  const empty = new Map<string, { participants: CommunityProfile[]; total: number }>();
+  if (eventIds.length === 0) return empty;
+
+  const supabase = await createClient();
+  const { data: registrations } = await supabase
+    .rpc("event_registration_user_ids_batch", { p_event_ids: eventIds })
+    .returns<{ event_id: string; user_id: string; registered_at: string }[]>();
+
+  const userIdsByEvent = new Map<string, string[]>();
+  for (const row of registrations ?? []) {
+    const list = userIdsByEvent.get(row.event_id) ?? [];
+    list.push(row.user_id);
+    userIdsByEvent.set(row.event_id, list);
+  }
+
+  const neededIds = new Set<string>();
+  for (const ids of userIdsByEvent.values()) {
+    ids.slice(0, perEventLimit).forEach((id) => neededIds.add(id));
+  }
+  if (neededIds.size === 0) return empty;
+
+  const { data: profiles } = await supabase
+    .rpc("event_community_profiles_v3", { profile_ids: [...neededIds] })
+    .returns<CommunityProfile[]>();
+  const profilesById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  const result = new Map<string, { participants: CommunityProfile[]; total: number }>();
+  for (const [eventId, ids] of userIdsByEvent) {
+    const participants = ids
+      .slice(0, perEventLimit)
+      .map((id) => profilesById.get(id))
+      .filter((p): p is CommunityProfile => !!p);
+    result.set(eventId, { participants, total: ids.length });
+  }
+  return result;
 }
 
 /**

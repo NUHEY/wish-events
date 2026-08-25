@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
+import { compressImageFile } from "@/lib/image-compress";
 
 type Message = {
   id: string;
@@ -370,7 +371,7 @@ export function EventTalk({
               {!mine &&
                 (isGroupEnd ? (
                   <Link href={`/directory/${message.sender_id}`} className="mt-1 self-end shrink-0">
-                    <AvatarRing role={message.sender?.role}>
+                    <AvatarRing role={message.sender?.role} size={28}>
                       {message.sender?.avatar_url ? (
                         <Image
                           src={message.sender.avatar_url}
@@ -581,8 +582,15 @@ function Composer({
     const oversized = files.some((f) => f.size > 8 * 1024 * 1024);
     if (oversized) setError("8MBを超える画像は追加できません");
     const accepted = files.filter((f) => f.size <= 8 * 1024 * 1024).slice(0, room);
-    const items = accepted.map((file) => ({ id: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file) }));
-    setStagedImages((current) => [...current, ...items]);
+    // ストレージ・通信量の節約のため、送信前にブラウザ側で縮小・再圧縮する
+    // （寮生800人超が使う無料枠を長持ちさせるための対策。詳細はcompressImageFile参照）。
+    void (async () => {
+      for (const file of accepted) {
+        const compressed = await compressImageFile(file);
+        const item = { id: crypto.randomUUID(), file: compressed, previewUrl: URL.createObjectURL(compressed) };
+        setStagedImages((current) => [...current, item]);
+      }
+    })();
   }
 
   function removeStagedImage(id: string) {

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { getFriendDmThreads } from "@/actions/direct-messages";
 
 export async function Header() {
   const supabase = await createClient();
@@ -21,14 +22,18 @@ export async function Header() {
   if (!profile) return null;
   const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
   const eventIds = (registrations ?? []).map((registration) => registration.event_id);
-  const [{ data: reads }, { data: messages }] = eventIds.length
-    ? await Promise.all([
-        supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id),
-        supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds),
-      ])
-    : [{ data: [] }, { data: [] }];
+  const [{ data: reads }, { data: messages }, friendThreads] = await Promise.all([
+    eventIds.length
+      ? supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id)
+      : Promise.resolve({ data: [] }),
+    eventIds.length
+      ? supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds)
+      : Promise.resolve({ data: [] }),
+    getFriendDmThreads(),
+  ]);
   const lastReadByEvent = new Map((reads ?? []).map((read) => [read.event_id, read.last_read_at]));
-  const hasUnreadTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
+  const hasUnreadEventTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
+  const hasUnreadTalk = hasUnreadEventTalk || friendThreads.some((t) => t.unread);
 
   return (
     <>

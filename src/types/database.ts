@@ -232,6 +232,16 @@ export interface EventMessageRow {
   created_at: string;
 }
 
+export interface DirectMessageRow {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  message_type: "text" | "image";
+  media_path: string | null;
+  created_at: string;
+}
+
 export interface EventMessageReactionRow {
   message_id: string;
   user_id: string;
@@ -426,6 +436,18 @@ export interface Database {
         Update: { last_read_at?: string };
         Relationships: [];
       };
+      direct_messages: {
+        Row: DirectMessageRow;
+        Insert: Partial<DirectMessageRow> & { sender_id: string; recipient_id: string; body: string };
+        Update: never;
+        Relationships: [];
+      };
+      direct_message_reads: {
+        Row: { user_id: string; other_user_id: string; last_read_at: string };
+        Insert: { user_id: string; other_user_id: string; last_read_at?: string };
+        Update: { last_read_at?: string };
+        Relationships: [];
+      };
       surveys: {
         Row: SurveyRow;
         Insert: Partial<SurveyRow> & {
@@ -584,6 +606,33 @@ export interface Database {
       friends_attending_events: {
         Args: Record<string, never>;
         Returns: { event_id: string; friend_id: string }[];
+      };
+      event_registration_user_ids: {
+        Args: { p_event_id: string };
+        Returns: { user_id: string; registered_at: string }[];
+      };
+      event_registration_user_ids_batch: {
+        Args: { p_event_ids: string[] };
+        Returns: { event_id: string; user_id: string; registered_at: string }[];
+      };
+      event_registration_count: {
+        Args: { p_event_id: string };
+        Returns: number;
+      };
+      friend_dm_threads: {
+        Args: Record<string, never>;
+        Returns: {
+          friend_id: string;
+          last_message_body: string | null;
+          last_message_type: string | null;
+          last_message_at: string | null;
+          last_sender_id: string | null;
+          unread: boolean;
+        }[];
+      };
+      can_access_dm_media: {
+        Args: { p_pair: string };
+        Returns: boolean;
       };
     };
     Enums: Record<string, never>;

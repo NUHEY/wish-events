@@ -8,7 +8,11 @@ import { useDict } from "@/lib/i18n/locale-provider";
 const STATUSES = ["all", "upcoming", "past"] as const;
 export type EventStatus = (typeof STATUSES)[number];
 
-/** 開催状況（すべて/開催予定/過去）を切り替えるプルダウン。過去イベントも検索対象にする。 */
+/**
+ * 開催状況（すべて/開催予定/過去）を切り替えるセグメントボタン。
+ * 以前は<select>のプルダウンだったが、選択肢が3つだけなのに毎回開閉が必要で
+ * 分かりにくかったため、カテゴリpiと同じ見た目のボタン列に統一した。
+ */
 export function EventStatusFilter() {
   const router = useRouter();
   const pathname = usePathname();
@@ -37,20 +41,31 @@ export function EventStatusFilter() {
   };
 
   return (
-    <select
-      value={active}
-      onChange={(e) => setStatus(e.target.value as EventStatus)}
-      disabled={pending}
+    <div
+      role="tablist"
+      aria-label="event status"
       className={cn(
-        "h-9 rounded-full border border-input bg-card px-3.5 text-sm font-medium shadow-sm transition-opacity",
+        "inline-flex items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity",
         pending && "opacity-60"
       )}
     >
       {STATUSES.map((status) => (
-        <option key={status} value={status}>
+        <button
+          key={status}
+          type="button"
+          role="tab"
+          aria-selected={active === status}
+          onClick={() => setStatus(status)}
+          className={cn(
+            "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+            active === status
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          )}
+        >
           {labels[status]}
-        </option>
+        </button>
       ))}
-    </select>
+    </div>
   );
 }

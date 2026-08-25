@@ -15,6 +15,26 @@ const PUBLIC_PATHS = ["/login", "/auth/callback"];
  * - RA専用ページへの一般寮生アクセスを拒否
  */
 export async function updateSession(request: NextRequest) {
+  try {
+    return await updateSessionInner(request);
+  } catch (error) {
+    // 高速にタブを切り替えたりフィルター条件を変えたりすると、その分だけ
+    // middlewareがほぼ全リクエストで走る（=Supabase Authへの検証リクエストや
+    // usersテーブルへの問い合わせも同じ回数だけ発生する）。ここで一時的な
+    // ネットワーク瞬断やレート制限が起きて例外が投げられると、
+    // middlewareはReactのレンダリング前（Edge Runtime）で動くため
+    // error.tsx/global-error.tsxではキャッチできず、真っ白な画面のまま
+    // 固まって見える不具合の原因になっていた。
+    // ここでは認証確認自体を諦めてリクエストをそのまま通す
+    // （フェイルオープン）。各ページ側の getCurrentProfile()/requireRa() が
+    // 二重に認証・権限チェックを行っているため、middlewareが1回失敗しても
+    // 未ログイン/権限外のユーザーがそのまま画面を見られてしまうことはない。
+    console.error("updateSession failed, passing request through", error);
+    return NextResponse.next({ request });
+  }
+}
+
+async function updateSessionInner(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(

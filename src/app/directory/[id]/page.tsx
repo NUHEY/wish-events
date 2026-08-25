@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getDictionary, findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
-import { formatEventDateTime, formatRoomNumber } from "@/lib/utils";
+import { cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
 import { AtSign, Instagram, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,7 +137,7 @@ export default async function DirectoryProfilePage({
         {accentHex && <div className="h-16 w-full" style={{ backgroundColor: accentHex }} />}
         <CardContent className={`flex flex-col gap-5 p-5 ${accentHex ? "-mt-10" : ""}`}>
           <div className="flex items-center gap-4">
-            <AvatarRing role={target.role} eventCount={stats.event_count}>
+            <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
               {target.avatar_url ? (
                 <Image
                   src={target.avatar_url}
@@ -163,7 +163,16 @@ export default async function DirectoryProfilePage({
               <p className="text-sm text-muted-foreground">{roomText}</p>
             </div>
             {!isSelf && friendRelation && (
-              <div className="shrink-0">
+              <div className="flex shrink-0 items-center gap-2">
+                {friendRelation.status === "friends" && (
+                  <Link
+                    href={`/talks/friends/${target.id}`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                    メッセージ
+                  </Link>
+                )}
                 <FriendButton targetId={target.id} initial={friendRelation} />
               </div>
             )}

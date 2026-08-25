@@ -14,20 +14,46 @@ import type { EventCategory, EventCardData } from "@/types/database";
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; q?: string; status?: string; date?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    q?: string;
+    status?: string;
+    date?: string;
+    from?: string;
+    to?: string;
+    month?: string;
+  }>;
 }) {
   const profile = await getCurrentProfile();
-  const { category, q, status, date } = await searchParams;
+  const { category, q, status, date, from, to, month } = await searchParams;
   const query = q?.trim() ?? "";
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const now = new Date().toISOString();
 
-  // 日付が選択されている場合は、開催状況に関わらずその日のイベントだけに絞り込む。
-  const dateRange = date && /^\d{4}-\d{2}-\d{2}$/.test(date)
-    ? { start: `${date}T00:00:00+09:00`, end: `${date}T23:59:59.999+09:00` }
-    : null;
+  const isDateKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const isMonthKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}$/.test(v);
+
+  // 日付系の絞り込みは「単日」「期間（いつからいつ）」「月指定（何月中）」の
+  // いずれか1つが有効という前提でURLが組み立てられる（event-calendar.tsx側で排他制御）。
+  // ここでは優先順位: 単日 > 期間 > 月 の順で解決し、開催状況に関わらずその範囲だけに絞り込む。
+  let dateRange: { start: string | null; end: string | null } | null = null;
+  if (isDateKey(date)) {
+    dateRange = { start: `${date}T00:00:00+09:00`, end: `${date}T23:59:59.999+09:00` };
+  } else if (isDateKey(from) || isDateKey(to)) {
+    dateRange = {
+      start: isDateKey(from) ? `${from}T00:00:00+09:00` : null,
+      end: isDateKey(to) ? `${to}T23:59:59.999+09:00` : null,
+    };
+  } else if (isMonthKey(month)) {
+    const [y, m] = month.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    dateRange = {
+      start: `${month}-01T00:00:00+09:00`,
+      end: `${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999+09:00`,
+    };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function applyCommonFilters(q: any) {
@@ -53,12 +79,12 @@ export default async function EventsPage({
   );
   const dateQuery = dateRange
     ? applyCommonFilters(
-        supabase
-          .from("events")
-          .select(EVENT_CARD_COLUMNS)
-          .gte("event_date", dateRange.start)
-          .lte("event_date", dateRange.end)
-          .order("event_date", { ascending: true })
+        (() => {
+          let q_ = supabase.from("events").select(EVENT_CARD_COLUMNS);
+          if (dateRange.start) q_ = q_.gte("event_date", dateRange.start);
+          if (dateRange.end) q_ = q_.lte("event_date", dateRange.end);
+          return q_.order("event_date", { ascending: true });
+        })()
       )
     : null;
 
@@ -98,6 +124,10 @@ export default async function EventsPage({
         <form className="relative max-w-md">
           {category && <input type="hidden" name="category" value={category} />}
           {status && <input type="hidden" name="status" value={status} />}
+          {date && <input type="hidden" name="date" value={date} />}
+          {from && <input type="hidden" name="from" value={from} />}
+          {to && <input type="hidden" name="to" value={to} />}
+          {month && <input type="hidden" name="month" value={month} />}
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
@@ -129,11 +159,16 @@ export default async function EventsPage({
             </div>
           )}
           {hasDateResults && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {dateEvents!.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
+            <>
+              <p className="text-sm text-muted-foreground">
+                {dict.home.dateResultsCount.replace("{count}", String(dateEvents!.length))}
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {dateEvents!.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            </>
           )}
         </>
       ) : (

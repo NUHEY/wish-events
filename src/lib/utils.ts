@@ -120,6 +120,15 @@ export function isImportantTag(tag: string): boolean {
   return /重要|important/i.test(tag);
 }
 
+/**
+ * DM画像バケット(dm-media)のフォルダ名・リアルタイムチャンネル名に使う、
+ * 2人のuser_idの組を正規化した文字列（順序に依存しない）。
+ * can_access_dm_media(text)のパース対象と対応させる。
+ */
+export function dmPairFolder(userIdA: string, userIdB: string) {
+  return [userIdA, userIdB].sort().join("_");
+}
+
 /** UTC ISO文字列をJST基準の"YYYY-MM-DD"に変換する。イベント検索カレンダーの日付グルーピングに使う。 */
 export function toJstDateKey(iso: string): string {
   const jst = shiftToJstWallClock(iso);
