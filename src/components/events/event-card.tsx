@@ -41,7 +41,7 @@ export async function EventCard({
           <Badge variant="secondary" className="absolute left-2 top-2 bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
           {!!event.fee_amount && <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>}
         </div>
-        <CardContent className={cn("flex h-[104px] flex-col justify-between gap-1.5 p-2.5 sm:h-[122px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
+        <CardContent className={cn("flex min-h-[76px] flex-col justify-between gap-1.5 p-2.5 sm:min-h-[88px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
               "line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-base",

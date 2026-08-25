@@ -81,6 +81,34 @@ export const HOME_ACCENT_HEX: Record<HomeAccentKeyValue, string> = {
   forest: "#2F6B4F",
 };
 
+/**
+ * マイページ（寮生ディレクトリの個人プロフィール画面）の「デコ」用アクセント
+ * カラー。ホーム画面カスタマイズ用のHOME_ACCENT_*とは別の、個人が選ぶための
+ * パレット（8色）。未選択の場合はnull（デフォルトの見た目のまま）。
+ */
+export const PROFILE_ACCENT_KEYS = [
+  "wine",
+  "gold",
+  "teal",
+  "forest",
+  "sakura",
+  "sky",
+  "sunset",
+  "plum",
+] as const;
+export type ProfileAccentKey = (typeof PROFILE_ACCENT_KEYS)[number];
+
+export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
+  wine: "#7A2140",
+  gold: "#C79A3B",
+  teal: "#0E8074",
+  forest: "#2F6B4F",
+  sakura: "#E58FA6",
+  sky: "#3E8FD0",
+  sunset: "#E0793C",
+  plum: "#7C5CB5",
+};
+
 export const GRADE_LEVELS = [
   "学部1年",
   "学部2年",

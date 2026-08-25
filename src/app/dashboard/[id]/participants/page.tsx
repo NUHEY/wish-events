@@ -23,7 +23,7 @@ export default async function ParticipantsPage({
     supabase
       .from("registrations")
       .select(
-        "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
+        "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number, email, faculty, grade_level), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
       )
       .eq("event_id", id)
       .order("registered_at", { ascending: true }),
@@ -47,6 +47,9 @@ export default async function ParticipantsPage({
       student_id: r.users?.student_id ?? null,
       floor_number: r.users?.floor_number ?? null,
       room_number: r.users?.room_number ?? null,
+      email: r.users?.email ?? null,
+      faculty: r.users?.faculty ?? null,
+      grade_level: r.users?.grade_level ?? null,
       answers,
     };
   });

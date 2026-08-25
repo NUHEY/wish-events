@@ -45,7 +45,7 @@ export default async function AnnouncementDetailPage({
           />
         </div>
       )}
-      <header className="border-b border-border pb-5">
+      <header className="pb-5">
         <p className="text-xs text-muted-foreground">
           {new Date(announcement.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
         </p>

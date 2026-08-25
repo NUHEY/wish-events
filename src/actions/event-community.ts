@@ -1,8 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+
+/**
+ * サーバーアクション実行中のリクエストヘッダーから絶対URLの起点を組み立てる。
+ * トークルームのツール文面（アンケート・詳細案内）にURLをそのまま貼り込むために使う。
+ */
+async function getRequestOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const protocol = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
 
 export async function sendEventMessage(eventId: string, body: string, mediaPath?: string) {
   const profile = await getCurrentProfile();
@@ -28,7 +40,13 @@ export async function sendEventMessage(eventId: string, body: string, mediaPath?
   return { success: true, message: data };
 }
 
-export async function sendEventSurveyTool(eventId: string) {
+/**
+ * RAツール「アンケート」の下書き文面を作る。以前はボタンを押した瞬間に
+ * 送信していたが、誤送信を防ぐため下書きをテキスト欄に入れるだけにして、
+ * 実際の送信は他のメッセージと同じ送信ボタンから行うように変更した。
+ * URLはプレーンテキストとして埋め込み、表示側の自動リンク化に任せる。
+ */
+export async function prepareEventSurveyToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
   if (profile.role !== "ra") return { error: "RAのみ操作できます" };
 
@@ -40,38 +58,24 @@ export async function sendEventSurveyTool(eventId: string) {
     .maybeSingle();
   if (!event || event.survey_type === "none") return { error: "このイベントにはアンケートが設定されていません" };
 
-  const actionUrl = event.survey_type === "external" ? event.survey_external_url : `/events/${eventId}/survey`;
-  const { error } = await supabase.from("event_messages").insert({
-    event_id: eventId,
-    sender_id: profile.id,
-    body: "イベント後アンケートへのご協力をお願いします。",
-    message_type: "tool",
-    action_url: actionUrl,
-    action_label: "アンケートに回答する",
-  });
-  if (error) return { error: `アンケート案内の送信に失敗しました: ${error.message}` };
-
-  revalidatePath(`/talks/${eventId}`);
-  return { success: true };
+  const origin = await getRequestOrigin();
+  const url =
+    event.survey_type === "external" && event.survey_external_url
+      ? event.survey_external_url
+      : `${origin}/events/${eventId}/survey`;
+  return { body: `イベント後アンケートへのご協力をお願いします。\n${url}` };
 }
 
-export async function sendEventDetailsTool(eventId: string) {
+/**
+ * RAツール「詳細案内」の下書き文面を作る（送信自体はユーザーが手動で行う。上記参照）。
+ */
+export async function prepareEventDetailsToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
   if (profile.role !== "ra") return { error: "RAのみ操作できます" };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("event_messages").insert({
-    event_id: eventId,
-    sender_id: profile.id,
-    body: "イベントの日時・場所・持ち物などは、詳細ページで確認できます。",
-    message_type: "tool",
-    action_url: `/events/${eventId}`,
-    action_label: "イベント詳細を確認する",
-  });
-  if (error) return { error: `案内を送信できませんでした: ${error.message}` };
-
-  revalidatePath(`/talks/${eventId}`);
-  return { success: true };
+  const origin = await getRequestOrigin();
+  const url = `${origin}/events/${eventId}`;
+  return { body: `イベントの日時・場所・持ち物などは、詳細ページで確認できます。\n${url}` };
 }
 
 export async function markEventTalkRead(eventId: string) {

@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { BarChart3, ChevronDown, Heart, ImagePlus, Info, Send, Smile, Sparkles } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createEventPoll,
   markEventTalkRead,
-  sendEventDetailsTool,
+  prepareEventDetailsToolDraft,
+  prepareEventSurveyToolDraft,
   sendEventMessage,
-  sendEventSurveyTool,
   toggleEventMessageReaction,
   voteEventPoll,
 } from "@/actions/event-community";
@@ -36,6 +37,32 @@ type Vote = { poll_id: string; user_id: string; option_index: number };
 const EMOJIS: Reaction["emoji"][] = ["❤️", "👍", "🎉", "😂", "👀"];
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const DOUBLE_TAP_MS = 320;
+const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+
+/** メッセージ本文中のURLをタップ可能なリンクに変換する。 */
+function linkifyText(text: string, keyPrefix: string) {
+  return text.split(URL_PATTERN).map((part, index) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={`${keyPrefix}-${index}`}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="break-all underline underline-offset-2"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={`${keyPrefix}-${index}`}>{part}</span>
+    )
+  );
+}
+
+/** 3行以上連続する空行を2行までに詰める（メッセージ後の不自然な空欄対策）。 */
+function normalizeBody(text: string) {
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 /** 直前・直後のメッセージと同じ送信者・近い時刻かどうか（IG DM風のグルーピング用）。 */
 function isSameGroup(a: Message | undefined, b: Message | undefined) {
@@ -94,13 +121,18 @@ export function EventTalk({
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "event_messages", filter: `event_id=eq.${eventId}` },
-        () => router.refresh()
+        (payload) => {
+          // 自分が送ったメッセージはsubmit()側のrefreshで既に反映済みのため、
+          // 他の人からの新着メッセージのときだけrefreshする（二重refresh防止）。
+          const senderId = (payload.new as { sender_id?: string } | null)?.sender_id;
+          if (senderId !== currentUserId) router.refresh();
+        }
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId, router]);
+  }, [eventId, router, currentUserId]);
   useEffect(() => {
     markEventTalkRead(eventId);
   }, [eventId, messages.length]);
@@ -242,13 +274,20 @@ export function EventTalk({
     });
   }
 
-  function runTool(action: () => Promise<{ error?: string } | undefined>) {
-    startTransition(() =>
-      action().then((result) => {
-        if (result?.error) setError(result.error);
-        else router.refresh();
-      })
-    );
+  /**
+   * RAツールのボタンは即送信せず、下書き文面をテキスト欄に入れるだけにする。
+   * 内容を確認・編集してから、通常の送信ボタンで自分で送ってもらう。
+   */
+  function fillToolDraft(action: () => Promise<{ body?: string; error?: string }>) {
+    startTransition(async () => {
+      const result = await action();
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.body) {
+        setBody(result.body);
+        setToolOpen(false);
+      }
+    });
   }
 
   const time = (createdAt: string) =>
@@ -296,8 +335,8 @@ export function EventTalk({
             >
               {!mine &&
                 (isGroupEnd ? (
-                  message.sender?.avatar_url ? (
-                    <span className="relative mt-1 self-end">
+                  <Link href={`/directory/${message.sender_id}`} className="relative mt-1 self-end shrink-0">
+                    {message.sender?.avatar_url ? (
                       <Image
                         src={message.sender.avatar_url}
                         alt=""
@@ -305,29 +344,29 @@ export function EventTalk({
                         height={28}
                         className="h-7 w-7 rounded-full object-cover shadow-sm"
                       />
-                      {message.sender.role === "ra" && (
-                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-                      )}
-                    </span>
-                  ) : (
-                    <span className="relative mt-1 flex h-7 w-7 shrink-0 items-center justify-center self-end rounded-full bg-muted text-xs shadow-sm">
-                      {message.sender?.full_name?.charAt(0) ?? "?"}
-                      {message.sender?.role === "ra" && (
-                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-                      )}
-                    </span>
-                  )
+                    ) : (
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
+                        {message.sender?.full_name?.charAt(0) ?? "?"}
+                      </span>
+                    )}
+                    {message.sender?.role === "ra" && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />
+                    )}
+                  </Link>
                 ) : (
                   <span className="w-7 shrink-0" />
                 ))}
               <div className="relative min-w-0">
                 {!mine && isGroupStart && (
-                  <p className="mb-1 pl-1 text-[11px] font-semibold text-muted-foreground">
+                  <Link
+                    href={`/directory/${message.sender_id}`}
+                    className="mb-1 flex w-fit items-center pl-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                  >
                     {message.sender?.full_name ?? "RA"}
                     {message.sender?.role === "ra" && (
                       <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] text-primary">RA</span>
                     )}
-                  </p>
+                  </Link>
                 )}
 
                 {message.mediaUrl ? (
@@ -350,7 +389,11 @@ export function EventTalk({
                   </div>
                 ) : message.message_type === "tool" && message.action_url ? (
                   <div className={bubbleBase}>
-                    {hasCaption && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{message.body}</p>}
+                    {hasCaption && (
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`)}
+                      </p>
+                    )}
                     <a
                       href={message.action_url}
                       target={message.action_url.startsWith("http") ? "_blank" : undefined}
@@ -362,34 +405,26 @@ export function EventTalk({
                   </div>
                 ) : poll ? (
                   <div className={bubbleBase}>
-                    {hasCaption && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{message.body}</p>}
+                    {hasCaption && (
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`)}
+                      </p>
+                    )}
                     <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
                   </div>
                 ) : (
                   <div className={`relative ${bubbleBase}`} onClick={() => handleQuickReactTap(message.id)}>
                     <p className="cursor-pointer select-none whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                      {message.body}
+                      {linkifyText(normalizeBody(message.body), `${message.id}-body`)}
                     </p>
                   </div>
                 )}
 
                 {message.mediaUrl && hasCaption && (
                   <p className="mt-1 whitespace-pre-wrap break-words px-0.5 text-[13px] leading-snug text-foreground/80">
-                    {message.body}
+                    {linkifyText(normalizeBody(message.body), `${message.id}-caption`)}
                   </p>
                 )}
-
-                <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
-                  <span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span>
-                  <button
-                    type="button"
-                    aria-label="リアクションを追加"
-                    onClick={() => setOpenPickerId((current) => (current === message.id ? null : message.id))}
-                    className="rounded-full p-1 text-muted-foreground/50 opacity-60 transition-all hover:bg-secondary/70 hover:text-primary hover:opacity-100 focus-visible:opacity-100"
-                  >
-                    <Smile className="h-3.5 w-3.5" />
-                  </button>
-                </div>
 
                 {reactionGroups.length > 0 && (
                   <div className={`mt-1 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>
@@ -408,6 +443,18 @@ export function EventTalk({
                     ))}
                   </div>
                 )}
+
+                <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                  <span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span>
+                  <button
+                    type="button"
+                    aria-label="リアクションを追加"
+                    onClick={() => setOpenPickerId((current) => (current === message.id ? null : message.id))}
+                    className="rounded-full p-1 text-muted-foreground/50 opacity-60 transition-all hover:bg-secondary/70 hover:text-primary hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <Smile className="h-3.5 w-3.5" />
+                  </button>
+                </div>
 
                 {openPickerId === message.id && (
                   <>
@@ -456,7 +503,7 @@ export function EventTalk({
               <div className="mt-2 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-background p-2 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => runTool(() => sendEventSurveyTool(eventId))}
+                  onClick={() => fillToolDraft(() => prepareEventSurveyToolDraft(eventId))}
                   className="rounded-xl p-2 text-left text-xs font-semibold hover:bg-secondary"
                 >
                   <Smile className="mb-1 h-4 w-4 text-primary" />
@@ -472,7 +519,7 @@ export function EventTalk({
                 </button>
                 <button
                   type="button"
-                  onClick={() => runTool(() => sendEventDetailsTool(eventId))}
+                  onClick={() => fillToolDraft(() => prepareEventDetailsToolDraft(eventId))}
                   className="rounded-xl p-2 text-left text-xs font-semibold hover:bg-secondary"
                 >
                   <Info className="mb-1 h-4 w-4 text-primary" />

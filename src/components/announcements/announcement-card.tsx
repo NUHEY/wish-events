@@ -36,17 +36,17 @@ export function AnnouncementCard({
   }
 
   return (
-    <Card className="overflow-hidden rounded-2xl transition-shadow duration-200 hover:shadow-card-hover">
+    <Card className="overflow-hidden rounded-2xl border-0 bg-card shadow-sm transition-shadow duration-200 hover:shadow-card-hover">
       <div className="flex flex-col gap-2 p-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {announcement.pinned && (
-            <Badge variant="default" className="gap-1">
+            <Badge variant="default" className="gap-1 border-0">
               <Pin className="h-3 w-3" />
               {dict.announcementForm.pinnedBadge}
             </Badge>
           )}
           {announcement.category_label && (
-            <Badge variant="secondary">{announcement.category_label}</Badge>
+            <Badge variant="secondary" className="border-0">{announcement.category_label}</Badge>
           )}
           <span className="ml-auto text-xs text-muted-foreground">
             {new Date(announcement.created_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
@@ -54,7 +54,7 @@ export function AnnouncementCard({
         </div>
         <Link href={`/announcements/${announcement.id}`} className="text-lg font-semibold leading-snug transition-colors hover:text-primary">{announcement.title}</Link>
         {isRa && (
-          <div className="mt-2 hidden gap-2 border-t border-border pt-3 sm:flex">
+          <div className="mt-1 hidden gap-3 sm:flex">
             <Link
               href={`/announcements/${announcement.id}/edit`}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"

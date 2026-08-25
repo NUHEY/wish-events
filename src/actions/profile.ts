@@ -30,6 +30,9 @@ export async function submitProfile(
     lived_countries: formData.getAll("lived_countries"),
     instagram_handle: formData.get("instagram_handle"),
     self_intro: formData.get("self_intro"),
+    line_id: formData.get("line_id"),
+    x_handle: formData.get("x_handle"),
+    profile_accent: formData.get("profile_accent"),
   });
 
   if (!parsed.success) {
@@ -51,6 +54,9 @@ export async function submitProfile(
       lived_countries: parsed.data.lived_countries.length ? parsed.data.lived_countries : null,
       instagram_handle: parsed.data.instagram_handle,
       self_intro: parsed.data.self_intro,
+      line_id: parsed.data.line_id,
+      x_handle: parsed.data.x_handle,
+      profile_accent: parsed.data.profile_accent,
     })
     .eq("id", profile.id);
 

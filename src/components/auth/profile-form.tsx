@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
-import { FACULTIES, GRADE_LEVELS, FLOORS } from "@/lib/constants";
+import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
 import { parseFullRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
@@ -32,6 +32,9 @@ type InitialProfile = Pick<
   | "line_qr_path"
   | "self_intro"
   | "avatar_url"
+  | "line_id"
+  | "x_handle"
+  | "profile_accent"
 >;
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -65,6 +68,7 @@ export function ProfileForm({
       : ""
   );
   const parsedRoom = parseFullRoomNumber(roomNumberInput);
+  const [accent, setAccent] = useState<string | null>(initialProfile?.profile_accent ?? null);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -229,6 +233,63 @@ export function ProfileForm({
             hasQr={!!initialProfile?.line_qr_path}
             initialSignedUrl={initialLineQrSignedUrl}
           />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="line_id">{dict.profile.lineIdLabel}</Label>
+          <Input
+            id="line_id"
+            name="line_id"
+            placeholder={dict.profile.lineIdPlaceholder}
+            defaultValue={initialProfile?.line_id ?? ""}
+          />
+          <p className="text-xs text-muted-foreground">{dict.profile.lineIdHint}</p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="x_handle">{dict.profile.xHandleLabel}</Label>
+          <Input
+            id="x_handle"
+            name="x_handle"
+            placeholder={dict.profile.xHandlePlaceholder}
+            defaultValue={initialProfile?.x_handle ?? ""}
+          />
+          <p className="text-xs text-muted-foreground">{dict.profile.xHandleHint}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-t border-border pt-4">
+        <div>
+          <p className="text-sm font-medium">{dict.profile.decoSectionTitle}</p>
+          <p className="text-xs text-muted-foreground">{dict.profile.decoSectionHint}</p>
+        </div>
+        <div className="grid gap-2">
+          <Label>{dict.profile.accentLabel}</Label>
+          <input type="hidden" name="profile_accent" value={accent ?? ""} />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setAccent(null)}
+              aria-label={dict.profile.accentNone}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-muted-foreground transition-transform ${
+                accent === null ? "border-foreground scale-110" : "border-border"
+              }`}
+            >
+              <span className="h-4 w-4 rounded-full border border-dashed border-current" />
+            </button>
+            {PROFILE_ACCENT_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setAccent(key)}
+                aria-label={key}
+                className={`h-8 w-8 shrink-0 rounded-full border-2 transition-transform ${
+                  accent === key ? "border-foreground scale-110" : "border-transparent"
+                }`}
+                style={{ backgroundColor: PROFILE_ACCENT_HEX[key] }}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

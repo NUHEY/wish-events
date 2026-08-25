@@ -36,6 +36,9 @@ export interface UserRow {
   line_qr_path: string | null;
   self_intro: string | null;
   avatar_url: string | null;
+  line_id: string | null;
+  x_handle: string | null;
+  profile_accent: string | null;
   moved_out_at: string | null;
   created_at: string;
   updated_at: string;
@@ -56,6 +59,9 @@ export interface DirectoryProfileRow {
   instagram_handle: string | null;
   self_intro: string | null;
   avatar_url: string | null;
+  line_id: string | null;
+  x_handle: string | null;
+  profile_accent: string | null;
 }
 
 export interface EventRow {

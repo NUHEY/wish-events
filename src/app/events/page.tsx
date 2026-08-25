@@ -1,19 +1,21 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
 import { EventFilter } from "@/components/events/event-filter";
 import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
+import { Input } from "@/components/ui/input";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { EventCategory } from "@/types/database";
 
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; q?: string }>;
 }) {
   const profile = await getCurrentProfile();
-  const { category } = await searchParams;
+  const { category, q } = await searchParams;
+  const query = q?.trim() ?? "";
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -33,6 +35,12 @@ export default async function EventsPage({
   if (category) {
     upcomingQuery = upcomingQuery.eq("category", category as EventCategory);
     pastQuery = pastQuery.eq("category", category as EventCategory);
+  }
+  if (query) {
+    const escaped = query.replace(/[%,]/g, "");
+    const filter = `title.ilike.%${escaped}%,title_en.ilike.%${escaped}%`;
+    upcomingQuery = upcomingQuery.or(filter);
+    pastQuery = pastQuery.or(filter);
   }
 
   const [{ data: upcomingEvents, error }, { data: pastEvents }] = await Promise.all([
@@ -54,6 +62,17 @@ export default async function EventsPage({
           <h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1>
           <p className="text-sm text-muted-foreground">{dict.home.subtitle}</p>
         </div>
+        <form className="relative max-w-md">
+          {category && <input type="hidden" name="category" value={category} />}
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder={dict.home.searchPlaceholder}
+            className="h-10 rounded-full pl-10 shadow-sm"
+          />
+        </form>
         <EventFilter />
       </div>
 
@@ -65,7 +84,9 @@ export default async function EventsPage({
 
       {!hasUpcoming && !hasPast && (
         <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
-          <p className="text-sm font-medium">{dict.home.empty}</p>
+          <p className="text-sm font-medium">
+            {query ? dict.home.noSearchResults.replace("{query}", query) : dict.home.empty}
+          </p>
           <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
         </div>
       )}
@@ -75,7 +96,7 @@ export default async function EventsPage({
       )}
 
       {hasUpcoming && (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {upcomingEvents!.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
@@ -88,7 +109,7 @@ export default async function EventsPage({
             <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
             {dict.home.pastEventsToggle}（{pastEvents!.length}）
           </summary>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {pastEvents!.map((event) => (
               <EventCard key={event.id} event={event} variant="muted" />
             ))}

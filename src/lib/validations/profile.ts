@@ -2,8 +2,11 @@ import { z } from "zod";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/locales";
 import { parseFullRoomNumber } from "@/lib/utils";
+import { PROFILE_ACCENT_KEYS } from "@/lib/constants";
 
 const INSTAGRAM_REGEX = /^[A-Za-z0-9._]{1,30}$/;
+const X_HANDLE_REGEX = /^[A-Za-z0-9_]{1,15}$/;
+const LINE_ID_REGEX = /^[A-Za-z0-9._-]{1,40}$/;
 
 /** 空文字は「未選択（回答しない）」としてNULL扱いにする任意項目用ヘルパー */
 const optionalSelect = () =>
@@ -67,6 +70,27 @@ export function getProfileSchema(locale: Locale) {
       .max(500, t.selfIntroTooLong)
       .optional()
       .transform((v) => (v ? v : null)),
+    line_id: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v : null))
+      .refine((v) => v === null || LINE_ID_REGEX.test(v), t.lineIdFormat),
+    x_handle: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v.replace(/^@/, "") : null))
+      .refine((v) => v === null || X_HANDLE_REGEX.test(v), t.xHandleFormat),
+    profile_accent: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v : null))
+      .refine(
+        (v) => v === null || (PROFILE_ACCENT_KEYS as readonly string[]).includes(v),
+        t.profileAccentInvalid
+      ),
   });
 }
 

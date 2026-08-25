@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale, getDictionary, findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { formatRoomNumber } from "@/lib/utils";
+import { AtSign, Instagram, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BackButton } from "@/components/layout/back-button";
+import { PROFILE_ACCENT_HEX, type ProfileAccentKey } from "@/lib/constants";
 import type { DirectoryProfileRow } from "@/types/database";
 
 function ChipList({ codes, list, locale }: { codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en" }) {
@@ -45,7 +47,7 @@ export default async function DirectoryProfilePage({
     const { data } = await supabase
       .from("users")
       .select(
-        "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url"
+        "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accent"
       )
       .eq("id", id)
       .maybeSingle();
@@ -62,13 +64,17 @@ export default async function DirectoryProfilePage({
 
   const isSelf = viewer.id === target.id;
   const lineQrSignedUrl = lineQrPath ? await getLineQrSignedUrl(lineQrPath) : null;
+  const accentHex = target.profile_accent
+    ? PROFILE_ACCENT_HEX[target.profile_accent as ProfileAccentKey]
+    : null;
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
       <BackButton fallbackHref="/directory" className="-ml-2" />
 
       <Card className="overflow-hidden rounded-2xl">
-        <CardContent className="flex flex-col gap-5 p-5">
+        {accentHex && <div className="h-16 w-full" style={{ backgroundColor: accentHex }} />}
+        <CardContent className={`flex flex-col gap-5 p-5 ${accentHex ? "-mt-10" : ""}`}>
           <div className="flex items-center gap-3">
             {target.avatar_url ? (
               <Image
@@ -77,9 +83,13 @@ export default async function DirectoryProfilePage({
                 width={64}
                 height={64}
                 className="h-16 w-16 shrink-0 rounded-full object-cover shadow-sm"
+                style={accentHex ? { border: `3px solid ${accentHex}` } : undefined}
               />
             ) : (
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-xl font-semibold text-secondary-foreground shadow-sm">
+              <span
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-xl font-semibold text-secondary-foreground shadow-sm"
+                style={accentHex ? { border: `3px solid ${accentHex}` } : undefined}
+              >
                 {target.full_name?.charAt(0) ?? "?"}
               </span>
             )}
@@ -144,10 +154,36 @@ export default async function DirectoryProfilePage({
             </p>
           </div>
 
-          {target.instagram_handle && (
-            <div className="grid gap-1.5">
-              <p className="text-xs text-muted-foreground">{dict.profile.instagramLabel}</p>
-              <p className="text-sm">@{target.instagram_handle}</p>
+          {(target.instagram_handle || target.x_handle || target.line_id) && (
+            <div className="grid gap-2.5 border-t border-border pt-4">
+              {target.instagram_handle && (
+                <a
+                  href={`https://instagram.com/${target.instagram_handle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-sm transition-colors hover:text-primary"
+                >
+                  <Instagram className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>@{target.instagram_handle}</span>
+                </a>
+              )}
+              {target.x_handle && (
+                <a
+                  href={`https://x.com/${target.x_handle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-sm transition-colors hover:text-primary"
+                >
+                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>@{target.x_handle}</span>
+                </a>
+              )}
+              {target.line_id && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MessageCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>{dict.profile.lineIdLabel.replace("（任意）", "").replace(" (optional)", "")}: {target.line_id}</span>
+                </div>
+              )}
             </div>
           )}
 
