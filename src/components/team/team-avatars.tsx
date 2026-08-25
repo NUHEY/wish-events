@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { UsersRound } from "lucide-react";
 import type { TeamMemberRow } from "@/types/database";
 
@@ -13,8 +14,13 @@ export function TeamAvatars({ members, allRa }: { members: TeamMemberRow[]; allR
         members.slice(0, 4).map((member, index) => (
           <span key={member.id} title={member.full_name ?? "名前未登録"} className="-ml-1 first:ml-0">
             {member.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={member.avatar_url} alt="" className="h-7 w-7 rounded-full border-2 border-card object-cover shadow-sm" />
+              <Image
+                src={member.avatar_url}
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 rounded-full border-2 border-card object-cover shadow-sm"
+              />
             ) : (
               <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[10px] font-bold text-muted-foreground shadow-sm">
                 {member.full_name?.charAt(0) ?? "?"}

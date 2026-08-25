@@ -71,10 +71,11 @@ export default async function DirectoryProfilePage({
         <CardContent className="flex flex-col gap-5 p-5">
           <div className="flex items-center gap-3">
             {target.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={target.avatar_url}
                 alt=""
+                width={64}
+                height={64}
                 className="h-16 w-16 shrink-0 rounded-full object-cover shadow-sm"
               />
             ) : (

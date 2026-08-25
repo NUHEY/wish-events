@@ -17,18 +17,12 @@ export default async function EventSurveyPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title")
-    .eq("id", id)
-    .maybeSingle();
+  // event と survey は id のみで取得できるため並列取得する。
+  const [{ data: event }, { data: survey }] = await Promise.all([
+    supabase.from("events").select("id, title").eq("id", id).maybeSingle(),
+    supabase.from("surveys").select("*").eq("event_id", id).maybeSingle(),
+  ]);
   if (!event) notFound();
-
-  const { data: survey } = await supabase
-    .from("surveys")
-    .select("*")
-    .eq("event_id", id)
-    .maybeSingle();
 
   if (!survey || !survey.is_active) {
     return (
@@ -39,18 +33,11 @@ export default async function EventSurveyPage({
     );
   }
 
-  const { data: existingResponse } = await supabase
-    .from("survey_responses")
-    .select("id")
-    .eq("survey_id", survey.id)
-    .eq("user_id", profile.id)
-    .maybeSingle();
-
-  const { data: questions } = await supabase
-    .from("survey_questions")
-    .select("*")
-    .eq("survey_id", survey.id)
-    .order("position", { ascending: true });
+  // existingResponse と questions は survey.id が確定してから並列取得する。
+  const [{ data: existingResponse }, { data: questions }] = await Promise.all([
+    supabase.from("survey_responses").select("id").eq("survey_id", survey.id).eq("user_id", profile.id).maybeSingle(),
+    supabase.from("survey_questions").select("*").eq("survey_id", survey.id).order("position", { ascending: true }),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-3">

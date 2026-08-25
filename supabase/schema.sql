@@ -1214,6 +1214,330 @@ insert into public.event_audience_options (label_ja, label_en, position) values
 
 
 -- =====================================================================
+-- ここから下（22〜28）は、2026年8月に追加されたイベントコミュニティ機能
+-- （トーク・コメント・いいね・投票・集金・企画メンバー）のマイグレーション
+-- 履歴をそのまま記録したもの。個別の supabase/migrations/*.sql ファイルと
+-- 内容は同じで、ドキュメントとして1ファイルに集約するためにここへ転記した。
+-- 新規プロジェクトにこのファイルを上から実行する場合、event_community_profiles
+-- 関数はv1→v2→v3と再定義されるため、最終的にはv3のみが残る（想定どおり）。
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 22. events / announcements の企画メンバー（organizing team）
+-- ---------------------------------------------------------------------
+alter table public.events
+  add column if not exists member_ids uuid[] not null default '{}',
+  add column if not exists all_ra_members boolean not null default false;
+
+alter table public.announcements
+  add column if not exists member_ids uuid[] not null default '{}',
+  add column if not exists all_ra_members boolean not null default false;
+
+comment on column public.events.member_ids is '企画メンバー（RA）のpublic.users.id。all_ra_members=trueの場合は空配列にする。';
+comment on column public.events.all_ra_members is 'trueの場合、RA全員が企画メンバー。';
+comment on column public.announcements.member_ids is '企画メンバー（RA）のpublic.users.id。all_ra_members=trueの場合は空配列にする。';
+comment on column public.announcements.all_ra_members is 'trueの場合、RA全員が企画メンバー。';
+
+-- ---------------------------------------------------------------------
+-- 23. イベントコミュニティ（トーク・コメント・いいね）の初期版
+-- ---------------------------------------------------------------------
+alter table public.events
+  alter column requires_registration set default true;
+
+update public.events set requires_registration = true where requires_registration = false;
+
+alter table public.events
+  drop constraint if exists events_capacity_required_when_registration;
+
+create table if not exists public.event_messages (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  sender_id uuid not null references public.users(id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists event_messages_event_created_idx on public.event_messages(event_id, created_at);
+alter publication supabase_realtime add table public.event_messages;
+
+create table if not exists public.event_comments (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 1000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists event_comments_event_created_idx on public.event_comments(event_id, created_at desc);
+
+create table if not exists public.event_comment_likes (
+  comment_id uuid not null references public.event_comments(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (comment_id, user_id)
+);
+
+create table if not exists public.event_likes (
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
+alter table public.event_messages enable row level security;
+alter table public.event_comments enable row level security;
+alter table public.event_comment_likes enable row level security;
+alter table public.event_likes enable row level security;
+
+create or replace function public.can_access_event_talk(target_event_id uuid)
+returns boolean language sql security definer stable set search_path = public
+as $$
+  select public.is_ra() or exists (
+    select 1 from public.registrations
+    where event_id = target_event_id and user_id = auth.uid()
+  );
+$$;
+
+-- メッセージ・コメント画面に必要な公開プロフィールだけを返す（email等は出さない）。
+-- 注: この v2 関数は後続の 26 でv3に置き換わり、コード側からは参照されなくなる
+-- （27の最適化マイグレーションでは無印版のみdropしており、v2は歴史的経緯として残る）。
+create or replace function public.event_community_profiles_v2(profile_ids uuid[])
+returns table (id uuid, full_name text, avatar_url text, role text)
+language sql security definer stable set search_path = public
+as $$
+  select u.id, u.full_name, u.avatar_url, u.role
+  from public.users u
+  where u.id = any(profile_ids);
+$$;
+
+create policy "event_messages_select_members"
+on public.event_messages for select using (public.can_access_event_talk(event_id));
+create policy "event_messages_insert_members"
+on public.event_messages for insert with check (
+  sender_id = auth.uid() and public.can_access_event_talk(event_id)
+);
+
+create policy "event_comments_select_authenticated"
+on public.event_comments for select using (auth.uid() is not null);
+create policy "event_comments_insert_own"
+on public.event_comments for insert with check (user_id = auth.uid());
+create policy "event_comments_update_own"
+on public.event_comments for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "event_comments_delete_own"
+on public.event_comments for delete using (user_id = auth.uid());
+
+create policy "event_comment_likes_select_authenticated"
+on public.event_comment_likes for select using (auth.uid() is not null);
+create policy "event_comment_likes_insert_own"
+on public.event_comment_likes for insert with check (user_id = auth.uid());
+create policy "event_comment_likes_delete_own"
+on public.event_comment_likes for delete using (user_id = auth.uid());
+
+create policy "event_likes_select_authenticated"
+on public.event_likes for select using (auth.uid() is not null);
+create policy "event_likes_insert_own"
+on public.event_likes for insert with check (user_id = auth.uid());
+create policy "event_likes_delete_own"
+on public.event_likes for delete using (user_id = auth.uid());
+
+-- ---------------------------------------------------------------------
+-- 24. イベントコミュニティ v2 拡張（RAバッジ用のroleを返す関数の差し替え等）
+-- ---------------------------------------------------------------------
+drop function if exists public.event_community_profiles(uuid[]);
+create function public.event_community_profiles(profile_ids uuid[])
+returns table (id uuid, full_name text, avatar_url text, role text)
+language sql security definer stable set search_path = public
+as $$
+  select u.id, u.full_name, u.avatar_url, u.role
+  from public.users u
+  where u.id = any(profile_ids);
+$$;
+
+drop policy if exists "event_likes_select_authenticated" on public.event_likes;
+drop policy if exists "event_likes_insert_own" on public.event_likes;
+drop policy if exists "event_likes_delete_own" on public.event_likes;
+
+create policy "event_likes_select_authenticated"
+on public.event_likes for select using (auth.uid() is not null);
+create policy "event_likes_insert_own"
+on public.event_likes for insert with check (user_id = auth.uid());
+create policy "event_likes_delete_own"
+on public.event_likes for delete using (user_id = auth.uid());
+
+-- ---------------------------------------------------------------------
+-- 25. 手動集金管理（registration_payments）・トーク画像・未読通知
+-- ---------------------------------------------------------------------
+alter table public.events
+  add column if not exists payment_due_at timestamptz,
+  add column if not exists payment_destination text;
+
+-- 既存の申込情報とは分離し、RAが集金確認だけを管理する。
+create table if not exists public.registration_payments (
+  registration_id uuid primary key references public.registrations(id) on delete cascade,
+  status text not null default 'unpaid' check (status in ('unpaid', 'paid', 'waived')),
+  confirmed_at timestamptz,
+  confirmed_by uuid references public.users(id),
+  note text,
+  updated_at timestamptz not null default now()
+);
+alter table public.registration_payments enable row level security;
+-- 注: select/manage_ra(all)ポリシーは28で分割され、現在は
+--   registration_payments_select / _insert_ra / _update_ra / _delete_ra
+--   の4本構成になっている（multiple_permissive_policies対策）。
+
+alter table public.event_messages
+  add column if not exists message_type text not null default 'text',
+  add column if not exists media_path text,
+  add column if not exists action_url text,
+  add column if not exists action_label text;
+alter table public.event_messages drop constraint if exists event_messages_type_check;
+alter table public.event_messages add constraint event_messages_type_check check (message_type in ('text', 'image', 'tool'));
+
+create table if not exists public.event_chat_reads (
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+alter table public.event_chat_reads enable row level security;
+create policy "event_chat_reads_select_own" on public.event_chat_reads for select using (user_id = auth.uid());
+create policy "event_chat_reads_insert_own" on public.event_chat_reads for insert with check (user_id = auth.uid());
+create policy "event_chat_reads_update_own" on public.event_chat_reads for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- トーク画像は非公開。参加者・RAだけが読み書きできる。
+insert into storage.buckets (id, name, public) values ('event-chat-media', 'event-chat-media', false) on conflict (id) do nothing;
+create policy "chat_media_select_members" on storage.objects for select using (
+  bucket_id = 'event-chat-media' and public.can_access_event_talk((storage.foldername(name))[1]::uuid)
+);
+create policy "chat_media_insert_members" on storage.objects for insert with check (
+  bucket_id = 'event-chat-media' and public.can_access_event_talk((storage.foldername(name))[1]::uuid)
+);
+
+-- ---------------------------------------------------------------------
+-- 26. トーク体験 v3（画像投稿の緩和・リアクション・投票）
+-- ---------------------------------------------------------------------
+alter table public.event_messages drop constraint if exists event_messages_body_check;
+alter table public.event_messages drop constraint if exists event_messages_type_check;
+alter table public.event_messages add constraint event_messages_body_check
+  check (char_length(trim(body)) <= 2000);
+alter table public.event_messages add constraint event_messages_type_check
+  check (message_type in ('text', 'image', 'tool', 'poll'));
+
+create table if not exists public.event_message_reactions (
+  message_id uuid not null references public.event_messages(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  emoji text not null check (emoji in ('❤️', '👍', '🎉', '😂', '👀')),
+  created_at timestamptz not null default now(),
+  primary key (message_id, user_id, emoji)
+);
+create index if not exists event_message_reactions_message_idx on public.event_message_reactions(message_id);
+alter table public.event_message_reactions enable row level security;
+create policy "event_message_reactions_select_members" on public.event_message_reactions for select using (
+  exists (select 1 from public.event_messages m where m.id = message_id and public.can_access_event_talk(m.event_id))
+);
+-- 注: insert/deleteポリシーは27で (select auth.uid()) を使うよう更新済み。
+create policy "event_message_reactions_insert_own" on public.event_message_reactions for insert with check (
+  user_id = (select auth.uid()) and exists (select 1 from public.event_messages m where m.id = message_id and public.can_access_event_talk(m.event_id))
+);
+create policy "event_message_reactions_delete_own" on public.event_message_reactions for delete using (user_id = (select auth.uid()));
+
+create table if not exists public.event_polls (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  question text not null check (char_length(trim(question)) between 1 and 300),
+  options jsonb not null check (jsonb_typeof(options) = 'array' and jsonb_array_length(options) between 2 and 4),
+  created_by uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  closes_at timestamptz
+);
+create index if not exists event_polls_event_idx on public.event_polls(event_id, created_at desc);
+alter table public.event_polls enable row level security;
+create policy "event_polls_select_members" on public.event_polls for select using (public.can_access_event_talk(event_id));
+create policy "event_polls_create_ra" on public.event_polls for insert with check (public.is_ra() and public.can_access_event_talk(event_id));
+
+create table if not exists public.event_poll_votes (
+  poll_id uuid not null references public.event_polls(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  option_index integer not null check (option_index between 0 and 3),
+  created_at timestamptz not null default now(),
+  primary key (poll_id, user_id)
+);
+alter table public.event_poll_votes enable row level security;
+create policy "event_poll_votes_select_members" on public.event_poll_votes for select using (
+  exists (select 1 from public.event_polls p where p.id = poll_id and public.can_access_event_talk(p.event_id))
+);
+create policy "event_poll_votes_insert_own" on public.event_poll_votes for insert with check (
+  user_id = (select auth.uid()) and exists (select 1 from public.event_polls p where p.id = poll_id and public.can_access_event_talk(p.event_id))
+);
+create policy "event_poll_votes_update_own" on public.event_poll_votes for update using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+alter table public.event_messages add column if not exists poll_id uuid references public.event_polls(id) on delete cascade;
+
+-- ---------------------------------------------------------------------
+-- 27. イベントコメントの返信（1階層）
+-- ---------------------------------------------------------------------
+alter table public.event_comments
+  add column if not exists parent_id uuid references public.event_comments(id) on delete cascade;
+create index if not exists event_comments_parent_created_idx
+  on public.event_comments(event_id, parent_id, created_at);
+
+-- コメント表示専用の最小プロフィール。役割を正規化してRAバッジの判定を安定させる。
+-- これがコード側（src/app 配下）から実際に呼ばれている最新版（v3）。
+create or replace function public.event_community_profiles_v3(profile_ids uuid[])
+returns table (id uuid, full_name text, avatar_url text, role text)
+language sql security definer stable set search_path = public
+as $$
+  select u.id, u.full_name, u.avatar_url, lower(u.role::text)
+  from public.users u
+  where u.id = any(profile_ids);
+$$;
+
+-- ---------------------------------------------------------------------
+-- 28. パフォーマンス最適化・セキュリティ強化
+--   （supabase/migrations/20260825092405_optimize_rls_policies_and_indexes.sql
+--    〜 20260825092502_split_manage_ra_all_policies_to_fix_multiple_permissive.sql
+--    の3本。Supabaseのperformance/security advisorの警告をすべて解消した）
+-- ---------------------------------------------------------------------
+-- 概要（詳細は上記3ファイル、またはSupabaseダッシュボードのマイグレーション
+-- 履歴を参照。ここでは全文を再掲せず要点のみ記載する）:
+--
+--  1) auth_rls_initplan対策: 本ファイル中の auth.uid() を使うRLSポリシー
+--     （users / events / registrations / surveys / survey_responses /
+--     survey_answers / event_comments / event_comment_likes / announcements /
+--     registration_answers / event_messages / event_likes / event_chat_reads /
+--     event_message_reactions / event_poll_votes / registration_payments）
+--     をすべて (select auth.uid()) でラップし、行ごとの関数再評価を防止。
+--     （このファイル内の該当ポリシーは、上のとおりすでに (select auth.uid())
+--      表記に更新済み。）
+--
+--  2) multiple_permissive_policies対策: registrations(select/delete) /
+--     survey_answers(select) / survey_responses(select) / users(select) /
+--     survey_questions(select) / registration_payments(select) を、
+--     「RAは全件」「本人のみ」の2ポリシーから単一の結合ポリシーに統合。
+--     さらに registration_payments_manage_ra / survey_questions_manage_ra
+--     という FOR ALL ポリシーは、SELECTにも暗黙的に適用され重複扱いになる
+--     ため、INSERT/UPDATE/DELETE専用の3ポリシーに分割した。
+--
+--  3) 外部キー17件に不足していたインデックスを追加
+--     （announcements.created_by, event_chat_reads.user_id,
+--      event_comment_likes.user_id, event_comments.parent_id/user_id,
+--      event_likes.user_id, event_message_reactions.user_id,
+--      event_messages.poll_id/sender_id, event_poll_votes.user_id,
+--      event_polls.created_by, ra_rooms.created_by,
+--      registration_answers.question_id,
+--      registration_payments.confirmed_by, survey_answers.question_id,
+--      survey_responses.user_id, surveys.created_by）。
+--
+--  4) セキュリティ: can_access_event_talk / event_community_profiles_v3 が
+--     PostgreSQLのデフォルト仕様でPUBLIC（＝未ログインのanonも含む）から
+--     実行可能になっていたのを是正。REVOKE ... FROM anon だけでは不十分で、
+--     REVOKE ... FROM public のあとに GRANT ... TO authenticated が必要
+--     だった点に注意（Supabaseのセキュリティadvisorで検出）。
+--     あわせて、コードから参照されなくなった無印版 event_community_profiles
+--     関数を削除した。
+
+-- =====================================================================
 -- RAへの昇格/降格:
 --   通常は /dashboard/ra-rooms （RA管理画面）からRA個室の部屋番号を
 --   追加・削除することで行う（学期ごとのRA交代を想定）。

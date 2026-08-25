@@ -49,7 +49,8 @@ export default async function HomePage() {
   const now = new Date();
   const weekEnd = endOfThisWeek(now);
 
-  const [{ data: layoutRows }, { data: weekEvents }, { data: announcements, error: announcementsError }] =
+  // ホームで使う4つの読み取りは互いに独立しているため、まとめて並列取得する（floorEventsも含む）。
+  const [{ data: layoutRows }, { data: weekEvents }, { data: announcements, error: announcementsError }, { data: floorEventsData }] =
     await Promise.all([
       supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
       supabase
@@ -64,21 +65,25 @@ export default async function HomePage() {
         .select("*")
         .order("pinned", { ascending: false })
         .order("created_at", { ascending: false }),
+      profile.floor_number != null
+        ? supabase
+            .from("events")
+            .select("*")
+            .gte("event_date", now.toISOString())
+            .contains("target_floors", [profile.floor_number])
+            .order("is_pinned", { ascending: false })
+            .order("event_date", { ascending: true })
+        : Promise.resolve({ data: [] as EventRow[] }),
     ]);
+  const floorEvents = floorEventsData ?? [];
 
-  let floorEvents: EventRow[] = [];
-  if (profile.floor_number != null) {
-    const { data } = await supabase
-      .from("events")
-      .select("*")
-      .gte("event_date", now.toISOString())
-      .contains("target_floors", [profile.floor_number])
-      .order("is_pinned", { ascending: false })
-      .order("event_date", { ascending: true });
-    floorEvents = data ?? [];
-  }
-
-  const memberIds = [...new Set([...((weekEvents ?? []).flatMap((event) => event.member_ids ?? [])), ...floorEvents.flatMap((event) => event.member_ids ?? []), ...(announcements ?? []).flatMap((announcement) => announcement.member_ids ?? [])])];
+  const memberIds = [
+    ...new Set([
+      ...((weekEvents ?? []).flatMap((event) => event.member_ids ?? [])),
+      ...floorEvents.flatMap((event) => event.member_ids ?? []),
+      ...(announcements ?? []).flatMap((announcement) => announcement.member_ids ?? []),
+    ]),
+  ];
   const { data: teamMembers } = memberIds.length
     ? await supabase.from("users").select("id, full_name, avatar_url").in("id", memberIds)
     : { data: [] as TeamMemberRow[] };
@@ -199,7 +204,14 @@ export default async function HomePage() {
 
               <div className="flex flex-col gap-3">
                 {(announcements as AnnouncementRow[] | null)?.map((a) => (
-                  <AnnouncementCard key={a.id} announcement={a} isRa={isRa} members={(a.member_ids ?? []).map((id: string) => membersById.get(id)).filter((member): member is TeamMemberRow => !!member)} />
+                  <AnnouncementCard
+                    key={a.id}
+                    announcement={a}
+                    isRa={isRa}
+                    members={(a.member_ids ?? [])
+                      .map((id: string) => membersById.get(id))
+                      .filter((member): member is TeamMemberRow => !!member)}
+                  />
                 ))}
               </div>
             </section>

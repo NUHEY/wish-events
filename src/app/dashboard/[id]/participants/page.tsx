@@ -16,27 +16,20 @@ export default async function ParticipantsPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title, title_en, fee_amount")
-    .eq("id", id)
-    .maybeSingle();
+  // event・questions・registrations はいずれも id のみで取得できるため並列取得する。
+  const [{ data: event }, { data: questions }, { data: registrations }] = await Promise.all([
+    supabase.from("events").select("id, title, title_en, fee_amount").eq("id", id).maybeSingle(),
+    supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
+    supabase
+      .from("registrations")
+      .select(
+        "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
+      )
+      .eq("event_id", id)
+      .order("registered_at", { ascending: true }),
+  ]);
   if (!event) notFound();
   const title = (locale === "en" && event.title_en) || event.title;
-
-  const { data: questions } = await supabase
-    .from("registration_questions")
-    .select("*")
-    .eq("event_id", id)
-    .order("position", { ascending: true });
-
-  const { data: registrations } = await supabase
-    .from("registrations")
-    .select(
-      "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
-    )
-    .eq("event_id", id)
-    .order("registered_at", { ascending: true });
 
   const participants = (registrations ?? []).map((r: any) => {
     const answers: Record<string, string> = {};

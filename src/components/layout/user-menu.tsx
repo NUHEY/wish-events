@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DoorOpen, LayoutDashboard, LogOut, Menu, MessageCircle, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -60,8 +61,7 @@ export function UserMenu({
             aria-label={fullName ?? "menu"}
           >
             {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
+              <Image src={avatarUrl} alt="" width={20} height={20} className="h-5 w-5 rounded-full object-cover" />
             ) : (
               <Menu className="h-5 w-5" />
             )}
@@ -74,8 +74,7 @@ export function UserMenu({
             aria-label={fullName ?? "menu"}
           >
             {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              <Image src={avatarUrl} alt="" width={36} height={36} className="h-full w-full object-cover" />
             ) : (
               fullName?.charAt(0) ?? "?"
             )}

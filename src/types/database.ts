@@ -476,6 +476,14 @@ export interface Database {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      can_access_event_talk: {
+        Args: { target_event_id: string };
+        Returns: boolean;
+      };
+      event_community_profiles_v3: {
+        Args: { profile_ids: string[] };
+        Returns: { id: string; full_name: string | null; avatar_url: string | null; role: UserRole }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

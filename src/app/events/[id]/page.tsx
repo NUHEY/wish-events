@@ -19,6 +19,25 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { deleteEvent } from "@/actions/events";
 import type { EventCategory, TeamMemberRow } from "@/types/database";
 
+/** event_community_profiles_v3() の返り値（コメント投稿者の最小プロフィール）。 */
+type CommunityProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string };
+
+function paymentStatusLabel(status: string | null | undefined) {
+  if (status === "paid") return "支払い済み";
+  if (status === "waived") return "免除";
+  return "未払い";
+}
+
+/**
+ * registration_payments(status) は1:1のFK関係だが、手書きの型定義には
+ * Relationships情報がないためSupabaseの型推論が配列/オブジェクトのどちら
+ * になるか環境依存になりやすい。実行時の実際の形に関わらず安全に読む。
+ */
+function readPaymentStatus(registrationPayments: unknown): string | null {
+  const value = Array.isArray(registrationPayments) ? registrationPayments[0] : registrationPayments;
+  return (value as { status?: string } | null | undefined)?.status ?? null;
+}
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -30,44 +49,47 @@ export default async function EventDetailPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
+  // このページはクエリが多いため、互いに依存しないものはPromise.allで並列
+  // 実行し、往復のレイテンシが積み重ならないようにしている。
+  const [
+    { data: event },
+    { count },
+    { data: myRegistration },
+    { data: eventLikes },
+    { data: registrationQuestions },
+    { data: commentRows },
+  ] = await Promise.all([
+    supabase.from("events").select("*").eq("id", id).maybeSingle(),
+    supabase.from("registrations").select("id", { count: "exact", head: true }).eq("event_id", id),
+    supabase
+      .from("registrations")
+      .select("id, registration_payments(status)")
+      .eq("event_id", id)
+      .eq("user_id", profile.id)
+      .maybeSingle(),
+    supabase.from("event_likes").select("user_id").eq("event_id", id),
+    supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
+    supabase.from("event_comments").select("*").eq("event_id", id).order("created_at", { ascending: false }),
+  ]);
   if (!event) notFound();
 
-  const { data: teamRows } = event.member_ids?.length
-    ? await supabase.from("users").select("id, full_name, avatar_url").in("id", event.member_ids)
-    : { data: [] as TeamMemberRow[] };
-
-  const { count } = await supabase
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("event_id", id);
-
-  const { data: myRegistration } = await supabase
-    .from("registrations")
-    .select("id, registration_payments(status)")
-    .eq("event_id", id)
-    .eq("user_id", profile.id)
-    .maybeSingle();
-  const { data: eventLikes } = await supabase.from("event_likes").select("user_id").eq("event_id", id);
-
-  const { data: registrationQuestions } = await supabase
-    .from("registration_questions")
-    .select("*")
-    .eq("event_id", id)
-    .order("position", { ascending: true });
-
-  const { data: commentRows } = await supabase
-    .from("event_comments")
-    .select("*")
-    .eq("event_id", id)
-    .order("created_at", { ascending: false });
   const commentIds = (commentRows ?? []).map((comment) => comment.id);
   const commentUserIds = [...new Set((commentRows ?? []).map((comment) => comment.user_id))];
-  const [{ data: commentUsers }, { data: likes }] = await Promise.all([
-    commentUserIds.length ? (supabase as any).rpc("event_community_profiles_v3", { profile_ids: commentUserIds }) : Promise.resolve({ data: [] }),
-    commentIds.length ? supabase.from("event_comment_likes").select("comment_id, user_id").in("comment_id", commentIds) : Promise.resolve({ data: [] }),
+
+  const [{ data: teamRows }, { data: commentUsers }, { data: likes }] = await Promise.all([
+    event.member_ids?.length
+      ? supabase.from("users").select("id, full_name, avatar_url").in("id", event.member_ids)
+      : Promise.resolve({ data: [] as TeamMemberRow[] }),
+    commentUserIds.length
+      ? supabase.rpc("event_community_profiles_v3", { profile_ids: commentUserIds })
+      : Promise.resolve({ data: null }),
+    commentIds.length
+      ? supabase.from("event_comment_likes").select("comment_id, user_id").in("comment_id", commentIds)
+      : Promise.resolve({ data: [] }),
   ]);
-  const commentUsersById = new Map((commentUsers ?? []).map((user: { id: string; full_name: string | null; avatar_url: string | null; role: string }) => [user.id, user]));
+  const commentUsersById = new Map(
+    ((commentUsers ?? []) as CommunityProfile[]).map((user) => [user.id, user])
+  );
   const comments = (commentRows ?? []).map((comment) => ({
     ...comment,
     user: commentUsersById.get(comment.user_id) ?? null,
@@ -167,7 +189,7 @@ export default async function EventDetailPage({
 
       {!!event.fee_amount && !!myRegistration && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <p className="text-sm font-semibold text-primary">集金状況：{(myRegistration as any).registration_payments?.status === "paid" ? "支払い済み" : (myRegistration as any).registration_payments?.status === "waived" ? "免除" : "未払い"}</p>
+          <p className="text-sm font-semibold text-primary">集金状況：{paymentStatusLabel(readPaymentStatus(myRegistration.registration_payments))}</p>
           {event.payment_due_at && <p className="mt-1 text-sm">集金期限：{formatEventDateTime(event.payment_due_at, locale)}</p>}
           {event.payment_destination && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">支払先：{event.payment_destination}</p>}
         </div>
@@ -239,14 +261,12 @@ export default async function EventDetailPage({
           >
             {dict.event.participantsButton}
           </Link>
-          {true && (
-            <Link
-              href={`/events/${event.id}/questions`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              {dict.event.questionsManageButton}
-            </Link>
-          )}
+          <Link
+            href={`/events/${event.id}/questions`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            {dict.event.questionsManageButton}
+          </Link>
           <Link
             href={`/dashboard/${event.id}/survey`}
             className={buttonVariants({ variant: "outline", size: "sm" })}

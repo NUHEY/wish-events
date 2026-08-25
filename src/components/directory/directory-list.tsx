@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,11 @@ import type { DirectoryProfileRow } from "@/types/database";
 function Avatar({ name, url }: { name: string | null; url: string | null }) {
   if (url) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={url}
         alt=""
+        width={44}
+        height={44}
         className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
       />
     );

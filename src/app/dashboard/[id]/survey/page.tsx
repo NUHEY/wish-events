@@ -20,35 +20,24 @@ export default async function ManageSurveyPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title, survey_type, survey_external_url")
-    .eq("id", id)
-    .maybeSingle();
+  // event と survey は id のみで取得できるため並列取得する。
+  const [{ data: event }, { data: survey }] = await Promise.all([
+    supabase.from("events").select("id, title, survey_type, survey_external_url").eq("id", id).maybeSingle(),
+    supabase.from("surveys").select("*").eq("event_id", id).maybeSingle(),
+  ]);
   if (!event) notFound();
 
-  const { data: survey } = await supabase
-    .from("surveys")
-    .select("*")
-    .eq("event_id", id)
-    .maybeSingle();
-
-  const { data: questions } = survey
-    ? await supabase
-        .from("survey_questions")
-        .select("*")
-        .eq("survey_id", survey.id)
-        .order("position", { ascending: true })
-    : { data: [] };
-
-  let responseCount = 0;
-  if (survey) {
-    const { count } = await supabase
-      .from("survey_responses")
-      .select("id", { count: "exact", head: true })
-      .eq("survey_id", survey.id);
-    responseCount = count ?? 0;
-  }
+  // questions と responseCount は survey.id が確定してから並列取得する。
+  const [{ data: questions }, responseCount] = survey
+    ? await Promise.all([
+        supabase.from("survey_questions").select("*").eq("survey_id", survey.id).order("position", { ascending: true }),
+        supabase
+          .from("survey_responses")
+          .select("id", { count: "exact", head: true })
+          .eq("survey_id", survey.id)
+          .then(({ count }) => count ?? 0),
+      ])
+    : [{ data: [] as { id: string }[] }, 0];
 
   const saveWithEventId = saveSurvey.bind(null, id);
 

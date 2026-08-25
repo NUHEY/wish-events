@@ -18,18 +18,12 @@ export default async function RegistrationQuestionsPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title")
-    .eq("id", id)
-    .maybeSingle();
+  // event と questions は id のみで取得できるため並列取得する。
+  const [{ data: event }, { data: questions }] = await Promise.all([
+    supabase.from("events").select("id, title").eq("id", id).maybeSingle(),
+    supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
+  ]);
   if (!event) notFound();
-
-  const { data: questions } = await supabase
-    .from("registration_questions")
-    .select("*")
-    .eq("event_id", id)
-    .order("position", { ascending: true });
 
   const saveWithEventId = saveRegistrationQuestions.bind(null, id);
 
