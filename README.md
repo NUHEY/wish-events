@@ -4,20 +4,20 @@ WISH Eventsは、早稲田大学国際学生寮WISHのイベント参加、お�
 
 ## サイトを開く
 
-### [WISH Eventsを開く](https://wish-events.vercel.app)
+### [WISH Eventsを開く](https://wish-events-info.vercel.app)
 
 ブックマークまたはスマートフォンのホーム画面に追加しておくと、次回からすぐに開けます。
 
 ## はじめて使うとき
 
-1. [WISH Events](https://wish-events.vercel.app)を開きます。
+1. [WISH Events](https://wish-events-info.vercel.app)を開きます。
 2. 「Googleでログイン」を押し、早稲田大学のGoogleアカウント（`@waseda.jp`）を選びます。
 3. 初回プロフィールを登録します。
 4. 必須項目を確認し、LINEのQRコード画像をアップロードして保存します。
 
 プロフィールには氏名、学籍番号、部屋、学部・学年、話せる言語、国籍・居住経験のある国や地域、自己紹介、SNSなどを登録できます。公開したくない情報は「マイページの公開設定」で表示・非表示を選べます。
 
-> LINE QRはイベント運営に必要な連絡先として登録します。イベント参加者CSVにも含まれるため、RAは取り扱いに注意してください。
+> LINE QRはイベント運営に必要な連絡先として登録します。
 
 ## スマートフォンの基本操作
 
@@ -94,7 +94,7 @@ RAは右上のプロフィール画像から「管理ダッシュボード」を
 | 概要 | イベント状況の確認 |
 | イベント作成 | イベント、定員、参加費、事前質問、企画メンバーの設定 |
 | お知らせ作成 | 寮生向けのお知らせを投稿 |
-| RA管理 | RAの個室、昇格・降格の管理 |
+| RA管理 | RAメンバーの管理 |
 | 寮生管理 | 寮生と住居情報の管理 |
 | バッジ管理 | マイページに表示するバッジの管理 |
 | ホーム編集 | ホームに表示する内容と並び順の変更 |
@@ -138,4 +138,4 @@ PNG、JPEG、WebP形式の画像を使用してください。プロフィール
 
 ---
 
-WISH Events: [https://wish-events.vercel.app](https://wish-events.vercel.app)
+WISH Events: [https://wish-events-info.vercel.app](https://wish-events-info.vercel.app)
