@@ -80,3 +80,32 @@ export async function removeAvatar(): Promise<{ error?: string }> {
   revalidatePath("/directory");
   return {};
 }
+
+export async function uploadProfileCover(formData: FormData): Promise<{ error?: string; url?: string }> {
+  const profile = await getCurrentProfile();
+  const file = formData.get("cover");
+  if (!(file instanceof File) || file.size === 0) return { error: "画像を選択してください" };
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) return { error: "png / jpeg / webp形式の画像を選択してください" };
+  if (file.size > MAX_SIZE_BYTES) return { error: "画像サイズは5MB以下にしてください" };
+  const supabase = await createClient();
+  const path = `${profile.id}/cover.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) return { error: uploadError.message };
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+  const { error } = await supabase.from("users").update({ profile_cover_url: url }).eq("id", profile.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/directory/${profile.id}`);
+  return { url };
+}
+
+export async function removeProfileCover(): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+  await supabase.storage.from("avatars").remove([`${profile.id}/cover.png`, `${profile.id}/cover.jpg`, `${profile.id}/cover.webp`]);
+  const { error } = await supabase.from("users").update({ profile_cover_url: null }).eq("id", profile.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/directory/${profile.id}`);
+  return {};
+}

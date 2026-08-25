@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const month = searchParams.get("month");
+  const [pending, startTransition] = useTransition();
+  const [optimisticDate, setOptimisticDate] = useState<string | null>(selectedDate);
   const hasActiveDateFilter = !!(selectedDate || from || to || month);
 
   const [panelOpen, setPanelOpen] = useState(false);
@@ -55,6 +57,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   });
   const [rangeDraft, setRangeDraft] = useState({ from: from ?? "", to: to ?? "" });
   const [monthDraft, setMonthDraft] = useState(month ?? thisMonthKey());
+  useEffect(() => setOptimisticDate(selectedDate), [selectedDate]);
 
   const datesWithEvents = useMemo(() => new Set(eventDates.map(toJstDateKey)), [eventDates]);
 
@@ -67,14 +70,17 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
     params.delete("month");
     mutate(params);
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
 
   function selectSingleDate(dateKey: string) {
     if (selectedDate === dateKey) {
+      setOptimisticDate(null);
       navigateWithParams(() => {});
       return;
     }
+    setOptimisticDate(dateKey);
+    setPanelOpen(false);
     navigateWithParams((params) => params.set("date", dateKey));
   }
 
@@ -93,6 +99,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   }
 
   function clearDateFilter() {
+    setOptimisticDate(null);
     navigateWithParams(() => {});
   }
 
@@ -141,7 +148,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   ];
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn("flex flex-col gap-2 transition-opacity", pending && "opacity-70")} aria-busy={pending}>
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
@@ -218,7 +225,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                 {cells.map((cell, idx) => {
                   if (!cell) return <div key={`empty-${idx}`} />;
                   const hasEvent = datesWithEvents.has(cell.dateKey);
-                  const isSelected = selectedDate === cell.dateKey;
+                  const isSelected = optimisticDate === cell.dateKey;
                   return (
                     <button
                       key={cell.dateKey}

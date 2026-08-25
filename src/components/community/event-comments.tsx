@@ -127,8 +127,8 @@ export function EventComments({
 
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-5">
-      <h2 className="font-bold">コメント</h2>
-      <div className="rounded-2xl border border-border bg-card p-2 shadow-sm">
+      <h2 className="font-bold">コメント（{visibleComments.length}）</h2>
+      <div>
         {replyTo && (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-xl bg-primary/5 px-2.5 py-1.5 text-xs text-primary">
             <span className="truncate">{displayName(replyTo)} さんに返信</span>
@@ -137,12 +137,13 @@ export function EventComments({
             </button>
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5 rounded-[22px] border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
           <Input
             value={body}
             onChange={(e) => setBody(e.target.value)}
             maxLength={1000}
-            placeholder={replyTo ? "返信を入力" : "イベントについてコメントする"}
+            placeholder={replyTo ? "返信を入力..." : "コメントを追加..."}
+            className="h-10 flex-1 border-0 bg-transparent px-2 text-[16px] shadow-none focus-visible:ring-0"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
@@ -150,7 +151,7 @@ export function EventComments({
               }
             }}
           />
-          <Button size="icon" disabled={pending || !body.trim()} onClick={submit} aria-label="コメントを送信">
+          <Button size="icon" className="h-9 w-9 shrink-0 rounded-full transition-transform active:scale-90" disabled={pending || !body.trim()} onClick={submit} aria-label="コメントを送信">
             <Send className="h-4 w-4" />
           </Button>
         </div>

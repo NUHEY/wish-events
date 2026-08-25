@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/locales";
 import { parseFullRoomNumber } from "@/lib/utils";
@@ -35,6 +36,11 @@ type InitialProfile = Pick<
   | "line_id"
   | "x_handle"
   | "profile_accent"
+  | "profile_cover_url"
+  | "show_past_events"
+  | "show_sns"
+  | "show_languages"
+  | "show_nationalities"
 >;
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -75,6 +81,7 @@ export function ProfileForm({
       <div className="pb-2">
         <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
       </div>
+      <ProfileCoverUploader initialUrl={initialProfile?.profile_cover_url ?? null} />
 
       <div className="grid gap-2">
         <Label htmlFor="full_name">{dict.profile.fullNameLabel}</Label>
@@ -228,7 +235,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label>{dict.profile.lineLabel}</Label>
+          <Label>{dict.profile.lineLabel} <span className="text-destructive">*</span></Label>
           <LineQrUploader
             hasQr={!!initialProfile?.line_qr_path}
             initialSignedUrl={initialLineQrSignedUrl}
@@ -257,6 +264,16 @@ export function ProfileForm({
           <p className="text-xs text-muted-foreground">{dict.profile.xHandleHint}</p>
         </div>
       </div>
+
+      <fieldset className="grid gap-3 border-t border-border pt-4">
+        <legend className="text-sm font-semibold">マイページの公開設定</legend>
+        {[
+          ["show_past_events", "参加したイベントを表示", initialProfile?.show_past_events ?? true],
+          ["show_sns", "SNSリンクを表示", initialProfile?.show_sns ?? true],
+          ["show_languages", "話せる言語を表示", initialProfile?.show_languages ?? true],
+          ["show_nationalities", "国籍・居住経験国を表示", initialProfile?.show_nationalities ?? true],
+        ].map(([name, label, checked]) => <label key={String(name)} className="flex items-center justify-between gap-4 rounded-xl bg-secondary/40 px-3 py-2.5 text-sm"><span>{String(label)}</span><input type="checkbox" name={String(name)} defaultChecked={Boolean(checked)} className="h-4 w-4 accent-primary" /></label>)}
+      </fieldset>
 
       <div className="grid gap-3 border-t border-border pt-4">
         <div>

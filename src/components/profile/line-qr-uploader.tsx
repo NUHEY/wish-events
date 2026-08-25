@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { QrCode, X } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { uploadLineQr, removeLineQr } from "@/actions/line-qr";
+import { uploadLineQr } from "@/actions/line-qr";
 
 /**
  * LINEのQRコード画像は非公開Storageバケットに保存されるため、表示には
@@ -65,20 +65,6 @@ export function LineQrUploader({
     });
   }
 
-  function handleRemove() {
-    setError(null);
-    startTransition(async () => {
-      const result = await removeLineQr();
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setUploaded(false);
-        setPreviewUrl(null);
-        router.refresh();
-      }
-    });
-  }
-
   return (
     <div className="grid gap-2">
       <p className="text-xs text-muted-foreground">{dict.profile.lineHint}</p>
@@ -107,18 +93,6 @@ export function LineQrUploader({
             >
               {pending ? dict.profile.lineUploading : dict.profile.lineUploadButton}
             </Button>
-            {uploaded && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={pending}
-                onClick={handleRemove}
-              >
-                <X className="h-3.5 w-3.5" />
-                {dict.profile.lineRemoveButton}
-              </Button>
-            )}
           </div>
         </div>
       </div>

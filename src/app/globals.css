@@ -32,6 +32,11 @@
   }
 }
 
+@keyframes navigation-progress {
+  0% { transform: translateX(-110%); }
+  60%, 100% { transform: translateX(210%); }
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -39,6 +39,11 @@ export interface UserRow {
   line_id: string | null;
   x_handle: string | null;
   profile_accent: string | null;
+  profile_cover_url: string | null;
+  show_past_events: boolean;
+  show_sns: boolean;
+  show_languages: boolean;
+  show_nationalities: boolean;
   moved_out_at: string | null;
   created_at: string;
   updated_at: string;
@@ -62,6 +67,11 @@ export interface DirectoryProfileRow {
   line_id: string | null;
   x_handle: string | null;
   profile_accent: string | null;
+  profile_cover_url: string | null;
+  show_past_events: boolean;
+  show_sns: boolean;
+  show_languages: boolean;
+  show_nationalities: boolean;
 }
 
 export type BadgeCriteriaType =
@@ -633,6 +643,32 @@ export interface Database {
       can_access_dm_media: {
         Args: { p_pair: string };
         Returns: boolean;
+      };
+      has_unread_talks: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      has_unread_direct_messages: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      event_talk_threads: {
+        Args: Record<string, never>;
+        Returns: {
+          event_id: string;
+          title: string;
+          title_en: string | null;
+          event_date: string;
+          poster_url: string | null;
+          last_message_body: string | null;
+          last_message_type: string | null;
+          last_message_at: string | null;
+          unread: boolean;
+        }[];
+      };
+      profile_past_events: {
+        Args: { p_user_id: string };
+        Returns: { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null }[];
       };
     };
     Enums: Record<string, never>;

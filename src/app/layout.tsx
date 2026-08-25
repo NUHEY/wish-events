@@ -5,9 +5,11 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { SavedToastWatcher } from "@/components/layout/saved-toast-watcher";
+import { NavigationFeedback } from "@/components/layout/navigation-feedback";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,11 +41,13 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <LocaleProvider locale={locale}>
           <Header />
+          <Suspense fallback={null}><NavigationFeedback /></Suspense>
           <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
           <AppToaster />
           <Suspense fallback={null}>
             <SavedToastWatcher />
           </Suspense>
+          <SpeedInsights sampleRate={0.2} />
         </LocaleProvider>
       </body>
     </html>

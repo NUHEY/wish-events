@@ -23,13 +23,19 @@ export default async function ParticipantsPage({
     supabase
       .from("registrations")
       .select(
-        "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number, email, faculty, grade_level), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
+        "id, user_id, registered_at, users(full_name, student_id, floor_number, room_number, email, faculty, grade_level, line_qr_path), registration_answers(question_id, answer_text, answer_options), registration_payments(status)"
       )
       .eq("event_id", id)
       .order("registered_at", { ascending: true }),
   ]);
   if (!event) notFound();
   const title = (locale === "en" && event.title_en) || event.title;
+
+  const qrPaths = (registrations ?? []).map((r: any) => r.users?.line_qr_path).filter(Boolean) as string[];
+  const { data: signedQrRows } = qrPaths.length
+    ? await supabase.storage.from("line-qr").createSignedUrls(qrPaths, 60 * 60)
+    : { data: [] as { path: string | null; signedUrl: string }[] };
+  const qrUrlByPath = new Map((signedQrRows ?? []).map((row) => [row.path, row.signedUrl]));
 
   const participants = (registrations ?? []).map((r: any) => {
     const answers: Record<string, string> = {};
@@ -50,6 +56,7 @@ export default async function ParticipantsPage({
       email: r.users?.email ?? null,
       faculty: r.users?.faculty ?? null,
       grade_level: r.users?.grade_level ?? null,
+      line_qr_url: r.users?.line_qr_path ? qrUrlByPath.get(r.users.line_qr_path) ?? "" : "",
       answers,
     };
   });

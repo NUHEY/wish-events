@@ -91,6 +91,10 @@ export function getProfileSchema(locale: Locale) {
         (v) => v === null || (PROFILE_ACCENT_KEYS as readonly string[]).includes(v),
         t.profileAccentInvalid
       ),
+    show_past_events: z.boolean().default(false),
+    show_sns: z.boolean().default(false),
+    show_languages: z.boolean().default(false),
+    show_nationalities: z.boolean().default(false),
   });
 }
 

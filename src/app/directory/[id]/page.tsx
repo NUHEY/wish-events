@@ -75,7 +75,7 @@ export default async function DirectoryProfilePage({
       ? supabase
           .from("users")
           .select(
-            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accent"
+            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accent, profile_cover_url, show_past_events, show_sns, show_languages, show_nationalities"
           )
           .eq("id", id)
           .maybeSingle()
@@ -116,15 +116,9 @@ export default async function DirectoryProfilePage({
     : null;
 
   let pastEvents: PastEvent[] = [];
-  if (isSelf) {
-    const { data: pastRegs } = await supabase
-      .from("registrations")
-      .select("event_id, events(id, title, title_en, event_date, poster_url)")
-      .eq("user_id", target.id)
-      .order("registered_at", { ascending: false })
-      .limit(12)
-      .returns<{ event_id: string; events: PastEvent | null }[]>();
-    pastEvents = (pastRegs ?? []).map((r) => r.events).filter(Boolean) as PastEvent[];
+  if (isSelf || target.show_past_events) {
+    const { data } = await supabase.rpc("profile_past_events", { p_user_id: target.id });
+    pastEvents = (data ?? []) as PastEvent[];
   }
 
   const roomText = formatRoomNumber(target.floor_number, target.room_number);
@@ -134,8 +128,8 @@ export default async function DirectoryProfilePage({
       <BackButton fallbackHref="/directory" className="-ml-2" />
 
       <Card className="overflow-hidden rounded-2xl">
-        {accentHex && <div className="h-16 w-full" style={{ backgroundColor: accentHex }} />}
-        <CardContent className={`flex flex-col gap-5 p-5 ${accentHex ? "-mt-10" : ""}`}>
+        {target.profile_cover_url ? <div className="relative h-32 w-full"><Image src={target.profile_cover_url} alt="" fill sizes="576px" className="object-cover" /></div> : accentHex ? <div className="h-16 w-full" style={{ backgroundColor: accentHex }} /> : null}
+        <CardContent className={`flex flex-col gap-5 p-5 ${target.profile_cover_url || accentHex ? "-mt-10" : ""}`}>
           <div className="flex items-center gap-4">
             <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
               {target.avatar_url ? (
@@ -315,7 +309,7 @@ export default async function DirectoryProfilePage({
             <p className="text-xs text-muted-foreground">{dict.directory.hiddenFieldsNote}</p>
           )}
 
-          {isSelf && pastEvents.length > 0 && (
+          {(isSelf || target.show_past_events) && pastEvents.length > 0 && (
             <div className="grid gap-2 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">{dict.directory.pastEventsTitle}</p>
               <div className="grid grid-cols-4 gap-2">
@@ -359,6 +353,7 @@ export default async function DirectoryProfilePage({
                 fullName: target.full_name,
                 roomText,
                 avatarUrl: target.avatar_url,
+                coverUrl: target.profile_cover_url,
                 accentHex,
                 badges: earnedBadges,
                 eventCount: stats.event_count,

@@ -30,6 +30,7 @@ export type ProfileShareData = {
   fullName: string | null;
   roomText: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   accentHex: string | null;
   badges: { icon: string; label: string }[];
   eventCount: number;
@@ -39,6 +40,7 @@ export type ProfileShareData = {
 type RenderCtx = {
   data: ProfileShareData;
   avatarImg: HTMLImageElement | null;
+  coverImg: HTMLImageElement | null;
   dict: Dictionary;
   locale: Locale;
 };
@@ -87,6 +89,26 @@ function renderWine(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
+  if (r.coverImg) {
+    const scale = Math.max(W / r.coverImg.width, 460 / r.coverImg.height);
+    const width = r.coverImg.width * scale;
+    const height = r.coverImg.height * scale;
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.drawImage(r.coverImg, (W - width) / 2, (460 - height) / 2, width, height);
+    const coverFade = ctx.createLinearGradient(0, 120, 0, 500);
+    coverFade.addColorStop(0, "rgba(42,10,21,0.05)");
+    coverFade.addColorStop(1, dark);
+    ctx.fillStyle = coverFade; ctx.fillRect(0, 0, W, 520);
+    ctx.restore();
+  }
+
+  // 世界中の寮生とイベントがつながる様子を、地球の軌道とノードで表現する。
+  ctx.save(); ctx.globalAlpha = 0.2; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+  [180, 250, 320].forEach((radius) => { ctx.beginPath(); ctx.ellipse(W / 2, 350, radius, radius * 0.42, -0.15, 0, Math.PI * 2); ctx.stroke(); });
+  [[250,280],[820,260],[180,420],[890,410],[360,160],[720,500]].forEach(([x,y]) => { ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fillStyle = gold; ctx.fill(); });
+  ctx.restore();
+
   ctx.globalAlpha = 0.08;
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
@@ -102,14 +124,14 @@ function renderWine(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.font = "700 42px sans-serif";
   ctx.fillText("W", 80 + 42 - ctx.measureText("W").width / 2, 80 + 44);
   ctx.font = "600 28px sans-serif";
-  ctx.fillText("WISH Events", 190, 80 + 44);
+  ctx.fillText("WISH INTERNATIONAL COMMUNITY", 190, 80 + 44);
   ctx.textBaseline = "alphabetic";
 
   drawAvatar(ctx, r, W / 2, 400, 130, "rgba(255,255,255,0.9)");
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 64px sans-serif";
+  ctx.font = "800 48px sans-serif";
   ctx.fillText(displayName(r), W / 2, 610);
   ctx.font = "500 32px sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.8)";
@@ -292,6 +314,7 @@ function ProfileShareModal({ data, onClose }: { data: ProfileShareData; onClose:
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
+  const [coverImg, setCoverImg] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,14 +332,21 @@ function ProfileShareModal({ data, onClose }: { data: ProfileShareData; onClose:
   }, [data.avatarUrl]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (!data.coverUrl) { setCoverImg(null); return; }
+    loadImage(data.coverUrl).then((img) => { if (!cancelled) setCoverImg(img); }).catch(() => setCoverImg(null));
+    return () => { cancelled = true; };
+  }, [data.coverUrl]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    RENDERERS[style](ctx, { data, avatarImg, dict, locale });
-  }, [style, data, avatarImg, dict, locale]);
+    RENDERERS[style](ctx, { data, avatarImg, coverImg, dict, locale });
+  }, [style, data, avatarImg, coverImg, dict, locale]);
 
   async function handleShare() {
     const canvas = canvasRef.current;

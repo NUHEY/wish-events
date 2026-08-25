@@ -371,9 +371,7 @@ export function FriendDm({
                   </p>
                 )}
 
-                <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
-                  <span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span>
-                </div>
+                {isGroupEnd && <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}><span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span></div>}
               </div>
             </div>
           );

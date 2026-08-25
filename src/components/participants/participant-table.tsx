@@ -31,6 +31,7 @@ export type ParticipantRow = {
   email: string | null;
   faculty: string | null;
   grade_level: string | null;
+  line_qr_url: string;
   registered_at: string;
   registration_id: string;
   payment_status: "unpaid" | "paid" | "waived";
@@ -96,6 +97,7 @@ export function ParticipantTable({
         email: p.email ?? "",
         faculty: facultyLabel(p.faculty),
         grade_level: gradeLevelLabel(p.grade_level),
+        line_qr_url: p.line_qr_url,
         payment_status: collectionRequired ? PAYMENT_LABELS[p.payment_status] : "",
         registered_at: formatEventDateTime(p.registered_at, locale),
         ...Object.fromEntries(questions.map((q) => [q.id, p.answers?.[q.id] ?? ""])),
@@ -107,6 +109,7 @@ export function ParticipantTable({
         { key: "email", label: dict.participants.emailColumn },
         { key: "faculty", label: dict.participants.facultyColumn },
         { key: "grade_level", label: dict.participants.gradeLevelColumn },
+        { key: "line_qr_url", label: "LINE QR URL" },
         ...(collectionRequired ? [{ key: "payment_status", label: dict.participants.paymentColumn }] : []),
         { key: "registered_at", label: dict.participants.dateColumn },
         ...questions.map((q) => ({ key: q.id, label: q.question_text })),

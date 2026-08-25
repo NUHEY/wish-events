@@ -88,23 +88,19 @@ export default async function EventsPage({
       )
     : null;
 
-  // カレンダーのドット表示用に、現在のカテゴリ・キーワード条件に一致する全イベントの開催日を取得する。
-  const dotDatesQuery = applyCommonFilters(supabase.from("events").select("event_date"));
-
   const [
     { data: upcomingEventsRaw, error },
     { data: pastEventsRaw },
     { data: dateEventsRaw },
-    { data: dotDates },
   ] = await Promise.all([
     showUpcoming ? upcomingQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
     showPast ? pastQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
     dateQuery ?? Promise.resolve({ data: [] as EventCardData[] }),
-    dotDatesQuery,
   ]);
   const upcomingEvents = upcomingEventsRaw as EventCardData[] | null;
   const pastEvents = pastEventsRaw as EventCardData[] | null;
   const dateEvents = dateEventsRaw as EventCardData[] | null;
+  const calendarDates = [...(upcomingEvents ?? []), ...(pastEvents ?? []), ...(dateEvents ?? [])].map((event) => event.event_date);
 
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
@@ -141,7 +137,7 @@ export default async function EventsPage({
           <EventFilter />
           <EventStatusFilter />
         </div>
-        <EventCalendar eventDates={(dotDates ?? []).map((e: { event_date: string }) => e.event_date)} />
+        <EventCalendar eventDates={calendarDates} />
       </div>
 
       {error && (

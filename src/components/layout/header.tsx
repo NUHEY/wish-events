@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { getFriendDmThreads } from "@/actions/direct-messages";
 
 export async function Header() {
   const supabase = await createClient();
@@ -20,20 +19,7 @@ export async function Header() {
     .maybeSingle();
 
   if (!profile) return null;
-  const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
-  const eventIds = (registrations ?? []).map((registration) => registration.event_id);
-  const [{ data: reads }, { data: messages }, friendThreads] = await Promise.all([
-    eventIds.length
-      ? supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id)
-      : Promise.resolve({ data: [] }),
-    eventIds.length
-      ? supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds)
-      : Promise.resolve({ data: [] }),
-    getFriendDmThreads(),
-  ]);
-  const lastReadByEvent = new Map((reads ?? []).map((read) => [read.event_id, read.last_read_at]));
-  const hasUnreadEventTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
-  const hasUnreadTalk = hasUnreadEventTalk || friendThreads.some((t) => t.unread);
+  const { data: hasUnreadTalk } = await supabase.rpc("has_unread_talks");
 
   return (
     <>
@@ -46,7 +32,7 @@ export async function Header() {
               </span>
               <span className="text-lg font-bold tracking-tight">WISH Events</span>
             </Link>
-            <Nav role={profile.role} hasUnreadTalk={hasUnreadTalk} />
+            <Nav role={profile.role} hasUnreadTalk={!!hasUnreadTalk} />
           </div>
           <div className="flex items-center gap-2.5">
             <UserMenu
@@ -60,7 +46,7 @@ export async function Header() {
           </div>
         </div>
       </header>
-      <MobileTabBar hasUnreadTalk={hasUnreadTalk} />
+      <MobileTabBar hasUnreadTalk={!!hasUnreadTalk} />
     </>
   );
 }

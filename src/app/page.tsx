@@ -313,7 +313,7 @@ export default async function HomePage() {
               )}
 
               {announcements && announcements.length > 0 && (
-                <div className="divide-y divide-border overflow-hidden rounded-none border border-border bg-card">
+                <div className="divide-y divide-border overflow-hidden rounded-[6px] border border-border bg-card">
                   {(announcements as AnnouncementRow[]).map((a) => (
                     <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
                   ))}
