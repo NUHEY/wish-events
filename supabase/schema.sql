@@ -2162,6 +2162,7 @@ create table if not exists public.notifications (
   )),
   link text not null,
   preview_text text,
+  sender_label text,
   read_at timestamptz,
   created_at timestamptz not null default now(),
   broadcast_id uuid
@@ -2354,11 +2355,15 @@ create unique index if not exists notifications_broadcast_recipient_unique
   on public.notifications(broadcast_id, user_id)
   where broadcast_id is not null;
 
+drop function if exists public.send_ra_broadcast_notification(uuid[], text, text, uuid);
+
 create or replace function public.send_ra_broadcast_notification(
   p_target_ids uuid[],
   p_preview_text text,
   p_link text,
-  p_broadcast_id uuid
+  p_broadcast_id uuid,
+  p_sender_mode text,
+  p_sender_label text default null
 )
 returns integer
 language plpgsql
@@ -2380,9 +2385,28 @@ begin
   if p_link is null or p_link !~ '^/' or char_length(p_link) > 500 then
     raise exception 'リンクはサイト内のパスで指定してください';
   end if;
+  if p_sender_mode is null or p_sender_mode not in ('self', 'system', 'front_desk', 'ra_team', 'custom') then
+    raise exception '送り主が正しくありません';
+  end if;
+  if p_sender_mode = 'custom' and (char_length(trim(coalesce(p_sender_label, ''))) < 1 or char_length(p_sender_label) > 40) then
+    raise exception '任意の送り主名は1〜40文字にしてください';
+  end if;
 
-  insert into public.notifications (user_id, actor_id, type, link, preview_text, broadcast_id)
-  select u.id, auth.uid(), 'ra_broadcast', p_link, trim(p_preview_text), p_broadcast_id
+  insert into public.notifications (user_id, actor_id, type, link, preview_text, broadcast_id, sender_label)
+  select
+    u.id,
+    case when p_sender_mode = 'self' then auth.uid() else null end,
+    'ra_broadcast',
+    p_link,
+    trim(p_preview_text),
+    p_broadcast_id,
+    case p_sender_mode
+      when 'system' then 'WISH Events'
+      when 'front_desk' then '2F窓口'
+      when 'ra_team' then 'RAチーム'
+      when 'custom' then trim(p_sender_label)
+      else null
+    end
   from public.users u
   where u.id = any(p_target_ids) and u.floor_number is not null
   on conflict do nothing;
@@ -2391,6 +2415,6 @@ begin
 end;
 $$;
 
-revoke all on function public.send_ra_broadcast_notification(uuid[], text, text, uuid) from public;
-revoke execute on function public.send_ra_broadcast_notification(uuid[], text, text, uuid) from anon;
-grant execute on function public.send_ra_broadcast_notification(uuid[], text, text, uuid) to authenticated;
+revoke all on function public.send_ra_broadcast_notification(uuid[], text, text, uuid, text, text) from public;
+revoke execute on function public.send_ra_broadcast_notification(uuid[], text, text, uuid, text, text) from anon;
+grant execute on function public.send_ra_broadcast_notification(uuid[], text, text, uuid, text, text) to authenticated;

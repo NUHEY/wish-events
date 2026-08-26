@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type FeatureFlagState = "public" | "beta" | "hidden";
-export type FeatureFlagKey = "friend_dm";
+export type FeatureFlagKey = "friend_dm" | "event_calendar_export";
 
 /** 設定行が未作成・移行未実行・取得失敗なら、安全側の「非公開」に倒す。 */
 export const getFeatureFlagState = cache(async (key: FeatureFlagKey): Promise<FeatureFlagState> => {

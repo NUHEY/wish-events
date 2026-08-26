@@ -35,22 +35,27 @@ export async function createAnnouncement(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("announcements").insert({
-    title: parsed.data.title,
-    category_label: parsed.data.category_label,
-    body: parsed.data.body,
-    cover_image_url: parsed.data.cover_image_url || null,
-    pinned: parsed.data.pinned,
-    tags: parsed.data.tags,
-    created_by: profile.id,
-  });
+  const { data, error } = await supabase
+    .from("announcements")
+    .insert({
+      title: parsed.data.title,
+      category_label: parsed.data.category_label,
+      body: parsed.data.body,
+      cover_image_url: parsed.data.cover_image_url || null,
+      pinned: parsed.data.pinned,
+      tags: parsed.data.tags,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: `作成に失敗しました: ${error.message}` };
+  if (error || !data) {
+    return { error: `作成に失敗しました: ${error?.message ?? "作成結果を確認できませんでした"}` };
   }
 
   revalidatePath("/");
-  redirect("/?created=1");
+  revalidatePath("/announcements");
+  redirect(`/announcements/${data.id}?created=1`);
 }
 
 export async function updateAnnouncement(
@@ -83,7 +88,9 @@ export async function updateAnnouncement(
   }
 
   revalidatePath("/");
-  redirect("/?updated=1");
+  revalidatePath("/announcements");
+  revalidatePath(`/announcements/${announcementId}`);
+  redirect(`/announcements/${announcementId}?updated=1`);
 }
 
 export async function deleteAnnouncement(announcementId: string) {

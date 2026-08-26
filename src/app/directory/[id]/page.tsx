@@ -156,7 +156,7 @@ export default async function DirectoryProfilePage({
       <div className="flex items-center gap-2">
         <BackButton fallbackHref="/directory" className="-ml-2" />
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight">
+          <h1 className="break-words text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
             {isSelf ? "マイページ" : target.full_name ?? dict.common.notRegistered}
           </h1>
           <p className="text-xs text-muted-foreground">
@@ -204,7 +204,7 @@ export default async function DirectoryProfilePage({
             />
           )
         )}
-        <CardContent className="flex flex-col gap-5 p-5">
+        <CardContent className="flex flex-col gap-4 p-5">
           <div className={cn("flex items-end justify-between gap-3", hasCoverBanner && "-mt-10")}>
             <div className={cn("shrink-0 rounded-full", hasCoverBanner && "ring-[3px] ring-card")}>
               <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
@@ -234,9 +234,9 @@ export default async function DirectoryProfilePage({
             )}
           </div>
 
-          <div className="min-w-0">
+          <div className="-mt-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-xl font-bold">{target.full_name ?? dict.common.notRegistered}</h2>
+              <h2 className="min-w-0 break-words text-xl font-bold leading-tight [overflow-wrap:anywhere]">{target.full_name ?? dict.common.notRegistered}</h2>
               {target.role === "ra" && <Badge variant="default">RA</Badge>}
               {isSelf && <span className="text-xs font-normal text-muted-foreground">({dict.raRooms.you})</span>}
             </div>

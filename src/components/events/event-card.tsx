@@ -58,22 +58,26 @@ export async function EventCard({
     !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
 
   return (
-    <Link href={`/events/${event.id}`} className="group block">
+    <Link href={`/events/${event.id}`} className="group block h-full w-full min-w-0">
       <Card
         className={cn(
-          "h-full overflow-hidden transition-all duration-200",
+          "h-full w-full min-w-0 overflow-hidden rounded-xl transition-all duration-200",
           isMuted
-            ? "opacity-70 grayscale-[0.35] hover:opacity-100 hover:grayscale-0"
-            : "group-hover:-translate-y-0.5 group-hover:border-foreground/15 group-hover:shadow-card-hover"
+            ? "opacity-70 grayscale-[0.35] [@media(hover:hover)]:hover:opacity-100 [@media(hover:hover)]:hover:grayscale-0"
+            : "[@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:border-foreground/15 [@media(hover:hover)]:group-hover:shadow-card-hover"
         )}
       >
-        <div className="relative overflow-hidden rounded-t-[inherit]">
+        <div
+          className="relative isolate overflow-hidden rounded-t-xl [transform:translateZ(0)]"
+          style={{ WebkitMaskImage: "radial-gradient(white, black)" }}
+        >
           <EventPoster
             src={event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
             ratioClassName="aspect-[1.618/1]"
-            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]")}
+            roundedClassName="rounded-none"
+            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 [@media(hover:hover)]:group-hover:[&_img]:scale-[1.03]")}
           />
           <div className="absolute left-2 top-2 flex flex-wrap gap-1">
             <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
@@ -101,7 +105,7 @@ export async function EventCard({
         <CardContent className={cn("flex h-[84px] flex-col justify-between gap-1.5 p-2.5 sm:h-[102px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "line-clamp-2 h-10 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:h-11 sm:text-base",
+              "line-clamp-2 h-10 text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:h-11 sm:text-base",
               isMuted && "text-sm"
             )}
           >
@@ -116,7 +120,7 @@ export async function EventCard({
             <p className="truncate text-xs text-muted-foreground sm:text-sm">
               {formatEventDateTime(event.event_date, locale, isMuted, !isMuted)}
             </p>
-            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 [@media(hover:hover)]:group-hover:translate-x-0.5 [@media(hover:hover)]:group-hover:text-primary" />
           </div>
         </CardContent>
       </Card>

@@ -304,6 +304,7 @@ export interface NotificationRow {
   type: NotificationType;
   link: string;
   preview_text: string | null;
+  sender_label: string | null;
   read_at: string | null;
   created_at: string;
   broadcast_id?: string | null;
@@ -693,7 +694,7 @@ export interface Database {
         Returns: boolean;
       };
       send_ra_broadcast_notification: {
-        Args: { p_target_ids: string[]; p_preview_text: string; p_link: string; p_broadcast_id: string };
+        Args: { p_target_ids: string[]; p_preview_text: string; p_link: string; p_broadcast_id: string; p_sender_mode: string; p_sender_label: string };
         Returns: number;
       };
     };

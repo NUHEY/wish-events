@@ -29,7 +29,7 @@ export function ProfilePrintCard({ data }: { data: ProfileShareData }) {
         </div>
 
         <div className="mt-8">
-          <h2 className="text-6xl font-bold tracking-tight">{data.fullName || "WISH Resident"}</h2>
+          <h2 className="max-w-full break-words text-5xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{data.fullName || "WISH Resident"}</h2>
           <p className="mt-3 text-3xl text-muted-foreground">{data.roomText}</p>
         </div>
 

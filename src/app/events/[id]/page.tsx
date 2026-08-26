@@ -11,12 +11,14 @@ import { RegistrationButton } from "@/components/events/registration-button";
 import { FloatingRegistrationCta } from "@/components/events/floating-registration-cta";
 import { EventPoster } from "@/components/events/event-poster";
 import { EventShareButton } from "@/components/events/event-share-button";
+import { EventCalendarActions } from "@/components/events/event-calendar-actions";
 import { EventComments } from "@/components/community/event-comments";
 import { EventLikeButton } from "@/components/community/event-like-button";
 import { BackButton } from "@/components/layout/back-button";
 import { TeamAvatars } from "@/components/team/team-avatars";
 import { formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 import { deleteEvent } from "@/actions/events";
 import type { EventCategory, TeamMemberRow } from "@/types/database";
 
@@ -59,6 +61,7 @@ export default async function EventDetailPage({
     { data: eventLikes },
     { data: registrationQuestions },
     { data: commentRows },
+    calendarFeatureState,
   ] = await Promise.all([
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
     // registrationsはRLSで本人+RA以外は直接SELECT/COUNTできないため、
@@ -73,6 +76,7 @@ export default async function EventDetailPage({
     supabase.from("event_likes").select("user_id").eq("event_id", id),
     supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
     supabase.from("event_comments").select("*").eq("event_id", id).order("created_at", { ascending: false }),
+    getFeatureFlagState("event_calendar_export"),
   ]);
   if (!event) notFound();
 
@@ -222,6 +226,17 @@ export default async function EventDetailPage({
         <div className="prose prose-sm max-w-none rounded-md border border-border p-4">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
         </div>
+      )}
+
+      {calendarFeatureState !== "hidden" && (
+        <EventCalendarActions
+          eventId={event.id}
+          title={title}
+          eventDate={event.event_date}
+          location={location}
+          description={description}
+          featureState={calendarFeatureState}
+        />
       )}
 
       <div id="registration-panel" className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">

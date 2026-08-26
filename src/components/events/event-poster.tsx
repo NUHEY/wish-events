@@ -18,6 +18,7 @@ export function EventPoster({
   className,
   priority,
   ratioClassName = "aspect-[3/4]",
+  roundedClassName = "rounded-lg",
 }: {
   src: string | null;
   alt: string;
@@ -31,19 +32,15 @@ export function EventPoster({
    * Tailwindの静的解析で拾われないため、必ずリテラルの完全なクラス名を渡すこと。
    */
   ratioClassName?: string;
+  /** 一覧カードでは外側の直近要素だけでクリップするため rounded-none を渡す。 */
+  roundedClassName?: string;
 }) {
   // 画像未登録の場合はWaseda WISHをイメージしたデフォルト画像を表示する（「画像なし」の空白を避けるため）。
   const isDefault = !src;
   const displaySrc = src ?? DEFAULT_EVENT_IMAGE_URL;
 
   return (
-    // rounded-[inherit] を重ねがけしているのは、モバイルSafari(WebKit)で
-    // 「overflow-hidden + border-radius を持つ祖先要素から離れた場所に
-    // blurフィルター付きの画像があると、角の丸めクリップが効かず画像の
-    // 四隅が四角いまま透けて見える」という既知の不具合を避けるため。
-    // 画像そのものに近い階層でも同じ丸めを再宣言しておくことで、
-    // どの祖先で丸めていてもここで確実にクリップされるようにしている。
-    <div className={cn("relative isolate w-full overflow-hidden rounded-[inherit] bg-muted [transform:translateZ(0)]", ratioClassName, className)}>
+    <div className={cn("relative isolate w-full overflow-hidden bg-muted [transform:translateZ(0)]", roundedClassName, ratioClassName, className)}>
       <Image
         src={displaySrc}
         alt=""

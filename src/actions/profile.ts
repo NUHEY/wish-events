@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, postLoginPath } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/auth";
 import { getProfileSchema } from "@/lib/validations/profile";
 import { getLocale, getDictionary } from "@/lib/i18n";
-import type { UserRole } from "@/types/database";
 
 export type ActionResult = { error?: string } | void;
 
@@ -73,11 +72,10 @@ export async function submitProfile(
   // そうでなければresidentのままになる。role列は自己申告では直接書き換えら
   // れないため、この同期はDB側のSECURITY DEFINER関数(sync_own_role)経由で
   // 行っている（詳細はschema.sql参照）。
-  const { data: newRole } = await supabase.rpc("sync_own_role");
+  await supabase.rpc("sync_own_role");
 
   revalidatePath("/", "layout");
   revalidatePath("/directory");
-  const nextPath = postLoginPath((newRole as UserRole | null) ?? profile.role);
-  const separator = nextPath.includes("?") ? "&" : "?";
-  redirect(`${nextPath}${separator}saved=1`);
+  revalidatePath(`/directory/${profile.id}`);
+  redirect(`/directory/${profile.id}?saved=1`);
 }

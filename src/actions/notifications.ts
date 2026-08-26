@@ -11,7 +11,18 @@ export type BroadcastTarget =
   | { mode: "role"; role: "ra" | "resident" }
   | { mode: "individual"; userIds: string[] };
 
-export type BroadcastInput = { message: string; link?: string; target: BroadcastTarget; broadcastId: string };
+export type BroadcastSender =
+  | { mode: "self" }
+  | { mode: "system" | "front_desk" | "ra_team" }
+  | { mode: "custom"; label: string };
+
+export type BroadcastInput = {
+  message: string;
+  link?: string;
+  target: BroadcastTarget;
+  sender: BroadcastSender;
+  broadcastId: string;
+};
 
 export async function sendRaBroadcastNotification(input: BroadcastInput) {
   await requireRa();
@@ -23,6 +34,12 @@ export async function sendRaBroadcastNotification(input: BroadcastInput) {
   if (!message || message.length > 180) return { error: "本文は1〜180文字で入力してください" };
   if (!link.startsWith("/") || link.startsWith("//") || link.length > 500) {
     return { error: "リンクは / から始まるサイト内のパスで入力してください" };
+  }
+  const senderModes = ["self", "system", "front_desk", "ra_team", "custom"] as const;
+  if (!senderModes.includes(input.sender.mode)) return { error: "送り主が正しくありません" };
+  const senderLabel = input.sender.mode === "custom" ? input.sender.label.trim() : "";
+  if (input.sender.mode === "custom" && (!senderLabel || senderLabel.length > 40)) {
+    return { error: "任意の送り主名は1〜40文字で入力してください" };
   }
 
   const supabase = await createClient();
@@ -51,6 +68,8 @@ export async function sendRaBroadcastNotification(input: BroadcastInput) {
       p_preview_text: message,
       p_link: link,
       p_broadcast_id: input.broadcastId,
+      p_sender_mode: input.sender.mode,
+      p_sender_label: senderLabel,
     });
     if (error) return { error: `通知の送信に失敗しました: ${error.message}`, count: sentCount };
     sentCount += data ?? 0;

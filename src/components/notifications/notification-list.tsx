@@ -17,6 +17,7 @@ type NotificationItem = {
   preview_text: string | null;
   read_at: string | null;
   created_at: string;
+  sender_label: string | null;
   actor: ActorProfile | null;
 };
 
@@ -60,8 +61,8 @@ function actionText(type: NotificationType) {
   }
 }
 
-function displayName(actor: ActorProfile | null) {
-  return actor?.full_name?.trim() || "名前未登録";
+function displayName(notification: NotificationItem) {
+  return notification.sender_label?.trim() || notification.actor?.full_name?.trim() || "WISH Events";
 }
 
 function formatRelativeTime(value: string) {
@@ -115,13 +116,17 @@ export function NotificationList({ notifications }: { notifications: Notificatio
             <Link href={notification.link} className="flex min-w-0 flex-1 items-center gap-3">
               <span className="relative shrink-0">
                 <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
-                  <Image
-                    src={notification.actor?.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
-                    alt=""
-                    width={44}
-                    height={44}
-                    className="h-full w-full object-cover"
-                  />
+                  {notification.type === "ra_broadcast" && !notification.actor ? (
+                    <Megaphone className="h-5 w-5 text-primary" aria-hidden />
+                  ) : (
+                    <Image
+                      src={notification.actor?.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </span>
                 <span
                   className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card ${className}`}
@@ -131,8 +136,8 @@ export function NotificationList({ notifications }: { notifications: Notificatio
               </span>
               <span className="min-w-0 flex-1">
                 <span className="text-sm leading-snug">
-                  <span className="font-semibold">{displayName(notification.actor)}</span>
-                  さんが{actionText(notification.type)}
+                  <span className="font-semibold">{displayName(notification)}</span>
+                  {notification.type === "ra_broadcast" ? "からのお知らせ" : <>さんが{actionText(notification.type)}</>}
                 </span>
                 {notification.preview_text && (
                   <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{notification.preview_text}</p>
