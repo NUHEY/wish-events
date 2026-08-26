@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import Image from "next/image";
 import {
@@ -93,8 +94,9 @@ export function FriendDm({
   const [pending, startTransition] = useTransition();
   const [stagedImages, setStagedImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
   const endRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const initialScrollDone = useRef(false);
+  const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
 
   const displayedMessages = useMemo(
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
@@ -277,7 +279,10 @@ export function FriendDm({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       <div
-        ref={scrollRef}
+        ref={(node) => {
+          scrollRef.current = node;
+          messagesAnimateRef(node);
+        }}
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
       >
         {hasMoreOlderState && (

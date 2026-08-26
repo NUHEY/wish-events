@@ -1,36 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useDict } from "@/lib/i18n/locale-provider";
-import type { ProfileShareData } from "@/components/profile/profile-share-modal";
 
-export type { ProfileShareData };
-
-/**
- * Canvas描画を伴う共有モーダル本体（profile-share-modal.tsx）は、実際に
- * ボタンが押されるまで誰も使わない機能なので next/dynamic で遅延読み込みする。
- * これにより、マイページ・ディレクトリ詳細ページの初期表示ではこのモーダルの
- * JSを読み込まずに済み、画面遷移が速くなる。
- */
-const ProfileShareModal = dynamic(
-  () => import("@/components/profile/profile-share-modal").then((mod) => mod.ProfileShareModal),
-  { ssr: false }
-);
-
-export function ProfileShareButton({ data, className }: { data: ProfileShareData; className?: string }) {
+/** イベント共有と同様に、端末の共有シートを優先し、非対応環境ではURLをコピーする。 */
+export function ProfileShareButton({
+  profileId,
+  fullName,
+  className,
+}: {
+  profileId: string;
+  fullName: string | null;
+  className?: string;
+}) {
   const dict = useDict();
-  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function shareProfile() {
+    const url = `${window.location.origin}/directory/${profileId}`;
+    const title = fullName?.trim() || "WISH Eventsプロフィール";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text: `${title}のプロフィール`, url });
+      } catch {
+        // 共有シートを閉じただけの場合はエラー表示を出さない。
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+      toast.success("プロフィールURLをコピーしました");
+    } catch {
+      toast.error("プロフィールを共有できませんでした");
+    }
+  }
 
   return (
-    <>
-      <Button type="button" variant="outline" size="sm" className={className} onClick={() => setOpen(true)}>
-        <Share2 className="h-3.5 w-3.5" />
-        {dict.directory.shareProfileButton}
-      </Button>
-      {open && <ProfileShareModal data={data} onClose={() => setOpen(false)} />}
-    </>
+    <Button type="button" variant="outline" size="sm" className={className} onClick={shareProfile}>
+      <Share2 className="h-3.5 w-3.5" />
+      {copied ? "コピーしました" : dict.directory.shareProfileButton}
+    </Button>
   );
 }

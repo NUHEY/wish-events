@@ -25,7 +25,7 @@ export default async function OgImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: 72,
-          background: "linear-gradient(135deg, #7A2140 0%, #4f1526 100%)",
+          background: "linear-gradient(135deg, #f9f5f6 0%, #eaf4f7 52%, #f1f5ed 100%)",
           fontFamily: "sans-serif",
         }}
       >
@@ -39,21 +39,21 @@ export default async function OgImage() {
               height: 64,
               borderRadius: 9999,
               background: "#ffffff",
-              color: "#7A2140",
+              color: "#A84F6D",
               fontSize: 32,
               fontWeight: 700,
             }}
           >
             W
           </div>
-          <div style={{ display: "flex", fontSize: 26, fontWeight: 600, letterSpacing: 4, color: "#f2d9e2" }}>
+          <div style={{ display: "flex", fontSize: 26, fontWeight: 600, letterSpacing: 4, color: "#6f7885" }}>
             WISH
           </div>
         </div>
-        <div style={{ display: "flex", fontSize: 60, fontWeight: 700, lineHeight: 1.25, color: "#ffffff" }}>
+        <div style={{ display: "flex", fontSize: 60, fontWeight: 700, lineHeight: 1.25, color: "#273142" }}>
           {title}
         </div>
-        <div style={{ display: "flex", marginTop: 24, fontSize: 26, color: "#f2d9e2", maxWidth: 920 }}>
+        <div style={{ display: "flex", marginTop: 24, fontSize: 26, color: "#667085", maxWidth: 920 }}>
           {description}
         </div>
       </div>

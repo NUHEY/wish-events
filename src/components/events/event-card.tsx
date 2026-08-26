@@ -61,23 +61,22 @@ export async function EventCard({
     <Link href={`/events/${event.id}`} className="group block h-full w-full min-w-0">
       <Card
         className={cn(
-          "h-full w-full min-w-0 overflow-hidden rounded-xl transition-all duration-200",
+          // WebKitではfilter/transformを持つ子をoverflow-hiddenだけで丸めると
+          // 角から描画が漏れるため、カード自身をstacking contextにして直接clipする。
+          "relative z-0 h-full w-full min-w-0 overflow-hidden rounded-xl transition-all duration-200",
           isMuted
             ? "opacity-70 grayscale-[0.35] [@media(hover:hover)]:hover:opacity-100 [@media(hover:hover)]:hover:grayscale-0"
             : "[@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:border-foreground/15 [@media(hover:hover)]:group-hover:shadow-card-hover"
         )}
       >
-        <div
-          className="relative isolate overflow-hidden rounded-t-xl [transform:translateZ(0)]"
-          style={{ WebkitMaskImage: "radial-gradient(white, black)" }}
-        >
+        <div className="relative overflow-hidden">
           <EventPoster
             src={event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
             ratioClassName="aspect-[1.618/1]"
             roundedClassName="rounded-none"
-            className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 [@media(hover:hover)]:group-hover:[&_img]:scale-[1.03]")}
+            softenBackdrop={false}
           />
           <div className="absolute left-2 top-2 flex flex-wrap gap-1">
             <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>

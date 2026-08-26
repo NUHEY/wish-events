@@ -133,7 +133,6 @@ export default async function DirectoryProfilePage({
     .map((key) => PROFILE_ACCENT_HEX[key as ProfileAccentKey])
     .filter((hex): hex is string => Boolean(hex))
     .slice(0, 5);
-  const accentHex = accentHexList[0] ?? null;
   const accentBackgroundGradient = buildAccentBackgroundGradient(accentHexList);
   const hasCoverBanner = Boolean(target.profile_cover_url || accentHexList.length > 0);
 
@@ -422,20 +421,8 @@ export default async function DirectoryProfilePage({
               </Link>
             )}
             <ProfileShareButton
-              data={{
-                fullName: target.full_name,
-                roomText,
-                avatarUrl: target.avatar_url,
-                accentHex,
-                badges: earnedBadges,
-                eventCount: stats.event_count,
-                surveyCount: stats.survey_count,
-                coverUrl: target.profile_cover_url,
-                selfIntro: target.self_intro,
-                faculty: target.faculty ? (dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty) : null,
-                gradeLevel: target.grade_level ? (dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level) : null,
-                languages: (target.languages ?? []).map((code) => findLabel(LANGUAGES, code, locale)),
-              }}
+              profileId={target.id}
+              fullName={target.full_name}
             />
           </div>
         </CardContent>

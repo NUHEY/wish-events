@@ -68,7 +68,7 @@ function displayName(r: RenderCtx): string {
 
 // ---- スタイル1: ワインレッド（ブランドカラーを踏襲したミニマルデザイン） ----
 function renderWine(ctx: CanvasRenderingContext2D, r: RenderCtx) {
-  const PRIMARY = "#7A2140";
+  const PRIMARY = "#A84F6D";
   const PRIMARY_DARK = "#2A0A15";
   const GOLD = "#F0D9A8";
 
@@ -193,7 +193,7 @@ function renderPolaroid(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   const photoGrad = ctx.createLinearGradient(-cardW / 2, -cardH / 2, cardW / 2, -cardH / 2 + 820);
   photoGrad.addColorStop(0, "#E8B4B8");
   photoGrad.addColorStop(0.5, "#D89A9E");
-  photoGrad.addColorStop(1, "#7A2140");
+  photoGrad.addColorStop(1, "#A84F6D");
   ctx.fillStyle = photoGrad;
   ctx.fillRect(-cardW / 2 + 40, -cardH / 2 + 40, cardW - 80, 820);
 
@@ -213,7 +213,7 @@ function renderPolaroid(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.fillText(r.locale === "en" ? "My time at WISH" : "WISHでの思い出", 0, -cardH / 2 + 1005);
 
   ctx.font = "700 30px sans-serif";
-  ctx.fillStyle = "#7A2140";
+  ctx.fillStyle = "#A84F6D";
   ctx.fillText(
     r.locale === "en"
       ? `${r.stats.count} events · ${r.stats.categoryCount} categories`
@@ -428,7 +428,7 @@ function renderMemphis(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.arc(140, H - 260, 90, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.fillStyle = "#7A2140";
+  ctx.fillStyle = "#A84F6D";
   ctx.beginPath();
   ctx.arc(W - 150, H - 500, 50, 0, Math.PI * 2);
   ctx.fill();

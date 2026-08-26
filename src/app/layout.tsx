@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { SavedToastWatcher } from "@/components/layout/saved-toast-watcher";
 import { NavigationFeedback } from "@/components/layout/navigation-feedback";
+import { AutoAnimatePage } from "@/components/layout/auto-animate-page";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
@@ -73,7 +74,9 @@ export default async function RootLayout({
             <ConfirmDialogProvider>
               <NavigationFeedback />
               <Header />
-              <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
+              <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">
+                <AutoAnimatePage>{children}</AutoAnimatePage>
+              </main>
               <AppToaster />
               <Suspense fallback={null}>
                 <SavedToastWatcher />

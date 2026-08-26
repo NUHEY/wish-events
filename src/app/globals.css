@@ -4,37 +4,36 @@
 
 @layer base {
   :root {
-    /* ベースはホワイト＋ニュートラルグレーのミニマル配色。
-       早稲田カラー（臙脂色/ワインレッド）はprimaryとしてのみ使い、
-       主要アクション・アクティブ状態・少数のバッジに限定して使う。 */
-    --background: 0 0% 100%;
-    --foreground: 224 15% 15%;
+    /* 青みのあるオフホワイトを土台に、淡い空色・セージを混ぜた軽い配色。
+       えんじ色は若い印象のソフトベリーへ寄せ、主要操作だけに限定する。 */
+    --background: 220 33% 98%;
+    --foreground: 224 24% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 224 15% 15%;
+    --card-foreground: 224 24% 18%;
 
-    /* Waseda wine red */
-    --primary: 340 60% 28%;
-    --primary-hover: 340 60% 23%;
+    /* Wasedaのえんじ色を軽くした、低彩度のベリー */
+    --primary: 346 39% 48%;
+    --primary-hover: 346 43% 41%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 15% 20%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 94%;
-    --accent-foreground: 224 15% 20%;
-    --destructive: 0 72% 42%;
+    --secondary: 216 38% 95%;
+    --secondary-foreground: 224 22% 24%;
+    --muted: 218 28% 95%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 202 45% 93%;
+    --accent-foreground: 222 24% 23%;
+    --destructive: 0 64% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 88%;
-    --ring: 340 60% 28%;
-    --chat-surface: 330 10% 97%;
-    --chat-gradient-start: 340 38% 94%;
-    --chat-gradient-middle: 0 0% 98%;
-    --message-surface: 340 18% 99%;
-    --success: 155 58% 34%;
+    --border: 218 24% 89%;
+    --input: 218 22% 85%;
+    --ring: 346 39% 48%;
+    --chat-surface: 218 35% 97%;
+    --chat-gradient-start: 202 48% 94%;
+    --chat-gradient-middle: 344 35% 97%;
+    --message-surface: 0 0% 100%;
+    --success: 153 42% 38%;
     --success-foreground: 0 0% 100%;
-    --info: 202 73% 43%;
+    --info: 203 58% 48%;
     --info-foreground: 0 0% 100%;
     --instagram-start: 47 98% 73%;
     --instagram-middle: 337 69% 50%;
@@ -59,29 +58,29 @@
   }
 
   .dark {
-    --background: 224 16% 9%;
+    --background: 224 22% 10%;
     --foreground: 220 14% 92%;
     --card: 224 15% 12%;
     --card-foreground: 220 14% 92%;
 
-    --primary: 340 64% 52%;
-    --primary-hover: 340 66% 59%;
+    --primary: 346 52% 63%;
+    --primary-hover: 346 55% 69%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 13% 17%;
+    --secondary: 222 17% 18%;
     --secondary-foreground: 220 14% 90%;
     --muted: 224 13% 17%;
     --muted-foreground: 220 10% 65%;
-    --accent: 224 13% 20%;
+    --accent: 205 20% 21%;
     --accent-foreground: 220 14% 94%;
     --destructive: 0 66% 56%;
     --destructive-foreground: 0 0% 100%;
     --border: 224 12% 23%;
     --input: 224 12% 28%;
-    --ring: 340 64% 58%;
+    --ring: 346 52% 65%;
     --chat-surface: 224 15% 10%;
-    --chat-gradient-start: 340 22% 15%;
-    --chat-gradient-middle: 224 15% 11%;
+    --chat-gradient-start: 203 21% 17%;
+    --chat-gradient-middle: 344 16% 15%;
     --message-surface: 224 14% 17%;
     --success: 155 55% 42%;
     --success-foreground: 0 0% 100%;
@@ -115,9 +114,14 @@
 }
 
 @keyframes mobile-touch-feedback {
-  0% { opacity: 1; }
-  45% { opacity: 0.68; }
-  100% { opacity: 1; }
+  0% { opacity: 1; transform: scale(1); }
+  42% { opacity: 0.78; transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(110%); }
 }
 
 @layer base {
@@ -136,6 +140,18 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--secondary) / 0.86);
+  }
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, hsl(var(--card) / 0.72) 50%, transparent 80%);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
   }
 }
 
@@ -170,6 +186,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
   button:not(:disabled):active,
   a[href]:active,
   [role="button"]:active {

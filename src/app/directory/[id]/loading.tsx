@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { DirectoryProfileSkeleton } from "@/components/ui/page-skeletons";
 
 export default function DirectoryProfileLoading() {
-  return <div className="mx-auto flex max-w-xl flex-col gap-4"><div className="flex items-center gap-2"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-6 w-32" /><Skeleton className="h-3 w-24" /></div></div><div className="overflow-hidden rounded-2xl border border-border"><Skeleton className="aspect-[3/1] w-full rounded-none" /><div className="space-y-5 p-5"><Skeleton className="-mt-12 h-16 w-16 rounded-full ring-4 ring-card" /><div className="space-y-2"><Skeleton className="h-5 w-36" /><Skeleton className="h-3.5 w-20" /></div><div className="grid grid-cols-3 gap-3"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div><Skeleton className="h-16 w-full" /><div className="flex gap-2"><Skeleton className="h-8 w-24 rounded-full" /><Skeleton className="h-8 w-20 rounded-full" /></div></div></div></div>;
+  return <DirectoryProfileSkeleton />;
 }

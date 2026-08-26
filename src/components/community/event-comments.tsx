@@ -12,6 +12,7 @@ import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 type Comment = {
   id: string;
@@ -46,6 +47,7 @@ export function EventComments({
   const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
   const sendingRef = useRef(false);
   const router = useRouter();
+  const [commentsRef] = useAutoAnimate<HTMLDivElement>({ duration: 150, easing: "ease-out" });
 
   const visibleComments = useMemo(() => {
     return comments
@@ -163,7 +165,7 @@ export function EventComments({
         </div>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <div className="flex flex-col gap-5">
+      <div ref={commentsRef} className="flex flex-col gap-5">
         {roots.map((comment) => {
           const replies = repliesByParent.get(comment.id) ?? [];
           const expanded = expandedRoots.has(comment.id);

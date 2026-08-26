@@ -19,6 +19,7 @@ export function EventPoster({
   priority,
   ratioClassName = "aspect-[3/4]",
   roundedClassName = "rounded-lg",
+  softenBackdrop = true,
 }: {
   src: string | null;
   alt: string;
@@ -34,19 +35,25 @@ export function EventPoster({
   ratioClassName?: string;
   /** 一覧カードでは外側の直近要素だけでクリップするため rounded-none を渡す。 */
   roundedClassName?: string;
+  /** 一覧セルではSafariのfilter合成バグを避けるため、ぼかしを無効にする。 */
+  softenBackdrop?: boolean;
 }) {
   // 画像未登録の場合はWaseda WISHをイメージしたデフォルト画像を表示する（「画像なし」の空白を避けるため）。
   const isDefault = !src;
   const displaySrc = src ?? DEFAULT_EVENT_IMAGE_URL;
 
   return (
-    <div className={cn("relative isolate w-full overflow-hidden bg-muted [transform:translateZ(0)]", roundedClassName, ratioClassName, className)}>
+    <div className={cn("relative isolate w-full overflow-hidden bg-muted", roundedClassName, ratioClassName, className)}>
       <Image
         src={displaySrc}
         alt=""
         fill
         aria-hidden
-        className={cn("object-cover opacity-50 blur-2xl [transform:translateZ(0)_scale(1.1)] [will-change:transform]", isDefault && "opacity-70")}
+        className={cn(
+          "object-cover",
+          softenBackdrop ? "scale-110 opacity-45 blur-2xl" : "opacity-20",
+          isDefault && (softenBackdrop ? "opacity-65" : "opacity-30")
+        )}
         sizes="(max-width: 768px) 100vw, 33vw"
       />
       <Image
@@ -54,7 +61,7 @@ export function EventPoster({
         alt={isDefault ? emptyLabel : alt}
         fill
         priority={priority}
-        className={cn("relative drop-shadow-sm", isDefault ? "object-cover" : "object-contain")}
+        className={cn("relative", softenBackdrop && "drop-shadow-sm", isDefault ? "object-cover" : "object-contain")}
         sizes="(max-width: 768px) 100vw, 33vw"
       />
     </div>

@@ -57,12 +57,12 @@ export function FloatingRegistrationCta({
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >
-      <div className="mx-auto max-w-2xl rounded-2xl border border-border/70 bg-background/85 p-1.5 shadow-elevated backdrop-blur-md">
+      <div className="pointer-events-auto mx-auto max-w-2xl">
         <Button
           type="button"
           disabled={disabled}
           tabIndex={visible ? 0 : -1}
-          className="w-full shadow-elevated"
+          className="h-12 w-full rounded-xl shadow-elevated"
           onClick={() => {
             document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "center" });
           }}

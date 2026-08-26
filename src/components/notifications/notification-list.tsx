@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Heart, Megaphone, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
 import { deleteNotification } from "@/actions/notifications";
 import type { NotificationType } from "@/types/database";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 type ActorProfile = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -80,6 +81,7 @@ function formatRelativeTime(value: string) {
 export function NotificationList({ notifications }: { notifications: NotificationItem[] }) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
+  const [listRef] = useAutoAnimate<HTMLDivElement>({ duration: 140, easing: "ease-out" });
 
   function handleDismiss(id: string) {
     setDismissedIds((current) => new Set(current).add(id));
@@ -102,7 +104,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
   }
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div ref={listRef} className="flex flex-col divide-y divide-border">
       {visible.map((notification) => {
         const { icon: Icon, className } = ICON_BY_TYPE[notification.type];
         const isUnread = !notification.read_at;

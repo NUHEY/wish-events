@@ -74,7 +74,7 @@ const config: Config = {
       },
       backgroundImage: {
         "hero-radial":
-          "radial-gradient(60% 60% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%)",
+          "radial-gradient(55% 65% at 12% 0%, hsl(var(--primary) / 0.09), transparent 72%), radial-gradient(48% 58% at 88% 8%, hsl(var(--info) / 0.09), transparent 74%)",
       },
       keyframes: {
         "fade-in": {

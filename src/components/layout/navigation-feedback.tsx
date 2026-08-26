@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NAVIGATION_START_EVENT } from "@/lib/navigation-signal";
+import {
+  AnnouncementDetailSkeleton,
+  DashboardPageSkeleton,
+  DirectoryListSkeleton,
+  DirectoryProfileSkeleton,
+  EventDetailSkeleton,
+  EventsPageSkeleton,
+  HomePageSkeleton,
+  NotificationsPageSkeleton,
+  ParticipantsPageSkeleton,
+  ProfileFormPageSkeleton,
+  TalkRoomSkeleton,
+  TalksListSkeleton,
+} from "@/components/ui/page-skeletons";
 
 export function NavigationFeedback() {
   const pathname = usePathname();
@@ -57,14 +71,18 @@ export function NavigationFeedback() {
   );
 }
 
-function Bone({ className }: { className: string }) { return <div className={`rounded-xl bg-secondary/75 ${className}`} />; }
-
 function RouteShape({ pathname }: { pathname: string }) {
-  const base = "flex h-full animate-pulse flex-col gap-4 motion-reduce:animate-none";
-  if (pathname.startsWith("/talks/")) return <div className={base}><div className="flex items-center gap-3 border-b border-border pb-3"><Bone className="h-10 w-10 rounded-full" /><div className="flex-1"><Bone className="h-4 w-36" /><Bone className="mt-2 h-3 w-20" /></div></div><div className="flex flex-1 flex-col justify-end gap-2 pb-3"><Bone className="h-14 w-2/3 self-start rounded-xl" /><Bone className="h-10 w-1/2 self-end rounded-xl" /><Bone className="h-20 w-3/4 self-start rounded-xl" /></div><Bone className="h-12 w-full rounded-xl" /></div>;
-  if (pathname === "/talks") return <div className={`${base} mx-auto max-w-2xl`}><div className="flex items-end justify-between border-b border-border pb-3"><div><Bone className="h-7 w-32" /><Bone className="mt-2 h-3 w-56" /></div><Bone className="h-9 w-56 rounded-full" /></div>{Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center gap-3 py-2"><Bone className="h-[58px] w-[58px] shrink-0 rounded-full" /><div className="flex-1"><Bone className="h-4 w-2/3" /><Bone className="mt-2 h-3 w-5/6" /></div></div>)}</div>;
-  if (pathname.startsWith("/events")) return <div className={base}><Bone className="h-8 w-44" /><Bone className="h-10 w-full max-w-lg rounded-full" /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="overflow-hidden rounded-2xl border border-border"><Bone className="aspect-[4/3] w-full rounded-none" /><div className="p-3"><Bone className="h-4 w-5/6" /><Bone className="mt-2 h-3 w-1/2" /></div></div>)}</div></div>;
-  if (pathname.startsWith("/dashboard")) return <div className={base}><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Bone key={i} className="h-20 sm:h-24" />)}</div><div className="grid grid-cols-3 gap-3"><Bone className="h-20 sm:h-24" /><Bone className="h-20 sm:h-24" /><Bone className="h-20 sm:h-24" /></div>{Array.from({ length: 3 }).map((_, i) => <Bone key={i} className="h-20 w-full" />)}</div>;
-  if (pathname.startsWith("/directory")) return <div className={base}><Bone className="h-8 w-44" /><Bone className="h-11 w-full" /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{Array.from({ length: 9 }).map((_, i) => <Bone key={i} className="h-28" />)}</div></div>;
-  return <div className={base}><Bone className="h-8 w-48" /><Bone className="h-4 w-72" /><Bone className="h-52 w-full" /><Bone className="h-24 w-full" /></div>;
+  if (pathname.startsWith("/talks/")) return <TalkRoomSkeleton />;
+  if (pathname === "/talks") return <TalksListSkeleton />;
+  if (pathname === "/events") return <EventsPageSkeleton />;
+  if (/^\/events\/[^/]+$/.test(pathname)) return <EventDetailSkeleton />;
+  if (pathname.startsWith("/events/")) return <ProfileFormPageSkeleton showBack />;
+  if (/^\/dashboard\/[^/]+\/participants$/.test(pathname)) return <ParticipantsPageSkeleton />;
+  if (pathname.startsWith("/dashboard")) return <DashboardPageSkeleton />;
+  if (pathname === "/directory") return <DirectoryListSkeleton />;
+  if (pathname.startsWith("/directory/")) return <DirectoryProfileSkeleton />;
+  if (pathname.startsWith("/announcements/")) return <AnnouncementDetailSkeleton />;
+  if (pathname === "/notifications") return <NotificationsPageSkeleton />;
+  if (pathname.startsWith("/profile/")) return <ProfileFormPageSkeleton showBack={pathname === "/profile/edit"} />;
+  return <HomePageSkeleton />;
 }

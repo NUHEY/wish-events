@@ -11,9 +11,9 @@ import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 const W = 1080;
 const H = 1350;
 // Waseda wine red（globals.cssの--primary/--primary-hoverを16進化した値）
-const PRIMARY = "#7A2140";
-const PRIMARY_DARK = "#3E0F20";
-const GOLD = "#F0D9A8";
+const PRIMARY = "#A84F6D";
+const PRIMARY_DARK = "#71364A";
+const GOLD = "#E8CF9A";
 
 async function renderEventShareImage(opts: {
   title: string;
@@ -130,7 +130,7 @@ async function renderEventQrImage(opts: { title: string; url: string }): Promise
   drawRoundedRect(ctx, 24, 24, QR_W - 48, QR_H - 48, 32);
   ctx.stroke();
 
-  ctx.fillStyle = "#7A2140";
+  ctx.fillStyle = "#A84F6D";
   ctx.font = "700 32px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("WISH Events", QR_W / 2, 100);

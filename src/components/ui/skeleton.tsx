@@ -7,5 +7,5 @@ import { cn } from "@/lib/utils";
  * 今後 loading.tsx を書く・直す際はこのコンポーネントを使うこと。
  */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-secondary motion-reduce:animate-none", className)} />;
+  return <div className={cn("skeleton-shimmer rounded-lg", className)} />;
 }

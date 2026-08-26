@@ -82,10 +82,10 @@ export const HOME_ACCENT_KEYS = ["wine", "gold", "teal", "forest"] as const;
 export type HomeAccentKeyValue = (typeof HOME_ACCENT_KEYS)[number];
 
 export const HOME_ACCENT_HEX: Record<HomeAccentKeyValue, string> = {
-  wine: "#7A2140",
-  gold: "#C79A3B",
-  teal: "#0E8074",
-  forest: "#2F6B4F",
+  wine: "#A84F6D",
+  gold: "#D0A85D",
+  teal: "#4B968D",
+  forest: "#668A74",
 };
 
 /**
@@ -114,7 +114,7 @@ export const PROFILE_ACCENT_KEYS = [
 export type ProfileAccentKey = (typeof PROFILE_ACCENT_KEYS)[number];
 
 export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
-  wine: "#7A2140",
+  wine: "#A84F6D",
   gold: "#C79A3B",
   teal: "#0E8074",
   forest: "#2F6B4F",
@@ -136,8 +136,8 @@ export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
  * アイコン周りの装飾リング（ゲーム要素）。
  * RAは常にワインレッド、一般寮生はイベント参加数がこの数を超えると金色になる。
  */
-export const AVATAR_RING_GOLD_HEX = "#D4AF37";
-export const AVATAR_RING_RA_HEX = "#7A2140";
+export const AVATAR_RING_GOLD_HEX = "#C6A653";
+export const AVATAR_RING_RA_HEX = "#A84F6D";
 export const AVATAR_RING_GOLD_THRESHOLD = 8;
 
 export const GRADE_LEVELS = [
