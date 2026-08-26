@@ -108,7 +108,7 @@ export function MultiSelect({
         <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-card shadow-elevated">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-muted-foreground">
             <Search className="h-4 w-4 shrink-0" />
-            <span className="truncate text-xs">{query ? `${filtered.length}件の候補` : `全${options.length}件から検索`}</span>
+            <span className="truncate text-xs">{query ? `${filtered.length}件の候補` : "候補を検索"}</span>
           </div>
           <div ref={resultsRef} className="max-h-64 overflow-y-auto overscroll-contain p-1.5">
             {filtered.map((o) => (

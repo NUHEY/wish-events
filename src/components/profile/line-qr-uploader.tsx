@@ -108,7 +108,7 @@ export function LineQrUploader({
       />
 
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <p className="text-xs text-muted-foreground">{dict.profile.linePrivacyNote}</p>
+      {dict.profile.linePrivacyNote && <p className="text-xs text-muted-foreground">{dict.profile.linePrivacyNote}</p>}
     </div>
   );
 }

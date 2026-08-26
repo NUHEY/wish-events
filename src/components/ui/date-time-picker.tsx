@@ -92,9 +92,15 @@ export function DateTimePicker({
           className="absolute z-20 mt-2 flex flex-col gap-1 rounded-lg border border-border bg-card p-3 shadow-card-hover"
           style={
             {
+              // react-day-pickerのデフォルトは青系(#0000ff等)。サイトのワインレッドに
+              // 合わせて選択日・ホバー背景ともに青みが一切残らないよう明示的に上書きする。
+              // --accentはhueが220(青寄り)のため、ホバー背景には使わずワイン色を薄めた
+              // 独自のトーンを用いる。
               "--rdp-cell-size": "2.25rem",
               "--rdp-accent-color": "hsl(var(--primary))",
-              "--rdp-background-color": "hsl(var(--accent))",
+              "--rdp-background-color": "hsl(340 45% 96%)",
+              "--rdp-outline": "2px solid hsl(var(--primary))",
+              "--rdp-outline-selected": "3px solid hsl(var(--primary))",
             } as React.CSSProperties
           }
         >

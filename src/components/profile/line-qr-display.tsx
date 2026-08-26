@@ -32,31 +32,28 @@ export function LineQrDisplay({ src, name }: { src: string; name?: string | null
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-start gap-3">
-        <div className="h-32 w-32 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+      <div className="flex items-center gap-3">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
           <Image
             src={src}
             alt="LINE QR"
-            width={128}
-            height={128}
+            width={80}
+            height={80}
             className="h-full w-full object-contain"
             unoptimized
           />
         </div>
-        <div className="flex flex-1 flex-col gap-1.5 pt-1">
-          <p className="text-xs leading-relaxed text-muted-foreground">{dict.profile.lineDownloadHint}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pending}
-            onClick={handleDownload}
-            className="w-fit gap-1.5"
-          >
-            <Download className="h-3.5 w-3.5" />
-            {pending ? dict.profile.lineDownloading : dict.profile.lineDownloadButton}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          disabled={pending}
+          onClick={handleDownload}
+          aria-label={pending ? dict.profile.lineDownloading : dict.profile.lineDownloadButton}
+          title={pending ? dict.profile.lineDownloading : dict.profile.lineDownloadButton}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

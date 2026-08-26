@@ -41,6 +41,7 @@ export interface UserRow {
   /** @deprecated profile_accents（配列・最大5色）に置き換え済み。互換のため列は残している。 */
   profile_accent: string | null;
   profile_accents: string[] | null;
+  profile_cover_url: string | null;
   moved_out_at: string | null;
   created_at: string;
   updated_at: string;
@@ -64,6 +65,7 @@ export interface DirectoryProfileRow {
   line_id: string | null;
   x_handle: string | null;
   profile_accents: string[] | null;
+  profile_cover_url: string | null;
 }
 
 export type BadgeCriteriaType =

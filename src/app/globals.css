@@ -47,6 +47,21 @@
   }
 }
 
+/*
+ * スマホ（Safari/Chrome）は input/select/textarea のfont-sizeが16px未満だと
+ * フォーカス時に画面を勝手に拡大する。個々のコンポーネントのtext-smクラスに
+ * 依存せず、サイト全体のどんなテキストフィールドでも確実に拡大されないよう、
+ * ここでモバイル幅にだけ16px以上を強制する（!importantで各所のtext-sm等を
+ * 上書きし、今後追加されるフィールドにも自動的に適用されるようにする）。
+ */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @keyframes navigation-progress {
   0% { transform: translateX(-110%); }
   60%, 100% { transform: translateX(210%); }

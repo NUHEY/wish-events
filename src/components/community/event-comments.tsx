@@ -258,20 +258,22 @@ function CommentItem({
             <button
               type="button"
               onClick={onReply}
-              className="inline-flex items-center gap-1 font-medium transition-colors hover:text-foreground"
+              aria-label="返信する"
+              title="返信する"
+              className="inline-flex items-center rounded-full p-1 font-medium transition-colors hover:bg-secondary hover:text-foreground"
             >
-              <MessageCircleReply className="h-3 w-3" />
-              返信する
+              <MessageCircleReply className="h-3.5 w-3.5" />
             </button>
           )}
           {canDelete && (
             <button
               type="button"
               onClick={onDelete}
-              className="inline-flex items-center gap-1 font-medium text-muted-foreground/80 transition-colors hover:text-destructive"
+              aria-label="削除"
+              title="削除"
+              className="inline-flex items-center rounded-full p-1 font-medium text-muted-foreground/80 transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
-              <Trash2 className="h-3 w-3" />
-              削除
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>

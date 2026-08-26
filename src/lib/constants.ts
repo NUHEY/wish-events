@@ -102,6 +102,14 @@ export const PROFILE_ACCENT_KEYS = [
   "sky",
   "sunset",
   "plum",
+  "mint",
+  "coral",
+  "indigo",
+  "rose",
+  "amber",
+  "slate",
+  "lavender",
+  "olive",
 ] as const;
 export type ProfileAccentKey = (typeof PROFILE_ACCENT_KEYS)[number];
 
@@ -114,6 +122,14 @@ export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
   sky: "#3E8FD0",
   sunset: "#E0793C",
   plum: "#7C5CB5",
+  mint: "#2FA88A",
+  coral: "#E2685A",
+  indigo: "#4B5FC7",
+  rose: "#D65C86",
+  amber: "#D6A428",
+  slate: "#5E6B7A",
+  lavender: "#8C79D6",
+  olive: "#7A8A3E",
 };
 
 /**

@@ -80,11 +80,13 @@ export default async function HomePage() {
       .lte("event_date", weekEnd.toISOString())
       .order("is_pinned", { ascending: false })
       .order("event_date", { ascending: true }),
+    // ホームには直近3件のみを表示し、残りは/announcementsの一覧ページに誘導する。
     supabase
       .from("announcements")
       .select("*")
       .order("pinned", { ascending: false })
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(3),
     profile.floor_number != null
       ? supabase
           .from("events")
@@ -313,11 +315,19 @@ export default async function HomePage() {
               )}
 
               {announcements && announcements.length > 0 && (
-                <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-                  {(announcements as AnnouncementRow[]).map((a) => (
-                    <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
-                  ))}
-                </div>
+                <>
+                  <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                    {(announcements as AnnouncementRow[]).map((a) => (
+                      <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
+                    ))}
+                  </div>
+                  <Link
+                    href="/announcements"
+                    className={buttonVariants({ variant: "outline", size: "sm", className: "w-full" })}
+                  >
+                    {dict.homeFeed.viewAllButton}
+                  </Link>
+                </>
               )}
             </section>
           );

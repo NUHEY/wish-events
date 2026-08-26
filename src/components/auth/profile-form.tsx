@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
 import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { parseFullRoomNumber } from "@/lib/utils";
@@ -35,6 +36,7 @@ type InitialProfile = Pick<
   | "line_qr_path"
   | "self_intro"
   | "avatar_url"
+  | "profile_cover_url"
   | "line_id"
   | "x_handle"
   | "profile_accents"
@@ -46,6 +48,48 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? pendingLabel : label}
     </Button>
+  );
+}
+
+/** 必須/任意を一目でわかるようにする小さなタグ。ラベルの右に添える。 */
+function RequirementTag({ required }: { required?: boolean }) {
+  const dict = useDict();
+  return (
+    <span
+      className={
+        required
+          ? "rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary"
+          : "rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
+      }
+    >
+      {required ? dict.profile.requiredLabel : dict.profile.optionalLabel}
+    </span>
+  );
+}
+
+/** ラベル＋必須/任意タグ＋（任意で）複数選択可タグをまとめて並べる行。 */
+function FieldLabel({
+  htmlFor,
+  required,
+  multiple,
+  children,
+}: {
+  htmlFor?: string;
+  required?: boolean;
+  multiple?: boolean;
+  children: React.ReactNode;
+}) {
+  const dict = useDict();
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{children}</Label>
+      <RequirementTag required={required} />
+      {multiple && (
+        <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {dict.profile.multipleSelectionLabel}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -93,12 +137,15 @@ export function ProfileForm({
       onChange={markDirty}
       className="flex flex-col gap-4"
     >
-      <div className="pb-2">
+      <div className="grid gap-3 pb-2">
+        <ProfileCoverUploader initialUrl={initialProfile?.profile_cover_url ?? null} />
         <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="full_name">{dict.profile.fullNameLabel}</Label>
+        <FieldLabel htmlFor="full_name" required>
+          {dict.profile.fullNameLabel}
+        </FieldLabel>
         <Input
           id="full_name"
           name="full_name"
@@ -109,7 +156,9 @@ export function ProfileForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="student_id">{dict.profile.studentIdLabel}</Label>
+        <FieldLabel htmlFor="student_id" required>
+          {dict.profile.studentIdLabel}
+        </FieldLabel>
         <Input
           id="student_id"
           name="student_id"
@@ -122,7 +171,9 @@ export function ProfileForm({
 
       <div className="grid grid-cols-[1fr_auto] gap-3">
         <div className="grid gap-2">
-          <Label htmlFor="room_number">{dict.profile.roomNumberLabel}</Label>
+          <FieldLabel htmlFor="room_number" required>
+            {dict.profile.roomNumberLabel}
+          </FieldLabel>
           <Input
             id="room_number"
             name="room_number"
@@ -152,7 +203,6 @@ export function ProfileForm({
           </Select>
         </div>
       </div>
-      <p className="-mt-2 text-xs text-muted-foreground">{dict.profile.roomNumberHint}</p>
 
       <div className="grid gap-3 border-t border-border pt-4">
         <div>
@@ -161,7 +211,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="faculty">{dict.profile.facultyLabel}</Label>
+          <FieldLabel htmlFor="faculty">{dict.profile.facultyLabel}</FieldLabel>
           <Select id="faculty" name="faculty" defaultValue={initialProfile?.faculty ?? ""}>
             <option value="">{dict.common.notSelected}</option>
             {FACULTIES.map((f) => (
@@ -173,7 +223,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="grade_level">{dict.profile.gradeLevelLabel}</Label>
+          <FieldLabel htmlFor="grade_level">{dict.profile.gradeLevelLabel}</FieldLabel>
           <Select id="grade_level" name="grade_level" defaultValue={initialProfile?.grade_level ?? ""}>
             <option value="">{dict.common.notSelected}</option>
             {GRADE_LEVELS.map((g) => (
@@ -185,29 +235,33 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="languages">{dict.profile.languagesLabel}</Label>
+          <FieldLabel htmlFor="languages" multiple>
+            {dict.profile.languagesLabel}
+          </FieldLabel>
           <MultiSelect
             name="languages"
             options={languageOptions}
             defaultValues={initialProfile?.languages ?? []}
             placeholder={dict.common.notSelected}
           />
-          <p className="text-xs text-muted-foreground">{dict.profile.languagesHint}</p>
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="nationalities">{dict.profile.nationalitiesLabel}</Label>
+          <FieldLabel htmlFor="nationalities" multiple>
+            {dict.profile.nationalitiesLabel}
+          </FieldLabel>
           <MultiSelect
             name="nationalities"
             options={countryOptions}
             defaultValues={initialProfile?.nationalities ?? []}
             placeholder={dict.common.notSelected}
           />
-          <p className="text-xs text-muted-foreground">{dict.profile.nationalitiesHint}</p>
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="lived_countries">{dict.profile.livedCountriesLabel}</Label>
+          <FieldLabel htmlFor="lived_countries" multiple>
+            {dict.profile.livedCountriesLabel}
+          </FieldLabel>
           <MultiSelect
             name="lived_countries"
             options={countryOptions}
@@ -219,7 +273,7 @@ export function ProfileForm({
       </div>
 
       <div className="grid gap-2 border-t border-border pt-4">
-        <Label htmlFor="self_intro">{dict.profile.selfIntroLabel}</Label>
+        <FieldLabel htmlFor="self_intro">{dict.profile.selfIntroLabel}</FieldLabel>
         <Textarea
           id="self_intro"
           name="self_intro"
@@ -238,7 +292,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="instagram_handle">{dict.profile.instagramLabel}</Label>
+          <FieldLabel htmlFor="instagram_handle">{dict.profile.instagramLabel}</FieldLabel>
           <Input
             id="instagram_handle"
             name="instagram_handle"
@@ -249,7 +303,7 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label>{dict.profile.lineLabel}</Label>
+          <FieldLabel>{dict.profile.lineLabel}</FieldLabel>
           <LineQrUploader
             hasQr={!!initialProfile?.line_qr_path}
             initialSignedUrl={initialLineQrSignedUrl}
@@ -257,18 +311,17 @@ export function ProfileForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="line_id">{dict.profile.lineIdLabel}</Label>
+          <FieldLabel htmlFor="line_id">{dict.profile.lineIdLabel}</FieldLabel>
           <Input
             id="line_id"
             name="line_id"
             placeholder={dict.profile.lineIdPlaceholder}
             defaultValue={initialProfile?.line_id ?? ""}
           />
-          <p className="text-xs text-muted-foreground">{dict.profile.lineIdHint}</p>
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="x_handle">{dict.profile.xHandleLabel}</Label>
+          <FieldLabel htmlFor="x_handle">{dict.profile.xHandleLabel}</FieldLabel>
           <Input
             id="x_handle"
             name="x_handle"
@@ -285,7 +338,7 @@ export function ProfileForm({
           <p className="text-xs text-muted-foreground">{dict.profile.decoSectionHint}</p>
         </div>
         <div className="grid gap-2">
-          <Label>{dict.profile.accentLabel}</Label>
+          <FieldLabel>{dict.profile.accentLabel}</FieldLabel>
           {accents.map((a) => (
             <input key={a} type="hidden" name="profile_accents" value={a} />
           ))}

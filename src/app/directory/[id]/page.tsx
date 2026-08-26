@@ -7,7 +7,7 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
-import { AtSign, ExternalLink, Instagram, MessageCircle } from "lucide-react";
+import { AtSign, ExternalLink, Instagram, MessageCircle, SquarePen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export default async function DirectoryProfilePage({
       ? supabase
           .from("users")
           .select(
-            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accents"
+            "id, full_name, role, floor_number, room_number, faculty, grade_level, languages, nationalities, lived_countries, instagram_handle, self_intro, line_qr_path, avatar_url, line_id, x_handle, profile_accents, profile_cover_url"
           )
           .eq("id", id)
           .maybeSingle()
@@ -120,6 +120,7 @@ export default async function DirectoryProfilePage({
     .slice(0, 5);
   const accentHex = accentHexList[0] ?? null;
   const accentBackgroundGradient = buildAccentBackgroundGradient(accentHexList);
+  const hasCoverBanner = Boolean(target.profile_cover_url || accentHexList.length > 0);
 
   let pastEvents: PastEvent[] = [];
   if (isSelf) {
@@ -142,28 +143,45 @@ export default async function DirectoryProfilePage({
       <Card
         className="overflow-hidden rounded-2xl"
         style={
-          accentBackgroundGradient ? { backgroundImage: accentBackgroundGradient } : undefined
+          !target.profile_cover_url && accentBackgroundGradient
+            ? { backgroundImage: accentBackgroundGradient }
+            : undefined
         }
       >
-        {accentHexList.length > 0 && (
-          <div
-            className="h-16 w-full"
-            style={{
-              background:
-                accentHexList.length === 1
-                  ? accentHexList[0]
-                  : `linear-gradient(90deg, ${accentHexList.join(", ")})`,
-            }}
-          />
+        {/*
+          カバー（背景）表示: 写真が設定されていればそれを幅いっぱいに広く表示し、
+          未設定でもアクセントカラーが選ばれていればその帯を表示する。どちらも
+          ない場合は何も表示しない（マイページ背景画像はご要望により未設定時は
+          「画像なし」のままでよい仕様）。
+          下に十分な余白(pb-8)を取り、アイコン・名前の行と重ならないようにする。
+        */}
+        {target.profile_cover_url ? (
+          <div className="relative aspect-[3/1] w-full bg-secondary">
+            <Image
+              src={target.profile_cover_url}
+              alt=""
+              fill
+              sizes="640px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        ) : (
+          accentHexList.length > 0 && (
+            <div
+              className="h-16 w-full"
+              style={{
+                background:
+                  accentHexList.length === 1
+                    ? accentHexList[0]
+                    : `linear-gradient(90deg, ${accentHexList.join(", ")})`,
+              }}
+            />
+          )
         )}
         <CardContent className="flex flex-col gap-5 p-5">
-          {/*
-            カバー（アクセントカラー）の帯とアバターだけを重ねて見せたいので、
-            マイナスマージンはこの行だけに限定する。以前はCardContent全体に
-            掛けていたため、名前や部屋番号までカバーの上に乗り上げてしまっていた。
-          */}
-          <div className={`flex items-center gap-4 ${accentHex ? "-mt-10" : ""}`}>
-            <div className={cn("shrink-0 rounded-full", accentHex && "ring-4 ring-card")}>
+          <div className={cn("flex items-center gap-4", hasCoverBanner && "-mt-10 pb-1")}>
+            <div className={cn("shrink-0 rounded-full", hasCoverBanner && "ring-[3px] ring-card")}>
               <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
                 <Image
                   src={target.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
@@ -189,10 +207,11 @@ export default async function DirectoryProfilePage({
                 {friendRelation.status === "friends" && (
                   <Link
                     href={`/talks/friends/${target.id}`}
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                    className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+                    aria-label="メッセージ"
+                    title="メッセージ"
                   >
-                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    メッセージ
+                    <MessageCircle className="h-3.5 w-3.5" />
                   </Link>
                 )}
                 <FriendButton targetId={target.id} initial={friendRelation} />
@@ -206,12 +225,12 @@ export default async function DirectoryProfilePage({
               <p className="text-[11px] text-muted-foreground">{dict.directory.statsEvents}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">{stats.friend_count}</p>
-              <p className="text-[11px] text-muted-foreground">{dict.directory.statsFriends}</p>
-            </div>
-            <div>
               <p className="text-lg font-bold">{earnedBadges.length}</p>
               <p className="text-[11px] text-muted-foreground">{dict.directory.statsBadges}</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold">{stats.friend_count}</p>
+              <p className="text-[11px] text-muted-foreground">{dict.directory.statsFriends}</p>
             </div>
           </div>
 
@@ -231,6 +250,15 @@ export default async function DirectoryProfilePage({
               ))}
             </div>
           )}
+
+          <div className="grid gap-1.5">
+            <p className="text-xs text-muted-foreground">{dict.profile.selfIntroLabel}</p>
+            <p className="whitespace-pre-wrap text-sm">
+              {target.self_intro || (
+                <span className="text-muted-foreground">{dict.directory.noSelfIntro}</span>
+              )}
+            </p>
+          </div>
 
           {(target.faculty || target.grade_level) && (
             <div className="flex flex-wrap gap-4 text-sm">
@@ -270,29 +298,20 @@ export default async function DirectoryProfilePage({
             </div>
           )}
 
-          <div className="grid gap-1.5 border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground">{dict.profile.selfIntroLabel}</p>
-            <p className="whitespace-pre-wrap text-sm">
-              {target.self_intro || (
-                <span className="text-muted-foreground">{dict.directory.noSelfIntro}</span>
-              )}
-            </p>
-          </div>
-
           {(target.instagram_handle || target.x_handle || target.line_id) && (
-            <div className="grid gap-2.5 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
               {target.instagram_handle && (
                 <a
                   href={`https://instagram.com/${target.instagram_handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex w-fit items-center gap-2 rounded-full border border-border bg-gradient-to-r from-[#FEDA75]/15 via-[#D62976]/15 to-[#4F5BD5]/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
+                  title={`@${target.instagram_handle}`}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-gradient-to-r from-[#FEDA75]/15 via-[#D62976]/15 to-[#4F5BD5]/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] text-white">
                     <Instagram className="h-3.5 w-3.5" />
                   </span>
-                  <span>@{target.instagram_handle}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span className="max-w-[8rem] truncate">@{target.instagram_handle}</span>
                 </a>
               )}
               {target.x_handle && (
@@ -300,24 +319,31 @@ export default async function DirectoryProfilePage({
                   href={`https://x.com/${target.x_handle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-sm transition-colors hover:text-primary"
+                  title={`@${target.x_handle}`}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
                 >
-                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span>@{target.x_handle}</span>
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+                    <AtSign className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="max-w-[8rem] truncate">@{target.x_handle}</span>
                 </a>
               )}
               {target.line_id && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MessageCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span>{target.line_id}</span>
-                  <span className="text-xs text-muted-foreground">（{dict.directory.lineIdHint}）</span>
-                </div>
+                <span
+                  title={`LINE ID: ${target.line_id}`}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-[#06C755]/10 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#06C755] text-white">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="max-w-[8rem] truncate">{target.line_id}</span>
+                </span>
               )}
             </div>
           )}
 
           {canViewFull && (
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">{dict.profile.lineLabel}</p>
               {lineQrSignedUrl ? (
                 <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
@@ -365,8 +391,9 @@ export default async function DirectoryProfilePage({
             {isSelf && (
               <Link
                 href="/profile/edit"
-                className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}
+                className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit gap-1.5" })}
               >
+                <SquarePen className="h-3.5 w-3.5" />
                 {dict.directory.editYourProfile}
               </Link>
             )}
