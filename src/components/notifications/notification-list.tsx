@@ -142,7 +142,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
               type="button"
               onClick={() => handleDismiss(notification.id)}
               aria-label="通知を削除"
-              className="shrink-0 rounded-full p-1 text-muted-foreground/60 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+              className="shrink-0 rounded-full p-1 text-muted-foreground/60 opacity-100 transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
             >
               <X className="h-3.5 w-3.5" />
             </button>

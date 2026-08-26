@@ -51,7 +51,16 @@ export function EventForm({
   teamMembers?: TeamMemberRow[];
 }) {
   const dict = useDict();
-  const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
+  const [state, formAction] = useFormState<ActionResult, FormData>(
+    async (prev, formData) => {
+      // 保存を開始した時点で「未保存の変更あり」フラグを解除する。
+      // 消さないままだと、保存成功後のredirect()によるページ遷移中に
+      // ブラウザ標準の「このページを離れますか」警告が誤って表示されてしまう。
+      reset();
+      return action(prev, formData);
+    },
+    undefined
+  );
   const [posterUrl, setPosterUrl] = useState(initialEvent?.poster_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -61,7 +70,7 @@ export function EventForm({
   const [showPreview, setShowPreview] = useState(false);
   const [showPreviewEn, setShowPreviewEn] = useState(false);
 
-  const { formRef, isDirty, markDirty } = useDirtyForm();
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   async function handlePosterFile(file: File) {

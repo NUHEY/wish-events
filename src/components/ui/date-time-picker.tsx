@@ -110,6 +110,18 @@ export function DateTimePicker({
             onSelect={(d) => d && setDate(d)}
             locale={isJa ? ja : enUS}
             weekStartsOn={0}
+            // react-day-picker本体が.rdp（自分のルート要素）に
+            // --rdp-accent-color等をデフォルト値(青系)で再宣言しているため、
+            // 祖先要素にCSS変数を置くだけでは負けてしまう。DayPicker自身の
+            // styleに直接指定し、確実にワインレッドで上書きする。
+            style={
+              {
+                "--rdp-accent-color": "hsl(var(--primary))",
+                "--rdp-background-color": "hsl(340 45% 96%)",
+                "--rdp-outline": "2px solid hsl(var(--primary))",
+                "--rdp-outline-selected": "3px solid hsl(var(--primary))",
+              } as React.CSSProperties
+            }
           />
           <div className="flex items-center gap-2 border-t border-border pt-3">
             <label htmlFor={`${name}_time`} className="text-sm text-muted-foreground">

@@ -119,7 +119,19 @@ export function utcIsoToJstWallClockInput(iso: string): string {
  * ja: "2026年8月24日(月) 18:00"
  * en: "Aug 24, 2026 (Mon) 18:00"
  */
-export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): string {
+/**
+ * イベントの日時をロケールに応じて整形する。
+ * includeYear: 直近のイベントは年を省略してスペースを節約し、
+ *   過去イベント（一覧で年度の文脈が欲しい）ではtrueにする。
+ * includeTime: 過去イベントの一覧セルでは時刻まで表示する必要が薄いためfalseにできる。
+ * 両方省略した場合は従来通り年・時刻とも表示する（既存の呼び出し箇所との互換性維持）。
+ */
+export function formatEventDateTime(
+  iso: string,
+  locale: "ja" | "en" = "ja",
+  includeYear: boolean = true,
+  includeTime: boolean = true
+): string {
   const d = shiftToJstWallClock(iso);
   const time = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 
@@ -128,11 +140,17 @@ export function formatEventDateTime(iso: string, locale: "ja" | "en" = "ja"): st
     const monthsEn = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    return `${monthsEn[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()} (${weekdaysEn[d.getUTCDay()]}) ${time}`;
+    const datePart = includeYear
+      ? `${monthsEn[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
+      : `${monthsEn[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    return `${datePart} (${weekdaysEn[d.getUTCDay()]})${includeTime ? ` ${time}` : ""}`;
   }
 
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-  return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${weekdays[d.getUTCDay()]}) ${time}`;
+  const datePart = includeYear
+    ? `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日`
+    : `${d.getUTCMonth() + 1}月${d.getUTCDate()}日`;
+  return `${datePart}(${weekdays[d.getUTCDay()]})${includeTime ? ` ${time}` : ""}`;
 }
 
 /**

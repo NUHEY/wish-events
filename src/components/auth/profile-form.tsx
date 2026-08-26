@@ -104,7 +104,16 @@ export function ProfileForm({
 }) {
   const dict = useDict();
   const locale = useLocale();
-  const [state, formAction] = useFormState(submitProfile, undefined);
+  const [state, formAction] = useFormState(
+    async (prev: Parameters<typeof submitProfile>[0], formData: FormData) => {
+      // 保存を開始した時点で「未保存の変更あり」フラグを解除する。
+      // 消さないままだと、保存成功後のページ遷移中にブラウザ標準の
+      // 「このページを離れますか」警告が誤って表示されてしまう。
+      reset();
+      return submitProfile(prev, formData);
+    },
+    undefined
+  );
 
   const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l[locale] }));
   const countryOptions = COUNTRIES.map((c) => ({ code: c.code, label: c[locale] }));
@@ -126,7 +135,7 @@ export function ProfileForm({
     });
   }
 
-  const { formRef, isDirty, markDirty } = useDirtyForm();
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   return (

@@ -67,7 +67,7 @@ export async function EventCard({
             : "group-hover:-translate-y-0.5 group-hover:border-foreground/15 group-hover:shadow-card-hover"
         )}
       >
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-[inherit]">
           <EventPoster
             src={event.poster_url}
             alt={title}
@@ -106,18 +106,23 @@ export async function EventCard({
          * タイトルでも余白として同じ高さを保つ。長いタイトルは line-clamp によって
          * 2行目末尾に「…」で省略される。
          */}
-        <CardContent className={cn("flex h-[78px] flex-col justify-between gap-1.5 p-2.5 sm:h-[94px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
+        <CardContent className={cn("flex h-[84px] flex-col justify-between gap-1.5 p-2.5 sm:h-[102px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "line-clamp-2 h-[2.6rem] text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:h-[2.9rem] sm:text-base",
+              "line-clamp-2 h-10 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:h-11 sm:text-base",
               isMuted && "text-sm"
             )}
           >
             {title}
           </h3>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex h-4 items-center justify-between gap-2 sm:h-5">
+            {/*
+             * 直近のイベントは日時が気になる情報なので年を省き時刻まで収める。
+             * 過去のイベント（isMuted）は時刻の重要度が低いため省き、代わりに
+             * 年度の文脈を残す。
+             */}
             <p className="truncate text-xs text-muted-foreground sm:text-sm">
-              {formatEventDateTime(event.event_date, locale)}
+              {formatEventDateTime(event.event_date, locale, isMuted, !isMuted)}
             </p>
             <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
           </div>
