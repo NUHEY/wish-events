@@ -22,6 +22,18 @@ export function LocaleToggle({ className }: { className?: string }) {
     // 裏側で走らせるrouter.refresh()の完了を待って追従する。
     document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
     setLocale(next);
+
+    // フォーム入力中にrouter.refresh()を実行すると、そのページに読み込み中表示
+    // (loading.tsx)のSuspense境界がある場合、入力途中の内容ごとフォームが
+    // 再マウントされて消えてしまう不具合があった。表示中のテキスト自体は
+    // useDict()経由のReact Contextで即座に切り替わるため、入力中（テキスト入力・
+    // テキストエリア・contentEditable）はサーバー側の再取得をスキップして安全側に倒す。
+    const active = document.activeElement;
+    const isEditingForm =
+      active instanceof HTMLElement &&
+      (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+    if (isEditingForm) return;
+
     startTransition(() => {
       router.refresh();
     });

@@ -291,6 +291,10 @@ export function EventForm({
           </div>
           <p className="text-xs text-muted-foreground">{dict.eventForm.feeAmountHint}</p>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox name="show_free_tag" defaultChecked={initialEvent?.show_free_tag ?? true} />
+          金額未設定の場合、一覧に「無料」タグを表示する
+        </label>
         <div className="grid gap-2">
           <Label htmlFor="payment_info">{dict.eventForm.paymentInfoLabel}</Label>
           <Textarea

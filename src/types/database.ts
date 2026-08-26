@@ -132,6 +132,7 @@ export interface EventRow {
   requires_registration: boolean;
   capacity: number | null;
   fee_amount: number | null;
+  show_free_tag: boolean;
   payment_info: string | null;
   payment_due_at: string | null;
   payment_destination: string | null;
@@ -166,6 +167,7 @@ export type EventCardData = Pick<
   | "category"
   | "poster_url"
   | "fee_amount"
+  | "show_free_tag"
   | "event_date"
   | "created_at"
   | "registration_closes_at"

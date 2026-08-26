@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
@@ -71,7 +72,7 @@ export async function EventCard({
             src={event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
-            ratioClassName="aspect-[4/3]"
+            ratioClassName="aspect-[1.618/1]"
             className={cn(!isMuted && "[&_img]:transition-transform [&_img]:duration-300 group-hover:[&_img]:scale-[1.03]")}
           />
           <div className="absolute left-2 top-2 flex flex-wrap gap-1">
@@ -86,23 +87,40 @@ export async function EventCard({
           )}
           {event.fee_amount ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
-          ) : (
+          ) : event.show_free_tag !== false ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-emerald-600/90 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.freeLabel}</span>
-          )}
+          ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
+          {/* 「詳しく見れる」ことが伝わるよう、ホバー時に画像上へ薄い暗幕+ラベルを重ねる。 */}
+          {!isMuted && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-all duration-200 group-hover:bg-foreground/15 group-hover:opacity-100">
+              <span className="translate-y-1 rounded-full bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground opacity-0 shadow-md backdrop-blur transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                {locale === "en" ? "View details" : "詳細を見る"}
+              </span>
+            </div>
+          )}
         </div>
-        <CardContent className={cn("flex min-h-[76px] flex-col justify-between gap-1.5 p-2.5 sm:min-h-[88px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
+        {/*
+         * カードの高さを常に完全に同一にするため、min-h ではなく h（固定値）を使う。
+         * タイトルのh3も行数に関わらず常に同じ高さ（2行分）を確保し、1行で収まる
+         * タイトルでも余白として同じ高さを保つ。長いタイトルは line-clamp によって
+         * 2行目末尾に「…」で省略される。
+         */}
+        <CardContent className={cn("flex h-[78px] flex-col justify-between gap-1.5 p-2.5 sm:h-[94px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-base",
+              "line-clamp-2 h-[2.6rem] text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:h-[2.9rem] sm:text-base",
               isMuted && "text-sm"
             )}
           >
             {title}
           </h3>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            {formatEventDateTime(event.event_date, locale)}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-xs text-muted-foreground sm:text-sm">
+              {formatEventDateTime(event.event_date, locale)}
+            </p>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
+          </div>
         </CardContent>
       </Card>
     </Link>

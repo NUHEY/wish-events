@@ -17,6 +17,9 @@ export const eventSchema = z
     requires_registration: z.boolean().default(true),
     capacity: z.coerce.number().int().positive().optional().nullable(),
     fee_amount: z.coerce.number().int().min(0).optional().nullable(),
+    // 無料イベント（fee_amountが空）のとき、一覧カードに「無料」タグを表示するかどうか。
+    // 詳細未定・寄付制などの理由でRAが意図的に非表示にしたい場合のためのトグル。
+    show_free_tag: z.boolean().default(true),
     payment_info: z.string().trim().optional().default(""),
     payment_due_at: z.string().trim().optional().default(""),
     payment_destination: z.string().trim().max(2000).optional().default(""),
