@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import Image from "next/image";
@@ -97,6 +97,19 @@ export function FriendDm({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const initialScrollDone = useRef(false);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
+  // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
+  // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
+  // 毎回ref付け外しを行う。useAutoAnimateが返すref本体は呼ばれるたびに内部で
+  // setStateするため、再描画→ref再アタッチ→setState→再描画...という無限ループ
+  // （「表示中に問題が発生しました」の原因だったMaximum update depth exceeded）
+  // を引き起こしていた。
+  const setMessagesScrollRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      scrollRef.current = node;
+      messagesAnimateRef(node);
+    },
+    [messagesAnimateRef]
+  );
 
   const displayedMessages = useMemo(
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
@@ -279,10 +292,7 @@ export function FriendDm({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       <div
-        ref={(node) => {
-          scrollRef.current = node;
-          messagesAnimateRef(node);
-        }}
+        ref={setMessagesScrollRef}
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
       >
         {hasMoreOlderState && (

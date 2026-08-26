@@ -160,6 +160,19 @@ export function EventTalk({
   const heartTimerRef = useRef<number | null>(null);
   const initialScrollDone = useRef(false);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
+  // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
+  // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
+  // 毎回ref付け外しを行う。useAutoAnimateが返すref本体は呼ばれるたびに内部で
+  // setStateするため、再描画→ref再アタッチ→setState→再描画...という無限ループ
+  // （「表示中に問題が発生しました」の原因だったMaximum update depth exceeded）
+  // を引き起こしていた。
+  const setMessagesScrollRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      scrollRef.current = node;
+      messagesAnimateRef(node);
+    },
+    [messagesAnimateRef]
+  );
   const router = useRouter();
 
   const displayedMessages = useMemo(
@@ -337,10 +350,7 @@ export function EventTalk({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
       <div
-        ref={(node) => {
-          scrollRef.current = node;
-          messagesAnimateRef(node);
-        }}
+        ref={setMessagesScrollRef}
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
       >
         {hasMoreOlderState && (
