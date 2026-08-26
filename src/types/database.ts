@@ -294,7 +294,8 @@ export type NotificationType =
   | "event_comment_like"
   | "announcement_comment"
   | "announcement_comment_reply"
-  | "announcement_comment_like";
+  | "announcement_comment_like"
+  | "ra_broadcast";
 
 export interface NotificationRow {
   id: string;
@@ -305,6 +306,7 @@ export interface NotificationRow {
   preview_text: string | null;
   read_at: string | null;
   created_at: string;
+  broadcast_id?: string | null;
 }
 
 export interface SurveyRow {
@@ -689,6 +691,10 @@ export interface Database {
       can_access_dm_media: {
         Args: { p_pair: string };
         Returns: boolean;
+      };
+      send_ra_broadcast_notification: {
+        Args: { p_target_ids: string[]; p_preview_text: string; p_link: string; p_broadcast_id: string };
+        Returns: number;
       };
     };
     Enums: Record<string, never>;

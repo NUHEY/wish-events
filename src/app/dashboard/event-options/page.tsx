@@ -1,7 +1,6 @@
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EventOptionManager } from "@/components/dashboard/event-option-manager";
-import { BackButton } from "@/components/layout/back-button";
 import {
   addLocationOption,
   addAudienceOption,
@@ -23,7 +22,6 @@ export default async function EventOptionsPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <BackButton fallbackHref="/dashboard" className="-ml-2 self-start" />
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">{dict.eventOptions.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.eventOptions.subtitle}</p>

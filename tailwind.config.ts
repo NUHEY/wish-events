@@ -38,6 +38,20 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
+        brand: {
+          "instagram-start": "hsl(var(--instagram-start))",
+          "instagram-middle": "hsl(var(--instagram-middle))",
+          "instagram-end": "hsl(var(--instagram-end))",
+          line: "hsl(var(--line-brand))",
+        },
       },
       // サイト全体の角丸スケール（詳細は globals.css の --radius 定義そばのコメントを参照）。
       // sm(8px) < md(10px) < lg(14px=--radius) < xl(20px) < 2xl(26px)。

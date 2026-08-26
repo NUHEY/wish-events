@@ -1,6 +1,5 @@
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { BackButton } from "@/components/layout/back-button";
 import { HomeLayoutEditor } from "@/components/home/home-layout-editor";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { HOME_SECTION_KEYS } from "@/lib/constants";
@@ -33,8 +32,6 @@ export default async function HomeLayoutPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <BackButton fallbackHref="/dashboard" className="-ml-2" />
-
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-bold tracking-tight">{dict.homeLayout.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.homeLayout.subtitle}</p>

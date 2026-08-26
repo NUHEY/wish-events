@@ -274,11 +274,11 @@ export function FriendDm({
     new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f8f7f8] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,#f5e9ef_0%,#fafafa_42%,#f8f7f8_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
+        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
       >
         {hasMoreOlderState && (
           <button
@@ -292,7 +292,7 @@ export function FriendDm({
           </button>
         )}
         {displayedMessages.length === 0 && (
-          <div className="mb-2 self-center rounded-full border border-white/70 bg-white/85 px-3.5 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+          <div className="mb-2 self-center rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
             {friendName}さんとのメッセージはまだありません
           </div>
         )}
@@ -313,7 +313,7 @@ export function FriendDm({
           const bubbleBase = `rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
             mine
               ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
-              : "border border-white/80 bg-[linear-gradient(145deg,#ffffff,#fbf8fa)] text-foreground"
+              : "border border-border/80 bg-[linear-gradient(145deg,hsl(var(--message-surface)),hsl(var(--secondary)))] text-foreground"
           }`;
 
           return (

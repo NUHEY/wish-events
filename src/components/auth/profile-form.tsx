@@ -12,6 +12,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { LineQrUploader } from "@/components/profile/line-qr-uploader";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { ProfileCoverUploader } from "@/components/profile/profile-cover-uploader";
+import { ProfileSingleSelect } from "@/components/profile/profile-single-select";
 import { FACULTIES, GRADE_LEVELS, FLOORS, PROFILE_ACCENT_KEYS, PROFILE_ACCENT_HEX } from "@/lib/constants";
 import { LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { parseFullRoomNumber } from "@/lib/utils";
@@ -221,26 +222,26 @@ export function ProfileForm({
 
         <div className="grid gap-2">
           <FieldLabel htmlFor="faculty">{dict.profile.facultyLabel}</FieldLabel>
-          <Select id="faculty" name="faculty" defaultValue={initialProfile?.faculty ?? ""}>
-            <option value="">{dict.common.notSelected}</option>
-            {FACULTIES.map((f) => (
-              <option key={f} value={f}>
-                {dict.faculties[f]}
-              </option>
-            ))}
-          </Select>
+          <ProfileSingleSelect
+            id="faculty"
+            name="faculty"
+            defaultValue={initialProfile?.faculty ?? ""}
+            placeholder={dict.common.notSelected}
+            options={FACULTIES.map((faculty) => ({ value: faculty, label: dict.faculties[faculty] }))}
+            onValueChange={markDirty}
+          />
         </div>
 
         <div className="grid gap-2">
           <FieldLabel htmlFor="grade_level">{dict.profile.gradeLevelLabel}</FieldLabel>
-          <Select id="grade_level" name="grade_level" defaultValue={initialProfile?.grade_level ?? ""}>
-            <option value="">{dict.common.notSelected}</option>
-            {GRADE_LEVELS.map((g) => (
-              <option key={g} value={g}>
-                {dict.gradeLevels[g]}
-              </option>
-            ))}
-          </Select>
+          <ProfileSingleSelect
+            id="grade_level"
+            name="grade_level"
+            defaultValue={initialProfile?.grade_level ?? ""}
+            placeholder={dict.common.notSelected}
+            options={GRADE_LEVELS.map((grade) => ({ value: grade, label: dict.gradeLevels[grade] }))}
+            onValueChange={markDirty}
+          />
         </div>
 
         <div className="grid gap-2">

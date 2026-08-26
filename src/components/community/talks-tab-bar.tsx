@@ -67,9 +67,9 @@ export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
-          <span className="inline-flex items-center gap-1">{LABELS[tab]}{tab === "friends" && friendDmState === "beta" && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-white/20 text-white" : "bg-primary/10 text-primary")}>BETA</span>}</span>
+          <span className="inline-flex items-center gap-1">{LABELS[tab]}{tab === "friends" && friendDmState === "beta" && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>
           {tab === "friends" && hasUnreadFriends && active !== tab && (
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive" />
           )}
         </button>
       ))}

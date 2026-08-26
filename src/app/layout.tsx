@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
 import { getSiteSettings, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import { themeInitScript } from "@/lib/theme";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,6 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = settings.ogDescription || SITE_DEFAULT_DESCRIPTION;
 
   return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://wish-events.vercel.app"),
     title,
     description,
     openGraph: {
@@ -60,19 +63,24 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale} className={cn(inter.variable, notoSansJP.variable)}>
+    <html lang={locale} className={cn(inter.variable, notoSansJP.variable)} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <LocaleProvider locale={locale}>
-          <ConfirmDialogProvider>
-            <NavigationFeedback />
-            <Header />
-            <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
-            <AppToaster />
-            <Suspense fallback={null}>
-              <SavedToastWatcher />
-            </Suspense>
-          </ConfirmDialogProvider>
-        </LocaleProvider>
+        <ThemeProvider>
+          <LocaleProvider locale={locale}>
+            <ConfirmDialogProvider>
+              <NavigationFeedback />
+              <Header />
+              <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
+              <AppToaster />
+              <Suspense fallback={null}>
+                <SavedToastWatcher />
+              </Suspense>
+            </ConfirmDialogProvider>
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

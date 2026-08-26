@@ -50,14 +50,18 @@ export function FloatingRegistrationCta({
     return () => observer.disconnect();
   }, [anchorId]);
 
-  if (!visible) return null;
-
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 motion-safe:animate-fade-in sm:bottom-4">
-      <div className="mx-auto max-w-2xl">
+    <div
+      aria-hidden={!visible}
+      className={`fixed inset-x-0 bottom-[calc(3.9rem+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-4 pb-3 pt-8 backdrop-blur-[2px] transition-[opacity,transform] duration-200 ease-out sm:bottom-0 sm:pb-4 ${
+        visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+      }`}
+    >
+      <div className="mx-auto max-w-2xl rounded-2xl border border-border/70 bg-background/85 p-1.5 shadow-elevated backdrop-blur-md">
         <Button
           type="button"
           disabled={disabled}
+          tabIndex={visible ? 0 : -1}
           className="w-full shadow-elevated"
           onClick={() => {
             document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "center" });

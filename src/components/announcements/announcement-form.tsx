@@ -39,14 +39,20 @@ export function AnnouncementForm({
   submitLabel: string;
 }) {
   const dict = useDict();
-  const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
+  const [state, formAction] = useFormState<ActionResult, FormData>(
+    async (prev, formData) => {
+      reset();
+      return action(prev, formData);
+    },
+    undefined
+  );
   const [coverImageUrl, setCoverImageUrl] = useState(initialAnnouncement?.cover_image_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [body, setBody] = useState(initialAnnouncement?.body ?? "");
   const [showPreview, setShowPreview] = useState(false);
 
-  const { formRef, isDirty, markDirty } = useDirtyForm();
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   async function handleCoverFile(file: File) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toBlob } from "html-to-image";
 import { Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/locales";
+import { ProfilePrintCard } from "@/components/profile/profile-print-card";
 
 /**
  * マイページ（ディレクトリのプロフィール詳細）をインスタ映えする画像として
@@ -24,8 +26,10 @@ import type { Locale } from "@/lib/i18n/locales";
 const W = 1080;
 const H = 1350; // Instagramの投稿比率（4:5）
 
-const STYLE_KEYS = ["wine", "polaroid", "neon", "pop"] as const;
+const CANVAS_STYLE_KEYS = ["wine", "polaroid", "neon", "pop"] as const;
+const STYLE_KEYS = [...CANVAS_STYLE_KEYS, "mypage"] as const;
 type StyleKey = (typeof STYLE_KEYS)[number];
+type CanvasStyleKey = (typeof CANVAS_STYLE_KEYS)[number];
 
 export type ProfileShareData = {
   fullName: string | null;
@@ -35,6 +39,11 @@ export type ProfileShareData = {
   badges: { icon: string; label: string }[];
   eventCount: number;
   surveyCount: number;
+  coverUrl: string | null;
+  selfIntro: string | null;
+  faculty: string | null;
+  gradeLevel: string | null;
+  languages: string[];
 };
 
 type RenderCtx = {
@@ -387,7 +396,7 @@ function renderPop(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.textAlign = "left";
 }
 
-const RENDERERS: Record<StyleKey, (ctx: CanvasRenderingContext2D, r: RenderCtx) => void> = {
+const RENDERERS: Record<CanvasStyleKey, (ctx: CanvasRenderingContext2D, r: RenderCtx) => void> = {
   wine: renderWine,
   polaroid: renderPolaroid,
   neon: renderNeon,
@@ -398,6 +407,7 @@ export function ProfileShareModal({ data, onClose }: { data: ProfileShareData; o
   const dict = useDict();
   const locale = useLocale();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<StyleKey>("wine");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -419,6 +429,7 @@ export function ProfileShareModal({ data, onClose }: { data: ProfileShareData; o
   }, [data.avatarUrl]);
 
   useEffect(() => {
+    if (style === "mypage") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.width = W;
@@ -429,12 +440,13 @@ export function ProfileShareModal({ data, onClose }: { data: ProfileShareData; o
   }, [style, data, avatarImg, dict, locale]);
 
   async function handleShare() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
     setError(null);
     setPending(true);
     try {
-      const blob = await canvasToBlob(canvas);
+      const blob = style === "mypage"
+        ? await toBlob(printRef.current!, { cacheBust: true, pixelRatio: 1, backgroundColor: "hsl(var(--background))" })
+        : await canvasToBlob(canvasRef.current!);
+      if (!blob) throw new Error("画像を生成できませんでした");
       await shareOrDownloadImage(blob, `wish-mypage-${style}.png`, dict.profileShare.title);
     } catch {
       setError(dict.profileShare.shareError);
@@ -465,13 +477,17 @@ export function ProfileShareModal({ data, onClose }: { data: ProfileShareData; o
               variant={style === key ? "default" : "outline"}
               onClick={() => setStyle(key)}
             >
-              {dict.profileShare.styleNames[key]}
+              {key === "mypage" ? (locale === "en" ? "My page" : "マイページ") : dict.profileShare.styleNames[key]}
             </Button>
           ))}
         </div>
 
-        <div className="mx-auto w-full max-w-[280px] overflow-hidden rounded-2xl border border-border shadow-card">
-          <canvas ref={canvasRef} className="block w-full" style={{ aspectRatio: `${W} / ${H}` }} />
+        <div className="relative mx-auto aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-2xl border border-border bg-background shadow-card">
+          {style === "mypage" ? <div className="absolute left-0 top-0 origin-top-left" style={{ transform: "scale(0.259259)" }}><ProfilePrintCard data={data} /></div> : <canvas ref={canvasRef} className="block w-full" style={{ aspectRatio: `${W} / ${H}` }} />}
+        </div>
+
+        <div className="pointer-events-none fixed left-[-12000px] top-0" aria-hidden>
+          <div ref={printRef}><ProfilePrintCard data={data} /></div>
         </div>
 
         {error && <p className="text-center text-xs text-destructive">{error}</p>}

@@ -50,7 +50,7 @@ export function Nav({ role: _role, hasUnreadTalk = false }: { role: UserRole; ha
         {dict.nav.home}
       </NavLink>
       <NavLink href="/events">{dict.nav.events}</NavLink>
-      <NavLink href="/talks"><span className="relative">トーク{hasUnreadTalk && <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-red-500" />}</span></NavLink>
+      <NavLink href="/talks"><span className="relative">トーク{hasUnreadTalk && <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-destructive" />}</span></NavLink>
     </nav>
   );
 }

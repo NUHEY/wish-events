@@ -52,7 +52,13 @@ export function SurveyBuilder({
   initialQuestions?: SurveyQuestionRow[];
 }) {
   const dict = useDict();
-  const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
+  const [state, formAction] = useFormState<ActionResult, FormData>(
+    async (prev, formData) => {
+      reset();
+      return action(prev, formData);
+    },
+    undefined
+  );
   const [title, setTitle] = useState(initialSurvey?.title ?? dict.event.surveyTitle);
   const [questions, setQuestions] = useState<DraftQuestion[]>(
     initialQuestions?.length
@@ -60,7 +66,7 @@ export function SurveyBuilder({
       : [{ question_text: "", question_type: "text", options: [], is_required: true }]
   );
 
-  const { formRef, isDirty, markDirty } = useDirtyForm();
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   function updateQuestion(index: number, patch: Partial<DraftQuestion>) {

@@ -4,7 +4,6 @@ import { parseFullRoomNumber } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ResidentManager } from "@/components/dashboard/resident-manager";
-import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function ResidentsPage({
@@ -54,7 +53,6 @@ export default async function ResidentsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <BackButton fallbackHref="/dashboard" className="-ml-2 self-start" />
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">{dict.residents.title}</h1>
         <p className="text-sm text-muted-foreground">

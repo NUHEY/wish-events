@@ -29,7 +29,7 @@ function TabLink({
         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
-      <span className="relative"><Icon className="h-5 w-5" />{badge && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-card bg-red-500" />}</span>
+      <span className="relative"><Icon className="h-5 w-5" />{badge && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-card bg-destructive" />}</span>
       {label}
     </Link>
   );

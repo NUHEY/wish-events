@@ -36,7 +36,13 @@ function SubmitButton({ label, savingLabel }: { label: string; savingLabel: stri
 
 export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLayoutSectionRow[] }) {
   const dict = useDict();
-  const [state, formAction] = useFormState<HomeLayoutActionResult, FormData>(saveHomeLayout, {});
+  const [state, formAction] = useFormState<HomeLayoutActionResult, FormData>(
+    async (prev, formData) => {
+      reset();
+      return saveHomeLayout(prev, formData);
+    },
+    {}
+  );
   const [sections, setSections] = useState<SectionState[]>(() =>
     [...initialSections]
       .sort((a, b) => a.position - b.position)

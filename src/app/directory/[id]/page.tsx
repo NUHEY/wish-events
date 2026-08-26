@@ -7,7 +7,7 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
-import { AtSign, ExternalLink, Instagram, MessageCircle, SquarePen } from "lucide-react";
+import { AtSign, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, Sparkles, SquarePen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,14 +44,29 @@ function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType
 
 type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
 
-function ChipList({ codes, list, locale }: { codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en" }) {
+const CHIP_STYLES = [
+  "border-rose-200/70 bg-rose-100/70 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/45 dark:text-rose-200",
+  "border-sky-200/70 bg-sky-100/70 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/45 dark:text-sky-200",
+  "border-emerald-200/70 bg-emerald-100/70 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/45 dark:text-emerald-200",
+  "border-amber-200/70 bg-amber-100/70 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/45 dark:text-amber-200",
+  "border-violet-200/70 bg-violet-100/70 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/45 dark:text-violet-200",
+] as const;
+
+function countryFlag(code: string) {
+  const normalized = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return "🌏";
+  return String.fromCodePoint(...[...normalized].map((char) => 127397 + char.charCodeAt(0)));
+}
+
+function ChipList({ codes, list, locale, kind }: { codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en"; kind: "language" | "country" }) {
   if (!codes || codes.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {codes.map((code) => (
-        <Badge key={code} variant="secondary">
+    <div className="flex flex-wrap gap-2">
+      {codes.map((code, index) => (
+        <span key={code} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm", CHIP_STYLES[index % CHIP_STYLES.length])}>
+          {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon className="h-3.5 w-3.5" />}
           {findLabel(list, code, locale)}
-        </Badge>
+        </span>
       ))}
     </div>
   );
@@ -138,7 +153,17 @@ export default async function DirectoryProfilePage({
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <BackButton fallbackHref="/directory" className="-ml-2" />
+      <div className="flex items-center gap-2">
+        <BackButton fallbackHref="/directory" className="-ml-2" />
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold tracking-tight">
+            {isSelf ? "マイページ" : target.full_name ?? dict.common.notRegistered}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {isSelf ? "プロフィールと活動を確認" : "寮生プロフィール"}
+          </p>
+        </div>
+      </div>
 
       <Card
         className="overflow-hidden rounded-2xl"
@@ -180,7 +205,7 @@ export default async function DirectoryProfilePage({
           )
         )}
         <CardContent className="flex flex-col gap-5 p-5">
-          <div className={cn("flex items-center gap-4", hasCoverBanner && "-mt-10 pb-1")}>
+          <div className={cn("flex items-end justify-between gap-3", hasCoverBanner && "-mt-10")}>
             <div className={cn("shrink-0 rounded-full", hasCoverBanner && "ring-[3px] ring-card")}>
               <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
                 <Image
@@ -191,16 +216,6 @@ export default async function DirectoryProfilePage({
                   className="h-16 w-16 shrink-0 rounded-full object-cover"
                 />
               </AvatarRing>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate text-xl font-bold">{target.full_name ?? dict.common.notRegistered}</h1>
-                {target.role === "ra" && <Badge variant="default">RA</Badge>}
-                {isSelf && (
-                  <span className="text-xs font-normal text-muted-foreground">({dict.raRooms.you})</span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">{roomText}</p>
             </div>
             {!isSelf && friendRelation && (
               <div className="flex shrink-0 items-center gap-2">
@@ -217,6 +232,15 @@ export default async function DirectoryProfilePage({
                 <FriendButton targetId={target.id} initial={friendRelation} />
               </div>
             )}
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-xl font-bold">{target.full_name ?? dict.common.notRegistered}</h2>
+              {target.role === "ra" && <Badge variant="default">RA</Badge>}
+              {isSelf && <span className="text-xs font-normal text-muted-foreground">({dict.raRooms.you})</span>}
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">{roomText}</p>
           </div>
 
           <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border py-2.5 text-center">
@@ -261,18 +285,18 @@ export default async function DirectoryProfilePage({
           </div>
 
           {(target.faculty || target.grade_level) && (
-            <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex flex-wrap gap-2 text-sm">
               {target.faculty && (
-                <div>
-                  <p className="text-xs text-muted-foreground">{dict.profile.facultyLabel}</p>
-                  <p>{dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}</p>
-                </div>
+                <span className="inline-flex items-center gap-2 rounded-xl border border-violet-200/70 bg-violet-100/70 px-3 py-2 font-semibold text-violet-900 shadow-sm dark:border-violet-900/60 dark:bg-violet-950/45 dark:text-violet-100">
+                  <GraduationCap className="h-4 w-4" />
+                  {dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}
+                </span>
               )}
               {target.grade_level && (
-                <div>
-                  <p className="text-xs text-muted-foreground">{dict.profile.gradeLevelLabel}</p>
-                  <p>{dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}</p>
-                </div>
+                <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200/70 bg-amber-100/70 px-3 py-2 font-semibold text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/45 dark:text-amber-100">
+                  <Sparkles className="h-4 w-4" />
+                  {dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}
+                </span>
               )}
             </div>
           )}
@@ -280,21 +304,21 @@ export default async function DirectoryProfilePage({
           {target.languages && target.languages.length > 0 && (
             <div className="grid gap-1.5">
               <p className="text-xs text-muted-foreground">{dict.profile.languagesLabel}</p>
-              <ChipList codes={target.languages} list={LANGUAGES} locale={locale} />
+              <ChipList codes={target.languages} list={LANGUAGES} locale={locale} kind="language" />
             </div>
           )}
 
           {target.nationalities && target.nationalities.length > 0 && (
             <div className="grid gap-1.5">
               <p className="text-xs text-muted-foreground">{dict.profile.nationalitiesLabel}</p>
-              <ChipList codes={target.nationalities} list={COUNTRIES} locale={locale} />
+              <ChipList codes={target.nationalities} list={COUNTRIES} locale={locale} kind="country" />
             </div>
           )}
 
           {target.lived_countries && target.lived_countries.length > 0 && (
             <div className="grid gap-1.5">
               <p className="text-xs text-muted-foreground">{dict.profile.livedCountriesLabel}</p>
-              <ChipList codes={target.lived_countries} list={COUNTRIES} locale={locale} />
+              <ChipList codes={target.lived_countries} list={COUNTRIES} locale={locale} kind="country" />
             </div>
           )}
 
@@ -306,9 +330,9 @@ export default async function DirectoryProfilePage({
                   target="_blank"
                   rel="noreferrer"
                   title={`@${target.instagram_handle}`}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-gradient-to-r from-[#FEDA75]/15 via-[#D62976]/15 to-[#4F5BD5]/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-gradient-to-r from-brand-instagram-start/15 via-brand-instagram-middle/15 to-brand-instagram-end/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] text-white">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-brand-instagram-start via-brand-instagram-middle to-brand-instagram-end text-primary-foreground">
                     <Instagram className="h-3.5 w-3.5" />
                   </span>
                   <span className="max-w-[8rem] truncate">@{target.instagram_handle}</span>
@@ -331,9 +355,9 @@ export default async function DirectoryProfilePage({
               {target.line_id && (
                 <span
                   title={`LINE ID: ${target.line_id}`}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-[#06C755]/10 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm"
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-brand-line/10 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#06C755] text-white">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-line text-primary-foreground">
                     <MessageCircle className="h-3.5 w-3.5" />
                   </span>
                   <span className="max-w-[8rem] truncate">{target.line_id}</span>
@@ -406,6 +430,11 @@ export default async function DirectoryProfilePage({
                 badges: earnedBadges,
                 eventCount: stats.event_count,
                 surveyCount: stats.survey_count,
+                coverUrl: target.profile_cover_url,
+                selfIntro: target.self_intro,
+                faculty: target.faculty ? (dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty) : null,
+                gradeLevel: target.grade_level ? (dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level) : null,
+                languages: (target.languages ?? []).map((code) => findLabel(LANGUAGES, code, locale)),
               }}
             />
           </div>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDict } from "@/lib/i18n/locale-provider";
 
 function GoogleIcon() {
@@ -56,8 +57,9 @@ function LoginContent() {
   return (
     <div className="relative flex min-h-[85vh] items-center justify-center overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-hero-radial" />
-      <div className="absolute right-0 top-0 p-2">
+      <div className="absolute right-0 top-0 flex items-center gap-2 p-2">
         <LocaleToggle />
+        <ThemeToggle />
       </div>
       <Card className="relative w-full max-w-sm rounded-2xl shadow-elevated">
         <CardHeader className="items-center gap-3 pt-8 text-center">

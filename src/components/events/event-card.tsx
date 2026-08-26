@@ -81,24 +81,16 @@ export async function EventCard({
           </div>
           {/* 「新規」は左上のタグ群に混ぜず、右上に独立した帯（リボン）として配置する。 */}
           {isNew && (
-            <span className="absolute right-0 top-3 inline-flex h-5 items-center rounded-l-full bg-sky-600 py-0 pl-2.5 pr-2 text-[10px] font-bold uppercase leading-none tracking-wide text-white shadow-sm">
+            <span className="absolute right-0 top-3 inline-flex h-5 items-center rounded-l-full bg-info py-0 pl-2.5 pr-2 text-[10px] font-bold uppercase leading-none tracking-wide text-info-foreground shadow-sm">
               {dict.event.newTag}
             </span>
           )}
           {event.fee_amount ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
           ) : event.show_free_tag !== false ? (
-            <span className="absolute bottom-2 right-2 rounded-full bg-emerald-600/90 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.freeLabel}</span>
+            <span className="absolute bottom-2 right-2 rounded-full bg-success/90 px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
-          {/* 「詳しく見れる」ことが伝わるよう、ホバー時に画像上へ薄い暗幕+ラベルを重ねる。 */}
-          {!isMuted && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-all duration-200 group-hover:bg-foreground/15 group-hover:opacity-100">
-              <span className="translate-y-1 rounded-full bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground opacity-0 shadow-md backdrop-blur transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-                {locale === "en" ? "View details" : "詳細を見る"}
-              </span>
-            </div>
-          )}
         </div>
         {/*
          * カードの高さを常に完全に同一にするため、min-h ではなく h（固定値）を使う。

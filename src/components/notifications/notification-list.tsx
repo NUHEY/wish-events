@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useState, useTransition } from "react";
-import { Heart, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
+import { Heart, Megaphone, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
 import { deleteNotification } from "@/actions/notifications";
 import type { NotificationType } from "@/types/database";
 
@@ -23,13 +23,14 @@ type NotificationItem = {
 const ICON_BY_TYPE: Record<NotificationType, { icon: typeof Heart; className: string }> = {
   friend_request: { icon: UserPlus, className: "bg-primary text-primary-foreground" },
   friend_accept: { icon: UserCheck, className: "bg-primary text-primary-foreground" },
-  event_like: { icon: Heart, className: "bg-rose-500 text-white" },
-  event_comment: { icon: MessageCircle, className: "bg-sky-500 text-white" },
-  event_comment_reply: { icon: MessageCircle, className: "bg-sky-500 text-white" },
-  event_comment_like: { icon: Heart, className: "bg-rose-500 text-white" },
-  announcement_comment: { icon: MessageCircle, className: "bg-sky-500 text-white" },
-  announcement_comment_reply: { icon: MessageCircle, className: "bg-sky-500 text-white" },
-  announcement_comment_like: { icon: Heart, className: "bg-rose-500 text-white" },
+  event_like: { icon: Heart, className: "bg-primary text-primary-foreground" },
+  event_comment: { icon: MessageCircle, className: "bg-info text-info-foreground" },
+  event_comment_reply: { icon: MessageCircle, className: "bg-info text-info-foreground" },
+  event_comment_like: { icon: Heart, className: "bg-primary text-primary-foreground" },
+  announcement_comment: { icon: MessageCircle, className: "bg-info text-info-foreground" },
+  announcement_comment_reply: { icon: MessageCircle, className: "bg-info text-info-foreground" },
+  announcement_comment_like: { icon: Heart, className: "bg-primary text-primary-foreground" },
+  ra_broadcast: { icon: Megaphone, className: "bg-primary text-primary-foreground" },
 };
 
 function actionText(type: NotificationType) {
@@ -52,6 +53,8 @@ function actionText(type: NotificationType) {
       return "あなたのコメントに返信しました";
     case "announcement_comment_like":
       return "あなたのコメントにいいねしました";
+    case "ra_broadcast":
+      return "お知らせを送信しました";
     default:
       return "";
   }

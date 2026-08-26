@@ -28,6 +28,18 @@
     --border: 220 13% 91%;
     --input: 220 13% 88%;
     --ring: 340 60% 28%;
+    --chat-surface: 330 10% 97%;
+    --chat-gradient-start: 340 38% 94%;
+    --chat-gradient-middle: 0 0% 98%;
+    --message-surface: 340 18% 99%;
+    --success: 155 58% 34%;
+    --success-foreground: 0 0% 100%;
+    --info: 202 73% 43%;
+    --info-foreground: 0 0% 100%;
+    --instagram-start: 47 98% 73%;
+    --instagram-middle: 337 69% 50%;
+    --instagram-end: 236 48% 53%;
+    --line-brand: 142 94% 40%;
 
     /*
      * === サイト全体の角丸ルール ===
@@ -44,6 +56,41 @@
      *   rounded-sm  (8px)   : ごく小さい装飾的要素（稀にのみ使用）
      */
     --radius: 0.875rem;
+  }
+
+  .dark {
+    --background: 224 16% 9%;
+    --foreground: 220 14% 92%;
+    --card: 224 15% 12%;
+    --card-foreground: 220 14% 92%;
+
+    --primary: 340 64% 52%;
+    --primary-hover: 340 66% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 224 13% 17%;
+    --secondary-foreground: 220 14% 90%;
+    --muted: 224 13% 17%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 224 13% 20%;
+    --accent-foreground: 220 14% 94%;
+    --destructive: 0 66% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 12% 23%;
+    --input: 224 12% 28%;
+    --ring: 340 64% 58%;
+    --chat-surface: 224 15% 10%;
+    --chat-gradient-start: 340 22% 15%;
+    --chat-gradient-middle: 224 15% 11%;
+    --message-surface: 224 14% 17%;
+    --success: 155 55% 42%;
+    --success-foreground: 0 0% 100%;
+    --info: 202 75% 52%;
+    --info-foreground: 224 16% 9%;
+    --instagram-start: 47 98% 73%;
+    --instagram-middle: 337 69% 58%;
+    --instagram-end: 236 65% 68%;
+    --line-brand: 142 75% 46%;
   }
 }
 

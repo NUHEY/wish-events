@@ -43,13 +43,13 @@ export function EventPoster({
     // 四隅が四角いまま透けて見える」という既知の不具合を避けるため。
     // 画像そのものに近い階層でも同じ丸めを再宣言しておくことで、
     // どの祖先で丸めていてもここで確実にクリップされるようにしている。
-    <div className={cn("relative w-full overflow-hidden rounded-[inherit] bg-muted", ratioClassName, className)}>
+    <div className={cn("relative isolate w-full overflow-hidden rounded-[inherit] bg-muted [transform:translateZ(0)]", ratioClassName, className)}>
       <Image
         src={displaySrc}
         alt=""
         fill
         aria-hidden
-        className={cn("scale-110 object-cover opacity-50 blur-2xl", isDefault && "opacity-70")}
+        className={cn("object-cover opacity-50 blur-2xl [transform:translateZ(0)_scale(1.1)] [will-change:transform]", isDefault && "opacity-70")}
         sizes="(max-width: 768px) 100vw, 33vw"
       />
       <Image

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { submitSurveyResponse, type AnswerInput } from "@/actions/surveys";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
 import type { SurveyQuestionRow } from "@/types/database";
 
 export function SurveyResponseForm({
@@ -27,11 +28,13 @@ export function SurveyResponseForm({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const router = useRouter();
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
 
-  useUnsavedChangesGuard(Object.keys(answers).length > 0 && !done, dict.common.unsavedChangesConfirm);
+  useUnsavedChangesGuard(isDirty && !done, dict.common.unsavedChangesConfirm);
 
   function setText(questionId: string, value: string) {
     setAnswers((a) => ({ ...a, [questionId]: value }));
+    markDirty();
   }
 
   function toggleOption(questionId: string, option: string, multi: boolean) {
@@ -45,6 +48,7 @@ export function SurveyResponseForm({
       }
       return { ...a, [questionId]: option };
     });
+    markDirty();
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -67,9 +71,11 @@ export function SurveyResponseForm({
       return { question_id: q.id, answer_text: v };
     });
 
+    reset();
     startTransition(async () => {
       const result = await submitSurveyResponse(surveyId, payload);
       if (result.error) {
+        markDirty();
         setError(result.error);
         toast.error(result.error);
       } else {
@@ -85,7 +91,7 @@ export function SurveyResponseForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form ref={formRef} onSubmit={handleSubmit} onInput={markDirty} onChange={markDirty} className="flex flex-col gap-6">
       {sorted.map((q, index) => (
         <div key={q.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <Label>

@@ -1,40 +1,5 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function DirectoryProfileLoading() {
-  return (
-    <div className="mx-auto flex max-w-xl animate-pulse flex-col gap-4">
-      <div className="h-5 w-16 rounded-md bg-secondary/70" />
-
-      <div className="overflow-hidden rounded-2xl border border-border">
-        <div className="flex flex-col gap-5 p-5">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 shrink-0 rounded-full bg-secondary" />
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="h-5 w-32 rounded-md bg-secondary" />
-              <div className="h-3.5 w-20 rounded-md bg-secondary/70" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border py-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div className="h-4 w-6 rounded bg-secondary" />
-                <div className="h-2.5 w-10 rounded bg-secondary/70" />
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-6 w-16 rounded-full bg-secondary/70" />
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-2 border-t border-border pt-4">
-            <div className="h-3 w-24 rounded bg-secondary/70" />
-            <div className="h-4 w-full rounded bg-secondary/70" />
-            <div className="h-4 w-4/5 rounded bg-secondary/70" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto flex max-w-xl flex-col gap-4"><div className="flex items-center gap-2"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-6 w-32" /><Skeleton className="h-3 w-24" /></div></div><div className="overflow-hidden rounded-2xl border border-border"><Skeleton className="aspect-[3/1] w-full rounded-none" /><div className="space-y-5 p-5"><Skeleton className="-mt-12 h-16 w-16 rounded-full ring-4 ring-card" /><div className="space-y-2"><Skeleton className="h-5 w-36" /><Skeleton className="h-3.5 w-20" /></div><div className="grid grid-cols-3 gap-3"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div><Skeleton className="h-16 w-full" /><div className="flex gap-2"><Skeleton className="h-8 w-24 rounded-full" /><Skeleton className="h-8 w-20 rounded-full" /></div></div></div></div>;
 }

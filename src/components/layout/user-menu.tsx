@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { UserRole } from "@/types/database";
 
 /**
@@ -94,8 +95,9 @@ export function UserMenu({
           </span>
         </Link>
         <DropdownMenuSeparator />
-        <div className="px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <LocaleToggle />
+          <ThemeToggle />
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

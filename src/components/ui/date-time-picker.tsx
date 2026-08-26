@@ -98,7 +98,7 @@ export function DateTimePicker({
               // 独自のトーンを用いる。
               "--rdp-cell-size": "2.25rem",
               "--rdp-accent-color": "hsl(var(--primary))",
-              "--rdp-background-color": "hsl(340 45% 96%)",
+              "--rdp-background-color": "hsl(var(--primary) / 0.08)",
               "--rdp-outline": "2px solid hsl(var(--primary))",
               "--rdp-outline-selected": "3px solid hsl(var(--primary))",
             } as React.CSSProperties
@@ -117,7 +117,7 @@ export function DateTimePicker({
             style={
               {
                 "--rdp-accent-color": "hsl(var(--primary))",
-                "--rdp-background-color": "hsl(340 45% 96%)",
+                "--rdp-background-color": "hsl(var(--primary) / 0.08)",
                 "--rdp-outline": "2px solid hsl(var(--primary))",
                 "--rdp-outline-selected": "3px solid hsl(var(--primary))",
               } as React.CSSProperties
