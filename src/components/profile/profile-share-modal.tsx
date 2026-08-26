@@ -24,7 +24,7 @@ import type { Locale } from "@/lib/i18n/locales";
 const W = 1080;
 const H = 1350; // Instagramの投稿比率（4:5）
 
-const STYLE_KEYS = ["wine", "polaroid", "neon"] as const;
+const STYLE_KEYS = ["wine", "polaroid", "neon", "pop"] as const;
 type StyleKey = (typeof STYLE_KEYS)[number];
 
 export type ProfileShareData = {
@@ -279,10 +279,119 @@ function renderNeon(ctx: CanvasRenderingContext2D, r: RenderCtx) {
   ctx.fillText("WISH · WASEDA", 80, H - 80);
 }
 
+/**
+ * 「もっとポップで可愛い見た目に」という要望に応えた追加スタイル。
+ * パステルカラーのグラデーション＋丸いブロブ（水玉状の光）＋破線リングの
+ * アバター＋絵文字ステッカー風の統計バッジで、既存3スタイルより
+ * カジュアル・キュートな印象にしている。
+ */
+function renderPop(ctx: CanvasRenderingContext2D, r: RenderCtx) {
+  const pastelA = "#FFD3E8";
+  const pastelB = "#D6C6FF";
+  const pastelC = "#BFEBFF";
+  const ink = "#5C2A4D";
+  const inkSoft = "#7A5570";
+
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, pastelA);
+  grad.addColorStop(0.55, pastelB);
+  grad.addColorStop(1, pastelC);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 背景に浮かぶ丸いブロブ（水玉のような柔らかい光）
+  const blobs: Array<[number, number, number]> = [
+    [W * 0.08, H * 0.07, 130],
+    [W * 0.93, H * 0.16, 100],
+    [W * 0.06, H * 0.88, 120],
+    [W * 0.9, H * 0.93, 150],
+  ];
+  blobs.forEach(([bx, by, br]) => {
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  drawRoundedRect(ctx, 80, 70, 210, 70, 35);
+  ctx.fill();
+  ctx.fillStyle = ink;
+  ctx.font = "700 30px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillText("✨ WISH", 108, 70 + 35);
+  ctx.textBaseline = "alphabetic";
+
+  const cx = W / 2;
+  const cy = 420;
+  const radius = 150;
+  ctx.save();
+  ctx.setLineDash([14, 10]);
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 18, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  drawAvatar(ctx, r, cx, cy, radius, "#ffffff");
+  ctx.font = "68px sans-serif";
+  ctx.fillText("🎀", cx + radius - 20, cy - radius + 30);
+
+  ctx.textAlign = "center";
+  ctx.font = "800 60px sans-serif";
+  ctx.fillStyle = ink;
+  ctx.fillText(displayName(r), W / 2, 640);
+  ctx.font = "600 30px sans-serif";
+  ctx.fillStyle = inkSoft;
+  ctx.fillText(r.data.roomText, W / 2, 685);
+  ctx.textAlign = "left";
+
+  const statY = 770;
+  const cols: Array<[string, string, string]> = [
+    [String(r.data.eventCount), r.dict.directory.statsEvents, "🎉"],
+    [String(r.data.surveyCount), r.dict.directory.statsSurveys, "📝"],
+    [String(r.data.badges.length), r.dict.directory.statsBadges, "🏅"],
+  ];
+  const gap = 24;
+  const colW = (W - 160 - gap * 2) / 3;
+  ctx.textAlign = "center";
+  cols.forEach(([value, label, emoji], i) => {
+    const x = 80 + i * (colW + gap);
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    drawRoundedRect(ctx, x, statY, colW, 210, 30);
+    ctx.fill();
+    ctx.font = "46px sans-serif";
+    ctx.fillText(emoji, x + colW / 2, statY + 70);
+    ctx.font = "800 52px sans-serif";
+    ctx.fillStyle = ink;
+    ctx.fillText(value, x + colW / 2, statY + 135);
+    ctx.font = "600 24px sans-serif";
+    ctx.fillStyle = inkSoft;
+    ctx.fillText(label, x + colW / 2, statY + 175);
+  });
+  ctx.textAlign = "left";
+
+  if (r.data.badges.length > 0) {
+    ctx.textAlign = "center";
+    ctx.font = "52px sans-serif";
+    ctx.fillText(r.data.badges.slice(0, 6).map((b) => b.icon).join("  "), W / 2, statY + 300);
+    ctx.textAlign = "left";
+  }
+
+  ctx.textAlign = "center";
+  ctx.font = "700 30px sans-serif";
+  ctx.fillStyle = inkSoft;
+  ctx.fillText("WISH ♡ Waseda International Student House", W / 2, H - 70);
+  ctx.textAlign = "left";
+}
+
 const RENDERERS: Record<StyleKey, (ctx: CanvasRenderingContext2D, r: RenderCtx) => void> = {
   wine: renderWine,
   polaroid: renderPolaroid,
   neon: renderNeon,
+  pop: renderPop,
 };
 
 export function ProfileShareModal({ data, onClose }: { data: ProfileShareData; onClose: () => void }) {
