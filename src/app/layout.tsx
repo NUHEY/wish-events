@@ -10,7 +10,7 @@ import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
-import { getSiteSettings, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
+import { getSiteSettings, buildSiteThemeStyle, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { themeInitScript } from "@/lib/theme";
 
@@ -60,12 +60,15 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const locale = await getLocale();
+  const [locale, siteSettings] = await Promise.all([getLocale(), getSiteSettings()]);
+  const siteThemeStyle = buildSiteThemeStyle(siteSettings);
 
   return (
     <html lang={locale} className={cn(inter.variable, notoSansJP.variable)} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* RAダッシュボードのサイト設定で選べるアクセントカラー・状態色の上書き。 */}
+        <style dangerouslySetInnerHTML={{ __html: siteThemeStyle }} />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>

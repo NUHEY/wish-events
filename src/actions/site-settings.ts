@@ -13,6 +13,8 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/webp": "webp",
 };
 
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
 export async function updateSiteSettings(
   _prev: SiteSettingsActionResult,
   formData: FormData
@@ -20,6 +22,11 @@ export async function updateSiteSettings(
   const profile = await requireRa();
   const ogTitle = String(formData.get("og_title") ?? "").trim();
   const ogDescription = String(formData.get("og_description") ?? "").trim();
+  const accentColorRaw = String(formData.get("accent_color") ?? "").trim();
+  if (accentColorRaw && !HEX_COLOR_PATTERN.test(accentColorRaw)) {
+    return { error: "アクセントカラーの形式が正しくありません。" };
+  }
+  const colorfulStatus = formData.get("colorful_status") === "on";
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -27,6 +34,8 @@ export async function updateSiteSettings(
     .update({
       og_title: ogTitle || null,
       og_description: ogDescription || null,
+      ...(accentColorRaw ? { accent_color: accentColorRaw } : {}),
+      colorful_status: colorfulStatus,
       updated_by: profile.id,
       updated_at: new Date().toISOString(),
     })

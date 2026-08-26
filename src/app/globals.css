@@ -23,7 +23,8 @@
     --muted-foreground: 0 0% 45%;
     --accent: 0 0% 91%;
     --accent-foreground: 0 0% 20%;
-    --destructive: 0 64% 48%;
+    /* 既定は状態色もモノクロ（RAダッシュボードの「状態に色を使う」をオンにすると元の配色に戻る）。 */
+    --destructive: 0 0% 20%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 87%;
     --input: 0 0% 82%;
@@ -32,9 +33,9 @@
     --chat-gradient-start: 0 0% 92%;
     --chat-gradient-middle: 0 0% 96%;
     --message-surface: 0 0% 100%;
-    --success: 153 42% 38%;
-    --success-foreground: 0 0% 100%;
-    --info: 203 58% 48%;
+    --success: 0 0% 92%;
+    --success-foreground: 0 0% 20%;
+    --info: 0 0% 15%;
     --info-foreground: 0 0% 100%;
     --instagram-start: 47 98% 73%;
     --instagram-middle: 337 69% 50%;
@@ -74,8 +75,8 @@
     --muted-foreground: 0 0% 65%;
     --accent: 0 0% 21%;
     --accent-foreground: 0 0% 94%;
-    --destructive: 0 66% 56%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 0% 85%;
+    --destructive-foreground: 0 0% 10%;
     --border: 0 0% 23%;
     --input: 0 0% 28%;
     --ring: 346 52% 65%;
@@ -83,10 +84,10 @@
     --chat-gradient-start: 0 0% 17%;
     --chat-gradient-middle: 0 0% 15%;
     --message-surface: 0 0% 17%;
-    --success: 155 55% 42%;
-    --success-foreground: 0 0% 100%;
-    --info: 202 75% 52%;
-    --info-foreground: 224 16% 9%;
+    --success: 0 0% 22%;
+    --success-foreground: 0 0% 90%;
+    --info: 0 0% 85%;
+    --info-foreground: 0 0% 10%;
     --instagram-start: 47 98% 73%;
     --instagram-middle: 337 69% 58%;
     --instagram-end: 236 65% 68%;

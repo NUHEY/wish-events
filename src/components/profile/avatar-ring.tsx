@@ -1,4 +1,4 @@
-import { AVATAR_RING_GOLD_HEX, AVATAR_RING_GOLD_THRESHOLD, AVATAR_RING_RA_HEX } from "@/lib/constants";
+import { AVATAR_RING_GOLD_HEX, AVATAR_RING_GOLD_THRESHOLD } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 /**
@@ -53,7 +53,7 @@ export function AvatarRing({
         padding: outerPad,
         background: hasRing
           ? isRa
-            ? AVATAR_RING_RA_HEX
+            ? "hsl(var(--primary))"
             : `linear-gradient(135deg, ${AVATAR_RING_GOLD_HEX}, #F5E1A4, ${AVATAR_RING_GOLD_HEX})`
           : undefined,
       }}

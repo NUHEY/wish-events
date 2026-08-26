@@ -72,10 +72,6 @@ const config: Config = {
         elevated: "0 12px 32px -8px rgb(0 0 0 / 0.16), 0 4px 12px -4px rgb(0 0 0 / 0.08)",
         glow: "0 0 0 1px hsl(var(--primary) / 0.08), 0 8px 24px -6px hsl(var(--primary) / 0.18)",
       },
-      backgroundImage: {
-        "hero-radial":
-          "radial-gradient(55% 65% at -12% -18%, hsl(var(--primary) / 0.11), transparent 72%), radial-gradient(48% 58% at 112% -10%, hsl(var(--info) / 0.11), transparent 74%)",
-      },
       keyframes: {
         "fade-in": {
           "0%": { opacity: "0", transform: "translateY(4px)" },

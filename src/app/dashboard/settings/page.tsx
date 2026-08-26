@@ -1,5 +1,5 @@
 import { requireRa } from "@/lib/auth";
-import { getSiteSettings, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
+import { getSiteSettings, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION, SITE_DEFAULT_ACCENT_COLOR } from "@/lib/site-settings";
 import { SiteSettingsForm } from "@/components/dashboard/site-settings-form";
 
 export default async function SiteSettingsPage() {
@@ -20,6 +20,9 @@ export default async function SiteSettingsPage() {
         initialImageUrl={settings.ogImageUrl}
         defaultTitle={SITE_DEFAULT_TITLE}
         defaultDescription={SITE_DEFAULT_DESCRIPTION}
+        initialAccentColor={settings.accentColor}
+        initialColorfulStatus={settings.colorfulStatus}
+        defaultAccentColor={SITE_DEFAULT_ACCENT_COLOR}
       />
     </div>
   );

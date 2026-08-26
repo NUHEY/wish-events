@@ -44,13 +44,8 @@ function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType
 
 type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
 
-const CHIP_STYLES = [
-  "border-rose-200/70 bg-rose-100/70 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/45 dark:text-rose-200",
-  "border-sky-200/70 bg-sky-100/70 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/45 dark:text-sky-200",
-  "border-emerald-200/70 bg-emerald-100/70 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/45 dark:text-emerald-200",
-  "border-amber-200/70 bg-amber-100/70 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/45 dark:text-amber-200",
-  "border-violet-200/70 bg-violet-100/70 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/45 dark:text-violet-200",
-] as const;
+/** 言語・国籍・学部・学年などの付随情報チップに共通で使う配色（白黒+アクセントに統一）。 */
+const INFO_CHIP_STYLE = "border-border bg-secondary text-secondary-foreground";
 
 function countryFlag(code: string) {
   const normalized = code.toUpperCase();
@@ -62,8 +57,8 @@ function ChipList({ codes, list, locale, kind }: { codes: string[] | null; list:
   if (!codes || codes.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
-      {codes.map((code, index) => (
-        <span key={code} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm", CHIP_STYLES[index % CHIP_STYLES.length])}>
+      {codes.map((code) => (
+        <span key={code} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm", INFO_CHIP_STYLE)}>
           {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon className="h-3.5 w-3.5" />}
           {findLabel(list, code, locale)}
         </span>
@@ -286,13 +281,13 @@ export default async function DirectoryProfilePage({
           {(target.faculty || target.grade_level) && (
             <div className="flex flex-wrap gap-2 text-sm">
               {target.faculty && (
-                <span className="inline-flex items-center gap-2 rounded-xl border border-violet-200/70 bg-violet-100/70 px-3 py-2 font-semibold text-violet-900 shadow-sm dark:border-violet-900/60 dark:bg-violet-950/45 dark:text-violet-100">
+                <span className={cn("inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-semibold shadow-sm", INFO_CHIP_STYLE)}>
                   <GraduationCap className="h-4 w-4" />
                   {dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}
                 </span>
               )}
               {target.grade_level && (
-                <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200/70 bg-amber-100/70 px-3 py-2 font-semibold text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/45 dark:text-amber-100">
+                <span className={cn("inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-semibold shadow-sm", INFO_CHIP_STYLE)}>
                   <Sparkles className="h-4 w-4" />
                   {dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}
                 </span>

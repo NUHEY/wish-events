@@ -187,9 +187,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="relative flex flex-col gap-8">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-hero-radial" />
-
+    <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-6">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-bold tracking-tight">

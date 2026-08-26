@@ -26,13 +26,20 @@ export function SiteSettingsForm({
   initialImageUrl,
   defaultTitle,
   defaultDescription,
+  initialAccentColor,
+  initialColorfulStatus,
+  defaultAccentColor,
 }: {
   initialTitle: string;
   initialDescription: string;
   initialImageUrl: string | null;
   defaultTitle: string;
   defaultDescription: string;
+  initialAccentColor: string;
+  initialColorfulStatus: boolean;
+  defaultAccentColor: string;
 }) {
+  const [accentColor, setAccentColor] = useState(initialAccentColor);
   const [state, formAction] = useFormState<SiteSettingsActionResult, FormData>(updateSiteSettings, {});
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
   const [pending, startTransition] = useTransition();
@@ -145,6 +152,33 @@ export function SiteSettingsForm({
             placeholder={defaultDescription}
             maxLength={200}
           />
+        </div>
+        <div className="border-t border-border pt-4">
+          <h2 className="font-bold">サイトカラー</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            ボタンやリンクなど、サイトの主要な操作に使うアクセントカラーです。それ以外の土台部分は白黒で統一されています。
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <input
+              type="color"
+              name="accent_color"
+              value={accentColor}
+              onChange={(e) => setAccentColor(e.target.value)}
+              className="h-10 w-16 cursor-pointer rounded-lg border border-border bg-card p-1"
+              aria-label="アクセントカラー"
+            />
+            <span className="text-sm text-muted-foreground">{accentColor}</span>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setAccentColor(defaultAccentColor)}>
+              早稲田カラーに戻す
+            </Button>
+          </div>
+          <label className="mt-4 flex items-start gap-2 text-sm">
+            <input type="checkbox" name="colorful_status" defaultChecked={initialColorfulStatus} className="mt-0.5 h-4 w-4 rounded border-border" />
+            <span>
+              エラー・成功・NEWタグなどの状態表示に色を使う
+              <span className="mt-0.5 block text-xs text-muted-foreground">オフの場合、これらも白黒+アクセントカラーで統一表示されます（既定はオフ）。</span>
+            </span>
+          </label>
         </div>
         {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
         <div>
