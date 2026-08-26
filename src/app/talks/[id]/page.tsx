@@ -34,7 +34,7 @@ export default async function EventTalkPage({
   if (profile.role !== "ra" && !registration) redirect(`/events/${id}`);
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl sm:gap-4">
+    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl">
       <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
         <BackButton fallbackHref="/talks" className="-ml-2 !p-2" />
         {event.poster_url && (

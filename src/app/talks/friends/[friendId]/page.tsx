@@ -37,7 +37,7 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
   if (relation.status !== "friends") notFound();
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl sm:gap-4">
+    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl">
       <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
         <BackButton fallbackHref="/talks?tab=friends" className="-ml-2 !p-2" />
         <AvatarRing role={friend.role} size={40}>

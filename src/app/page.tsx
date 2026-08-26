@@ -30,7 +30,7 @@ function EventScroller({
   friendsByEventId?: Map<string, EventCardFriend[]>;
 }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pl-5 pr-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 lg:grid-cols-4 xl:grid-cols-5">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
           <EventCard event={event} attendingFriends={friendsByEventId?.get(event.id)} />
@@ -188,7 +188,7 @@ export default async function HomePage() {
 
   return (
     <div className="relative flex flex-col gap-8">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-6 -z-10 h-64 bg-hero-radial" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-hero-radial" />
 
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-6">
         <div className="flex flex-col gap-1.5">

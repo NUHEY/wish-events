@@ -289,7 +289,7 @@ export function FriendDm({
     new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-border sm:bg-card sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
       <div
         ref={setMessagesScrollRef}
@@ -334,7 +334,7 @@ export function FriendDm({
           return (
             <div
               key={message.id}
-              className={`group flex max-w-[85%] gap-2 motion-safe:animate-fade-in ${mine ? "self-end" : "self-start"} ${
+              className={`group flex max-w-[85%] gap-2 ${mine ? "self-end" : "self-start"} ${
                 isGroupStart && index !== 0 ? "mt-3" : ""
               }`}
             >
