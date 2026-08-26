@@ -39,7 +39,7 @@ export default async function OgImage() {
               height: 64,
               borderRadius: 9999,
               background: "#ffffff",
-              color: "#A84F6D",
+              color: "#8E1728",
               fontSize: 32,
               fontWeight: 700,
             }}

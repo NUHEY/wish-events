@@ -12,9 +12,9 @@
     --card: 0 0% 100%;
     --card-foreground: 0 0% 15%;
 
-    /* Wasedaのえんじ色を軽くした、低彩度のベリー */
-    --primary: 346 39% 48%;
-    --primary-hover: 346 43% 41%;
+    /* 早稲田大学の公式カラー「早稲田レッド（臙脂色）」相当（DIC 2486 / PANTONE 202C）。 */
+    --primary: 351 72% 32%;
+    --primary-hover: 351 75% 25%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 93%;
@@ -28,7 +28,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 87%;
     --input: 0 0% 82%;
-    --ring: 346 39% 48%;
+    --ring: 351 72% 32%;
     --chat-surface: 0 0% 96%;
     --chat-gradient-start: 0 0% 92%;
     --chat-gradient-middle: 0 0% 96%;
@@ -65,8 +65,8 @@
     --card: 0 0% 12%;
     --card-foreground: 0 0% 92%;
 
-    --primary: 346 52% 63%;
-    --primary-hover: 346 55% 69%;
+    --primary: 351 78% 58%;
+    --primary-hover: 351 80% 64%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 18%;
@@ -79,7 +79,7 @@
     --destructive-foreground: 0 0% 10%;
     --border: 0 0% 23%;
     --input: 0 0% 28%;
-    --ring: 346 52% 65%;
+    --ring: 351 78% 58%;
     --chat-surface: 0 0% 10%;
     --chat-gradient-start: 0 0% 17%;
     --chat-gradient-middle: 0 0% 15%;

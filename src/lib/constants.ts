@@ -137,7 +137,7 @@ export const PROFILE_ACCENT_HEX: Record<ProfileAccentKey, string> = {
  * RAは常にワインレッド、一般寮生はイベント参加数がこの数を超えると金色になる。
  */
 export const AVATAR_RING_GOLD_HEX = "#C6A653";
-export const AVATAR_RING_RA_HEX = "#A84F6D";
+export const AVATAR_RING_RA_HEX = "#8E1728";
 export const AVATAR_RING_GOLD_THRESHOLD = 8;
 
 export const GRADE_LEVELS = [

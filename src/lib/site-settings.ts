@@ -14,8 +14,11 @@ export const SITE_DEFAULT_TITLE = "WISH Events";
 export const SITE_DEFAULT_DESCRIPTION =
   "早稲田大学国際学生寮 WISH のイベント一覧・申込サイト / Event site for Waseda's WISH international dorm";
 
-/** サイトのアクセントカラー既定値（早稲田えんじ色）。 */
-export const SITE_DEFAULT_ACCENT_COLOR = "#A84F6D";
+/**
+ * サイトのアクセントカラー既定値。早稲田大学が2007年のUIシステム導入時に定めた
+ * 公式の「早稲田レッド（臙脂色）」相当の色（DIC 2486 / PANTONE 202C）を採用している。
+ */
+export const SITE_DEFAULT_ACCENT_COLOR = "#8E1728";
 
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
@@ -52,19 +55,21 @@ function clampPct(value: number, min: number, max: number) {
 
 /**
  * 管理者が選んだ1色（HEX）から、ライト/ダーク各モードの --primary / --primary-hover を
- * 導出する。文字通りの明度までは尊重せず、色相・彩度だけを引き継いで明度は既存の
- * 早稲田カラーと同じ目標値に固定することで、どんな色を選んでも白文字ボタンとして
- * 十分なコントラストを保つ。
+ * 導出する。選んだ色の彩度・明度をできるだけ忠実に活かしつつ、白文字ボタンとして
+ * 十分なコントラストを保てる範囲だけクランプする（浅すぎる/暗すぎる色を選んでも
+ * 読めなくならないようにするための安全策で、色そのものを勝手に薄めるものではない）。
  */
 export function buildAccentPalette(hex: string) {
-  const { h, s } = hexToHsl(HEX_PATTERN.test(hex) ? hex : SITE_DEFAULT_ACCENT_COLOR);
-  const satLight = clampPct(s, 28, 60);
-  const satDark = clampPct(s + 10, 32, 65);
+  const { h, s, l } = hexToHsl(HEX_PATTERN.test(hex) ? hex : SITE_DEFAULT_ACCENT_COLOR);
+  const satLight = clampPct(s, 30, 85);
+  const lightL = clampPct(l, 30, 52);
+  const satDark = clampPct(s + 6, 34, 88);
+  const darkL = clampPct(l + 26, 52, 70);
   return {
-    light: `${h} ${satLight}% 48%`,
-    lightHover: `${h} ${clampPct(satLight + 4, 28, 65)}% 41%`,
-    dark: `${h} ${satDark}% 63%`,
-    darkHover: `${h} ${clampPct(satDark + 3, 32, 70)}% 69%`,
+    light: `${h} ${satLight}% ${lightL}%`,
+    lightHover: `${h} ${clampPct(satLight + 3, 30, 90)}% ${clampPct(lightL - 7, 22, 46)}%`,
+    dark: `${h} ${satDark}% ${darkL}%`,
+    darkHover: `${h} ${clampPct(satDark + 2, 34, 92)}% ${clampPct(darkL + 6, 56, 76)}%`,
   };
 }
 

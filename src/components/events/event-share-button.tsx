@@ -11,8 +11,8 @@ import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 const W = 1080;
 const H = 1350;
 // Waseda wine red（globals.cssの--primary/--primary-hoverを16進化した値）
-const PRIMARY = "#A84F6D";
-const PRIMARY_DARK = "#71364A";
+const PRIMARY = "#8E1728";
+const PRIMARY_DARK = "#61101B";
 const GOLD = "#E8CF9A";
 
 async function renderEventShareImage(opts: {

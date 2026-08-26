@@ -68,8 +68,8 @@ function displayName(r: RenderCtx): string {
 
 // ---- スタイル1: ワインレッド（ブランドカラーを踏襲したミニマルデザイン） ----
 function renderWine(ctx: CanvasRenderingContext2D, r: RenderCtx) {
-  const PRIMARY = "#A84F6D";
-  const PRIMARY_DARK = "#2A0A15";
+  const PRIMARY = "#8E1728";
+  const PRIMARY_DARK = "#1C0508";
   const GOLD = "#F0D9A8";
 
   const grad = ctx.createLinearGradient(0, 0, W, H);

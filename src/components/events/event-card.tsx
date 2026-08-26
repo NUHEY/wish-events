@@ -78,7 +78,12 @@ export async function EventCard({
             roundedClassName="rounded-none"
             softenBackdrop={false}
           />
-          <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+          <div
+            className={cn(
+              "absolute left-2 top-2 flex flex-wrap gap-1",
+              isNew ? "right-12" : "right-2"
+            )}
+          >
             <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
             {isDeadlineSoon && <Badge variant="destructive" className="border-0 shadow-sm">{dict.event.deadlineSoonTag}</Badge>}
           </div>
