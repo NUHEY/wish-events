@@ -67,7 +67,7 @@ export async function EventCard({
             : "group-hover:-translate-y-0.5 group-hover:border-foreground/15 group-hover:shadow-card-hover"
         )}
       >
-        <div className="relative overflow-hidden rounded-[inherit]">
+        <div className="relative overflow-hidden rounded-t-[inherit]">
           <EventPoster
             src={event.poster_url}
             alt={title}
