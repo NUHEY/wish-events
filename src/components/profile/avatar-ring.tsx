@@ -10,18 +10,17 @@ import { cn } from "@/lib/utils";
  * トークの28pxアイコンなどではリングが太すぎて見えてしまうため。
  * sizeを省略した場合はマイページ等で使われてきた64px相当（=既存の見た目）を維持する。
  *
- * 【正円保証について】
- * 以前は外側/内側のラッパーが inline-flex + padding だけでサイズを決めており、
- * 最終的な見た目のサイズを渡された中身(children)の実際の width/height に
- * 完全に依存していた。そのため、画像の実アスペクト比とCSSクラス指定がずれて
- * いたり、呼び出し側でh-N/w-Nの指定が漏れていたりすると、正円にならず楕円に
- * なってしまう〓#��があった（RAリング付きアバターで特に目立っていた）。
- * ここでは outer→inner→photo の3層すべてで width/height を size(px) から
- * 明示的に固定し、box-sizing: border-box でパディングがサイズをはみ出さない
- * ようにした上で、最内層に overflow-hidden + rounded-full を必ず適用し、
- * 中身（<img>でもフォールバックの<span>でも）を h-full/w-full/object-cover で
- * 強制的に埋める。これにより、呼び出し側が何を渡してもサイズがどうであっても、
- * 常に正円で表示されることを1箇所で保証する。
+ * 【写真が円にならない問題への対応】
+ * 以前は中身（children）の実サイズに依存していたため、正方形以外の画像や
+ * 想定より小さい/大きい写真を渡すと、リングだけが円でも肝心の写真自体が
+ * 円に切り抜かれず角が見えてしまうことがあった（RAのコメント欄アイコン等で発生）。
+ * どんな写真サイズでも必ず円になるよう、以下の対策を組み合わせている。
+ *  1. 外側・内側それぞれのラッパーに明示的な width/height（=size, px）を指定し、
+ *     boxSizing: border-box で padding込みのサイズを固定する。
+ *  2. すべての階層に overflow-hidden + rounded-full を重ねがけする。
+ *  3. children（写真 or イニシャル文字のフォールバック）がどんな幅・高さで
+ *     渡されても、`[&>*]:!h-full [&>*]:!w-full [&>*]:!object-cover` で
+ *     強制的に親いっぱいに引き伸ばし・トリミングする。
  */
 export function AvatarRing({
   role,
@@ -32,7 +31,7 @@ export function AvatarRing({
 }: {
   role?: string | null;
   eventCount?: number | null;
-  /** アイコンの表示サイズ(px)。リングの太さ・全体サイズをこれに比例させる。省略時は64px相当。 */
+  /** アイコンの表示サイズ(px)。リングの太さをこれに比例させる。省略時は64px相当。 */
   size?: number;
   children: React.ReactNode;
   className?: string;
