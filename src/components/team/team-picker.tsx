@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { UsersRound } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TeamMemberRow } from "@/types/database";
@@ -36,13 +37,7 @@ export function TeamPicker({
           {members.map((member) => (
             <label key={member.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-background">
               <Checkbox name="member_ids" value={member.id} defaultChecked={initialMemberIds.includes(member.id)} />
-              {member.avatar_url ? (
-                <Image src={member.avatar_url} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
-              ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                  {member.full_name?.charAt(0) ?? "?"}
-                </span>
-              )}
+              <Image src={member.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
               <span>{member.full_name ?? "名前未登録"}</span>
             </label>
           ))}

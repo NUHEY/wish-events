@@ -12,6 +12,9 @@ import {
 } from "@/actions/announcements";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
+import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Comment = {
@@ -25,8 +28,8 @@ type Comment = {
   likedByMe: boolean;
 };
 
-// src/components/community/event-comments.tsx のミラー実装（お知らせ詳細用）。
-// イベント側とUI/挙動を揃えるため、あえてロジックを共通化せず並行実装している。
+// src/components/community/event-comments.tsx とデザイン・挙動を完全に揃えた
+// お知らせ詳細用の実装（あえてロジックを共通化せず並行実装している）。
 export function AnnouncementComments({
   announcementId,
   comments,
@@ -43,8 +46,8 @@ export function AnnouncementComments({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
-  const confirm = useConfirm();
   const [expandedRoots, setExpandedRoots] = useState<Set<string>>(new Set());
+  const confirm = useConfirm();
   // いいねは即時反映するため、サーバーの再取得を待たずにこのオーバーライドで表示を上書きする。
   const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
   const sendingRef = useRef(false);
@@ -135,8 +138,9 @@ export function AnnouncementComments({
 
   return (
     <section className="flex flex-col gap-3 border-t border-border pt-5">
-      <h2 className="font-bold">コメント</h2>
-      <div className="rounded-2xl border border-border bg-card p-2 shadow-sm">
+      <PendingFeedback active={pending} label={body.trim() ? "コメントを送信しています…" : "コメントを更新しています…"} />
+      <h2 className="font-bold">コメント（{visibleComments.length}）</h2>
+      <div>
         {replyTo && (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-xl bg-primary/5 px-2.5 py-1.5 text-xs text-primary">
             <span className="truncate">{displayName(replyTo)} さんに返信</span>
@@ -145,12 +149,13 @@ export function AnnouncementComments({
             </button>
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
           <Input
             value={body}
             onChange={(e) => setBody(e.target.value)}
             maxLength={1000}
-            placeholder={replyTo ? "返信を入力" : "お知らせについてコメントする"}
+            placeholder={replyTo ? "返信を入力..." : "コメントを追加..."}
+            className="h-10 flex-1 border-0 bg-transparent px-2 text-[16px] shadow-none focus-visible:ring-0"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
@@ -158,7 +163,7 @@ export function AnnouncementComments({
               }
             }}
           />
-          <Button size="icon" disabled={pending || !body.trim()} onClick={submit} aria-label="コメントを送信">
+          <Button size="icon" className="h-9 w-9 shrink-0 rounded-full transition-transform active:scale-90" disabled={pending || !body.trim()} onClick={submit} aria-label="コメントを送信">
             <Send className="h-4 w-4" />
           </Button>
         </div>
@@ -194,14 +199,14 @@ export function AnnouncementComments({
                           canDelete={reply.user_id === currentUserId || isRa}
                           onLike={() => like(reply.id, reply.likedByMe, reply.likeCount)}
                           onDelete={() => handleDelete(reply)}
-                        />
+                      />
                       ))}
                       <button
                         type="button"
                         onClick={() => toggleExpanded(comment.id)}
                         className="w-fit text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
                       >
-                        返信を隠す
+                        返信を隠 す
                       </button>
                     </>
                   ) : (
@@ -242,26 +247,14 @@ function CommentItem({
   canDelete: boolean;
   reply?: boolean;
 }) {
-  const isRa = comment.user?.role?.toLowerCase() === "ra";
-
   return (
     <div className="flex gap-2.5">
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs">
-        {comment.user?.avatar_url ? (
-          <Image src={comment.user.avatar_url} alt="" width={32} height={32} className="h-full w-full object-cover" />
-        ) : (
-          displayName(comment).charAt(0)
-        )}
-        {isRa && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-primary" />}
-      </span>
+      <AvatarRing role={comment.user?.role} size={32}>
+        <Image src={comment.user?.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full object-cover" />
+      </AvatarRing>
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-relaxed">
           <span className="font-semibold">{displayName(comment)}</span>
-          {isRa && (
-            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary align-middle">
-              RA
-            </span>
-          )}
           <span className="ml-1.5 whitespace-pre-wrap break-words">{comment.body}</span>
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -284,7 +277,7 @@ function CommentItem({
               className="inline-flex items-center gap-1 font-medium text-muted-foreground/80 transition-colors hover:text-destructive"
             >
               <Trash2 className="h-3 w-3" />
-              削除
+              削除。
             </button>
           )}
         </div>
@@ -304,5 +297,5 @@ function CommentItem({
 }
 
 function displayName(comment: Comment) {
-  return comment.user?.full_name?.trim() || "名前未登録";
+  return comment.user?.full_name?.trim() || "名前未登輲";
 }

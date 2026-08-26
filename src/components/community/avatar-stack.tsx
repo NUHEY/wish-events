@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 
 type Participant = { id: string; full_name: string | null; avatar_url: string | null; role: string };
 
@@ -14,13 +15,7 @@ export function AvatarStack({ participants, total }: { participants: Participant
     <div className="flex shrink-0 items-center -space-x-2.5">
       {visible.map((p) => (
         <AvatarRing key={p.id} role={p.role} size={26} className="ring-2 ring-card">
-          {p.avatar_url ? (
-            <Image src={p.avatar_url} alt="" width={26} height={26} className="h-[26px] w-[26px] rounded-full object-cover" />
-          ) : (
-            <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
-              {p.full_name?.charAt(0) ?? "?"}
-            </span>
-          )}
+          <Image src={p.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={26} height={26} className="h-[26px] w-[26px] rounded-full object-cover" />
         </AvatarRing>
       ))}
       {overflow > 0 && (

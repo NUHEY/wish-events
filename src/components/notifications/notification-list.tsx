@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useState, useTransition } from "react";
 import { Heart, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
 import { deleteNotification } from "@/actions/notifications";
@@ -111,17 +112,13 @@ export function NotificationList({ notifications }: { notifications: Notificatio
             <Link href={notification.link} className="flex min-w-0 flex-1 items-center gap-3">
               <span className="relative shrink-0">
                 <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
-                  {notification.actor?.avatar_url ? (
-                    <Image
-                      src={notification.actor.avatar_url}
-                      alt=""
-                      width={44}
-                      height={44}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    displayName(notification.actor).charAt(0)
-                  )}
+                  <Image
+                    src={notification.actor?.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
+                    alt=""
+                    width={44}
+                    height={44}
+                    className="h-full w-full object-cover"
+                  />
                 </span>
                 <span
                   className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card ${className}`}

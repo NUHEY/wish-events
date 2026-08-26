@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { dmPairFolder } from "@/lib/utils";
@@ -309,7 +310,7 @@ export function FriendDm({
             : isGroupEnd
               ? "rounded-bl-md"
               : "rounded-bl-2xl";
-          const bubbleBase = `rounded-[22px] ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
+          const bubbleBase = `rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
             mine
               ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
               : "border border-white/80 bg-[linear-gradient(145deg,#ffffff,#fbf8fa)] text-foreground"
@@ -326,19 +327,13 @@ export function FriendDm({
                 (isGroupEnd ? (
                   <span className="mt-1 self-end shrink-0">
                     <AvatarRing role={friendRole} size={28}>
-                      {friendAvatarUrl ? (
-                        <Image
-                          src={friendAvatarUrl}
-                          alt=""
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 rounded-full object-cover shadow-sm"
-                        />
-                      ) : (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
-                          {friendName.charAt(0)}
-                        </span>
-                      )}
+                      <Image
+                        src={friendAvatarUrl || DEFAULT_AVATAR_IMAGE_URL}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full object-cover shadow-sm"
+                      />
                     </AvatarRing>
                   </span>
                 ) : (
@@ -347,7 +342,7 @@ export function FriendDm({
               <div className="relative min-w-0">
                 {message.mediaUrl ? (
                   <div
-                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-[20px] shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
+                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-xl shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
                     onClick={() => setLightboxUrl(message.mediaUrl!)}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -356,7 +351,7 @@ export function FriendDm({
                       alt="DMに送信された画像"
                       loading="lazy"
                       decoding="async"
-                      className="block max-h-80 min-w-40 rounded-[20px] object-cover"
+                      className="block max-h-80 min-w-40 rounded-xl object-cover"
                     />
                   </div>
                 ) : (
@@ -400,7 +395,7 @@ export function FriendDm({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-1.5 rounded-[22px] border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
+        <div className="flex items-end gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
           <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
             <ImagePlus className="h-5 w-5" />
             <input

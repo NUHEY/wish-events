@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useRouter } from "next/navigation";
 import { DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -75,23 +76,13 @@ export function UserMenu({
             className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={fullName ?? "menu"}
           >
-            {avatarUrl ? (
-              <Image src={avatarUrl} alt="" width={36} height={36} className="h-full w-full object-cover" />
-            ) : (
-              fullName?.charAt(0) ?? "?"
-            )}
+            <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-full w-full object-cover" />
           </button>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-[15rem]">
         <Link href={`/directory/${userId}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-accent">
-          {avatarUrl ? (
-            <Image src={avatarUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
-          ) : (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
-              {fullName?.charAt(0) ?? "?"}
-            </span>
-          )}
+          <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
           <span className="flex min-w-0 flex-col">
             <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
               {fullName ?? dict.common.notRegistered}

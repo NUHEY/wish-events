@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { DEFAULT_EVENT_IMAGE_URL } from "@/lib/media-defaults";
 
 /**
  * イベントポスター画像の統一表示コンポーネント。
@@ -31,32 +32,28 @@ export function EventPoster({
    */
   ratioClassName?: string;
 }) {
+  // 画像未登録の場合はWaseda WISHをイメージしたデフォルト画像を表示する（「画像なし」の空白を避けるため）。
+  const isDefault = !src;
+  const displaySrc = src ?? DEFAULT_EVENT_IMAGE_URL;
+
   return (
     <div className={cn("relative w-full overflow-hidden bg-muted", ratioClassName, className)}>
-      {src ? (
-        <>
-          <Image
-            src={src}
-            alt=""
-            fill
-            aria-hidden
-            className="scale-110 object-cover opacity-50 blur-2xl"
-            sizes="(max-width: 768px) 100vw, 33vw"
-          />
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            priority={priority}
-            className="relative object-contain drop-shadow-sm"
-            sizes="(max-width: 768px) 100vw, 33vw"
-          />
-        </>
-      ) : (
-        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          {emptyLabel}
-        </div>
-      )}
+      <Image
+        src={displaySrc}
+        alt=""
+        fill
+        aria-hidden
+        className={cn("scale-110 object-cover opacity-50 blur-2xl", isDefault && "opacity-70")}
+        sizes="(max-width: 768px) 100vw, 33vw"
+      />
+      <Image
+        src={displaySrc}
+        alt={isDefault ? emptyLabel : alt}
+        fill
+        priority={priority}
+        className={cn("relative drop-shadow-sm", isDefault ? "object-cover" : "object-contain")}
+        sizes="(max-width: 768px) 100vw, 33vw"
+      />
     </div>
   );
 }

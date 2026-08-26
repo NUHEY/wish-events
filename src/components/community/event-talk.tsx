@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
@@ -372,7 +373,7 @@ export function EventTalk({
             : isGroupEnd
               ? "rounded-bl-md"
               : "rounded-bl-2xl";
-          const bubbleBase = `rounded-[22px] ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
+          const bubbleBase = `rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
             mine
               ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
               : "border border-white/80 bg-[linear-gradient(145deg,#ffffff,#fbf8fa)] text-foreground"
@@ -389,19 +390,13 @@ export function EventTalk({
                 (isGroupEnd ? (
                   <Link href={`/directory/${message.sender_id}`} className="mt-1 self-end shrink-0">
                     <AvatarRing role={message.sender?.role} size={28}>
-                      {message.sender?.avatar_url ? (
-                        <Image
-                          src={message.sender.avatar_url}
-                          alt=""
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 rounded-full object-cover shadow-sm"
-                        />
-                      ) : (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs shadow-sm">
-                          {message.sender?.full_name?.charAt(0) ?? "?"}
-                        </span>
-                      )}
+                      <Image
+                        src={message.sender?.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full object-cover shadow-sm"
+                      />
                     </AvatarRing>
                   </Link>
                 ) : (
@@ -423,7 +418,7 @@ export function EventTalk({
                 {message.mediaUrl ? (
                   // 写真メッセージは吹き出しの背景色を持たず、画像そのものを浮かせて表示する（Instagram DM風）。
                   <div
-                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-[20px] shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
+                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-xl shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
                     onClick={() => handleBubbleTap(message, "image")}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -432,7 +427,7 @@ export function EventTalk({
                       alt="トークに送信された画像"
                       loading="lazy"
                       decoding="async"
-                      className="block max-h-80 min-w-40 rounded-[20px] object-cover"
+                      className="block max-h-80 min-w-40 rounded-xl object-cover"
                     />
                     {heartPulseId === message.id && (
                       <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -839,7 +834,7 @@ function Composer({
         </div>
       )}
 
-      <div className="flex items-end gap-1.5 rounded-[22px] border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
+      <div className="flex items-end gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
         <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
           <ImagePlus className="h-5 w-5" />
           <input

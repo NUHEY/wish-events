@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 import type { DirectoryProfileRow } from "@/types/database";
@@ -14,19 +15,13 @@ import type { DirectoryProfileRow } from "@/types/database";
 function Avatar({ name, url, role }: { name: string | null; url: string | null; role?: string }) {
   return (
     <AvatarRing role={role} size={44}>
-      {url ? (
-        <Image
-          src={url}
-          alt=""
-          width={44}
-          height={44}
-          className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
-        />
-      ) : (
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm">
-          {name?.charAt(0) ?? "?"}
-        </span>
-      )}
+      <Image
+        src={url || DEFAULT_AVATAR_IMAGE_URL}
+        alt={name ?? ""}
+        width={44}
+        height={44}
+        className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
+      />
     </AvatarRing>
   );
 }

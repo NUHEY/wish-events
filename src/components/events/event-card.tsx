@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { EventCardData } from "@/types/database";
@@ -19,11 +20,7 @@ function FriendAvatarStack({ friends }: { friends: EventCardFriend[] }) {
     <div className="absolute bottom-2 left-2 flex items-center -space-x-2">
       {visible.map((f) => (
         <span key={f.id} className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-secondary text-[8px] font-semibold text-secondary-foreground ring-2 ring-card">
-          {f.avatar_url ? (
-            <Image src={f.avatar_url} alt="" width={20} height={20} className="h-full w-full object-cover" />
-          ) : (
-            f.full_name?.charAt(0) ?? "?"
-          )}
+          <Image src={f.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={20} height={20} className="h-full w-full object-cover" />
         </span>
       ))}
       {overflow > 0 && (

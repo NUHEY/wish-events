@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useState, useTransition } from "react";
 import { UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,11 +31,7 @@ export function IncomingFriendRequests({ requests }: { requests: IncomingFriendR
         {items.map((r) => (
           <div key={r.id} className="flex items-center gap-2.5 rounded-xl border border-border p-2.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
-              {r.requester?.avatar_url ? (
-                <Image src={r.requester.avatar_url} alt="" width={36} height={36} className="h-full w-full object-cover" />
-              ) : (
-                r.requester?.full_name?.charAt(0) ?? "?"
-              )}
+              <Image src={r.requester?.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-full w-full object-cover" />
             </span>
             <p className="min-w-0 flex-1 truncate text-sm font-medium">{r.requester?.full_name ?? "?"}</p>
             <Button type="button" size="icon" disabled={pending} onClick={() => respond(r.id, "accept")} aria-label={dict.directory.friendAcceptButton}>

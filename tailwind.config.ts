@@ -39,6 +39,9 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      // サイト全体の角丸スケール（詳細は globals.css の --radius 定義そばのコメントを参照）。
+      // sm(8px) < md(10px) < lg(14px=--radius) < xl(20px) < 2xl(26px)。
+      // 独自の rounded-[Npx] は使わず、必ずこのいずれかを使うこと。
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 4px)",

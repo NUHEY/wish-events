@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Award, Beaker, CalendarPlus, Gauge, LayoutDashboard, MapPinHouse, Megaphone, Settings2, Users } from "lucide-react";
+import { Award, Beaker, CalendarPlus, Gauge, LayoutDashboard, MapPinHouse, Megaphone, Settings2, Share2, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const items = [
   { href: "/dashboard/home-layout", icon: LayoutDashboard, title: "ホーム編集", desc: "ホーム画面の構成" },
   { href: "/dashboard/event-options", icon: Settings2, title: "会場・対象", desc: "選択肢の管理" },
   { href: "/dashboard/features", icon: Beaker, title: "公開設定", desc: "ベータ機能" },
+  { href: "/dashboard/settings", icon: Share2, title: "サイト設定", desc: "OGP・共有設定" },
 ];
 
 export function DashboardNav() {

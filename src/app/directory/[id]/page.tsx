@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BackButton } from "@/components/layout/back-button";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { ProfileShareButton } from "@/components/profile/profile-share-card";
 import { LineQrDisplay } from "@/components/profile/line-qr-display";
 import { FriendButton } from "@/components/community/friend-button";
@@ -164,19 +165,13 @@ export default async function DirectoryProfilePage({
           <div className={`flex items-center gap-4 ${accentHex ? "-mt-10" : ""}`}>
             <div className={cn("shrink-0 rounded-full", accentHex && "ring-4 ring-card")}>
               <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
-                {target.avatar_url ? (
-                  <Image
-                    src={target.avatar_url}
-                    alt=""
-                    width={64}
-                    height={64}
-                    className="h-16 w-16 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-secondary-foreground">
-                    {target.full_name?.charAt(0) ?? "?"}
-                  </span>
-                )}
+                <Image
+                  src={target.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 shrink-0 rounded-full object-cover"
+                />
               </AvatarRing>
             </div>
             <div className="min-w-0 flex-1">

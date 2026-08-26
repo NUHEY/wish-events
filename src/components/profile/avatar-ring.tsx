@@ -9,6 +9,19 @@ import { cn } from "@/lib/utils";
  * リングの太さはアイコンの表示サイズ(size, px)に比例させる。固定pxのままだと
  * トークの28pxアイコンなどではリングが太すぎて見えてしまうため。
  * sizeを省略した場合はマイページ等で使われてきた64px相当（=既存の見た目）を維持する。
+ *
+ * 【正円保証について】
+ * 以前は外側/内側のラッパーが inline-flex + padding だけでサイズを決めており、
+ * 最終的な見た目のサイズを渡された中身(children)の実際の width/height に
+ * 完全に依存していた。そのため、画像の実アスペクト比とCSSクラス指定がずれて
+ * いたり、呼び出し側でh-N/w-Nの指定が漏れていたりすると、正円にならず楕円に
+ * なってしまう〓#��があった（RAリング付きアバターで特に目立っていた）。
+ * ここでは outer→inner→photo の3層すべてで width/height を size(px) から
+ * 明示的に固定し、box-sizing: border-box でパディングがサイズをはみ出さない
+ * ようにした上で、最内層に overflow-hidden + rounded-full を必ず適用し、
+ * 中身（<img>でもフォールバックの<span>でも）を h-full/w-full/object-cover で
+ * 強制的に埋める。これにより、呼び出し側が何を渡してもサイズがどうであっても、
+ * 常に正円で表示されることを1箇所で保証する。
  */
 export function AvatarRing({
   role,
@@ -19,40 +32,43 @@ export function AvatarRing({
 }: {
   role?: string | null;
   eventCount?: number | null;
-  /** アイコンの表示サイズ(px)。リングの太さをこれに比例させる。省略時は64px相当。 */
+  /** アイコンの表示サイズ(px)。リングの太さ・全体サイズをこれに比例させる。省略時は64px相当。 */
   size?: number;
   children: React.ReactNode;
   className?: string;
 }) {
   const isRa = role === "ra";
   const isGold = !isRa && (eventCount ?? 0) >= AVATAR_RING_GOLD_THRESHOLD;
+  const hasRing = isRa || isGold;
 
-  // リングなし（一般表示）の場合も、リングありと全く同じ外側ラッパーを返す。
-  // 以前はここで <>{children}</> と素通ししていたため、(a) 呼び出し側が渡した
-  // className（重ねて表示する際の白い区切りリング等）が無視される、(b) 写真
-  // (<img>相当のnext/Image)がinline要素のままflex化されず、ブラウザ標準の
-  // ベースライン用の数px分の余白がアイコン下にできる、という2つのバグがあった。
-  // どちらの分岐でも同じ inline-flex ラッパーを通すことで、写真の有無・リングの
-  // 有無に関わらずアイコンの見た目とサイズを完全に統一する。
-  if (!isRa && !isGold) {
-    return <span className={cn("inline-flex shrink-0 rounded-full", className)}>{children}</span>;
-  }
-
-  const outerPad = Math.max(1.25, Math.min(3.5, size * 0.055));
-  const innerGap = Math.max(0.75, Math.min(2.5, size * 0.04));
+  const outerPad = hasRing ? Math.max(1.25, Math.min(3.5, size * 0.055)) : 0;
+  const innerGap = hasRing ? Math.max(0.75, Math.min(2.5, size * 0.04)) : 0;
 
   return (
     <span
-      className={cn("inline-flex shrink-0 rounded-full", className)}
+      className={cn("relative inline-block shrink-0 overflow-hidden rounded-full", className)}
       style={{
+        width: size,
+        height: size,
+        boxSizing: "border-box",
         padding: outerPad,
-        background: isRa
-          ? AVATAR_RING_RA_HEX
-          : `linear-gradient(135deg, ${AVATAR_RING_GOLD_HEX}, #F5E1A4, ${AVATAR_RING_GOLD_HEX})`,
+        background: hasRing
+          ? isRa
+            ? AVATAR_RING_RA_HEX
+            : `linear-gradient(135deg, ${AVATAR_RING_GOLD_HEX}, #F5E1A4, ${AVATAR_RING_GOLD_HEX})`
+          : undefined,
       }}
     >
-      <span className="flex items-center justify-center rounded-full bg-card" style={{ padding: innerGap }}>
-        {children}
+      <span
+        className={cn(
+          "flex h-full w-full items-center justify-center overflow-hidden rounded-full",
+          hasRing && "bg-card"
+        )}
+        style={{ boxSizing: "border-box", padding: innerGap }}
+      >
+        <span className="block h-full w-full overflow-hidden rounded-full [&>*]:!h-full [&>*]:!w-full [&>*]:!max-w-none [&>*]:!object-cover">
+          {children}
+        </span>
       </span>
     </span>
   );

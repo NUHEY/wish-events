@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signalNavigation } from "@/lib/navigation-signal";
 
 /**
  * サブページ上部に置く共通の「戻る」ボタン。
@@ -21,6 +22,11 @@ export function BackButton({
   const router = useRouter();
 
   function handleClick() {
+    // 戻り先の実URLは戻る直前にはわからないため、fallbackHref（論理的な親ページ）を
+    // 目安にして先にローディング表示（プログレスバー＋スケルトン）を開始する。
+    // 実際の遷移先が違っても、NavigationFeedbackはpathname変化を検知した時点で
+    // 自動的にローディング表示を終了するため、体感上の不整合は生じない。
+    signalNavigation(fallbackHref);
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
     } else {

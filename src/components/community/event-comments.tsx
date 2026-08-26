@@ -9,7 +9,9 @@ import { addEventComment, deleteEventComment, toggleEventCommentLike } from "@/a
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarRing } from "@/components/profile/avatar-ring";
+import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Comment = {
   id: string;
@@ -38,6 +40,7 @@ export function EventComments({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const confirm = useConfirm();
   const [expandedRoots, setExpandedRoots] = useState<Set<string>>(new Set());
   // いいねは即時反映するため、サーバーの再取得を待たずにこのオーバーライドで表示を上書きする。
   const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
@@ -95,8 +98,8 @@ export function EventComments({
     });
   }
 
-  function handleDelete(comment: Comment) {
-    if (!window.confirm("このコメントを削除しますか？")) return;
+  async function handleDelete(comment: Comment) {
+    if (!(await confirm({ message: "このコメントを削除しますか？", danger: true }))) return;
     setDeletedIds((current) => {
       const next = new Set(current);
       next.add(comment.id);
@@ -140,7 +143,7 @@ export function EventComments({
             </button>
           </div>
         )}
-        <div className="flex items-center gap-1.5 rounded-[22px] border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
+        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
           <Input
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -241,13 +244,7 @@ function CommentItem({
   return (
     <div className="flex gap-2.5">
       <AvatarRing role={comment.user?.role} size={32}>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs">
-          {comment.user?.avatar_url ? (
-            <Image src={comment.user.avatar_url} alt="" width={32} height={32} className="h-full w-full object-cover" />
-          ) : (
-            displayName(comment).charAt(0)
-          )}
-        </span>
+        <Image src={comment.user?.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full object-cover" />
       </AvatarRing>
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-relaxed">

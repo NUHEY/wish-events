@@ -5,11 +5,12 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { SavedToastWatcher } from "@/components/layout/saved-toast-watcher";
-import { TopProgressBar } from "@/components/layout/top-progress-bar";
+import { NavigationFeedback } from "@/components/layout/navigation-feedback";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
+import { getSiteSettings, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,10 +25,32 @@ const notoSansJP = Noto_Sans_JP({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "WISH Events",
-  description: "早稲田大学国際学生寮 WISH のイベント一覧・申込サイト / Event site for Waseda's WISH international dorm",
-};
+// サイト設定（RAダッシュボードの「サイト設定」から変更可能）を反映した動的メタデータ。
+// カスタムOGP画像が未設定の場合は openGraph.images を敢えて指定しないことで、
+// Next.jsのファイル規約による自動生成画像（src/app/opengraph-image.tsx）が使われる。
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const title = settings.ogTitle || SITE_DEFAULT_TITLE;
+  const description = settings.ogDescription || SITE_DEFAULT_DESCRIPTION;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: SITE_DEFAULT_TITLE,
+      ...(settings.ogImageUrl
+        ? { images: [{ url: settings.ogImageUrl, width: 1200, height: 630 }] }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -41,7 +64,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <LocaleProvider locale={locale}>
           <ConfirmDialogProvider>
-            <TopProgressBar />
+            <NavigationFeedback />
             <Header />
             <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
             <AppToaster />
