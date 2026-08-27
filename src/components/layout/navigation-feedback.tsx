@@ -3,21 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NAVIGATION_START_EVENT } from "@/lib/navigation-signal";
-import {
-  AnnouncementDetailSkeleton,
-  DashboardPageSkeleton,
-  DirectoryListSkeleton,
-  DirectoryProfileSkeleton,
-  EventDetailSkeleton,
-  EventsPageSkeleton,
-  HomePageSkeleton,
-  NotificationsPageSkeleton,
-  OnboardingPageSkeleton,
-  ParticipantsPageSkeleton,
-  ProfileFormPageSkeleton,
-  TalkRoomSkeleton,
-  TalksListSkeleton,
-} from "@/components/ui/page-skeletons";
 
 export function NavigationFeedback() {
   const pathname = usePathname();
@@ -115,27 +100,6 @@ export function NavigationFeedback() {
           </button>
         </div>
       )}
-      {/* スケルトンと元画面が重なって一部分だけ先に見えないよう、不透明な面で統一する。 */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px))] top-[65px] z-[90] overflow-hidden bg-background sm:bottom-0" aria-live="polite" aria-label="移動先を読み込み中">
-        <div className="mx-auto h-full max-w-5xl overflow-hidden px-4 py-4 sm:py-6"><RouteShape pathname={targetPath} /></div>
-      </div>
     </>
   );
-}
-
-function RouteShape({ pathname }: { pathname: string }) {
-  if (pathname.startsWith("/talks/")) return <TalkRoomSkeleton />;
-  if (pathname === "/talks") return <TalksListSkeleton />;
-  if (pathname === "/events") return <EventsPageSkeleton />;
-  if (/^\/events\/[^/]+$/.test(pathname)) return <EventDetailSkeleton />;
-  if (pathname.startsWith("/events/")) return <ProfileFormPageSkeleton showBack />;
-  if (/^\/dashboard\/[^/]+\/participants$/.test(pathname)) return <ParticipantsPageSkeleton />;
-  if (pathname.startsWith("/dashboard")) return <DashboardPageSkeleton />;
-  if (pathname === "/directory") return <DirectoryListSkeleton />;
-  if (pathname.startsWith("/directory/")) return <DirectoryProfileSkeleton />;
-  if (pathname.startsWith("/announcements/")) return <AnnouncementDetailSkeleton />;
-  if (pathname === "/notifications") return <NotificationsPageSkeleton />;
-  if (pathname.startsWith("/profile/")) return <ProfileFormPageSkeleton showBack={pathname === "/profile/edit"} />;
-  if (pathname === "/onboarding") return <OnboardingPageSkeleton />;
-  return <HomePageSkeleton />;
 }

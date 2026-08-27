@@ -144,11 +144,6 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes skeleton-shimmer {
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(110%); }
-}
-
 @keyframes event-label-cycle {
   0% { opacity: 0; transform: translateY(5px) scale(0.98); }
   14%, 78% { opacity: 1; transform: translateY(0) scale(1); }
@@ -171,18 +166,6 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
-  }
-  .skeleton-shimmer {
-    position: relative;
-    overflow: hidden;
-    background: hsl(var(--secondary) / 0.86);
-  }
-  .skeleton-shimmer::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(100deg, transparent 20%, hsl(var(--card) / 0.72) 50%, transparent 80%);
-    animation: skeleton-shimmer 1.35s ease-in-out infinite;
   }
   .cta-backdrop-fade {
     background: linear-gradient(
@@ -230,9 +213,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer::after {
-    animation: none;
-  }
   button:not(:disabled):active,
   a[href]:active,
   [role="button"]:active {
