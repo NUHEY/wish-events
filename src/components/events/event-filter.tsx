@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { EVENT_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -25,14 +25,6 @@ export function EventFilter() {
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   }
-
-  // 押されそうな遷移先を先読みしておくことで、実際にクリックした時の
-  // 体感速度を上げる（サーバーコンポーネントの再取得を待たずに済む）。
-  useEffect(() => {
-    router.prefetch(buildHref(null));
-    EVENT_CATEGORIES.forEach((c) => router.prefetch(buildHref(c)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
   function setCategory(category: string | null) {
     if (pending) return;

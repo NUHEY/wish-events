@@ -42,6 +42,9 @@
     --instagram-end: 236 48% 53%;
     --line-brand: 142 94% 40%;
 
+    /* 下部タブと、その上に置く固定CTAで共有する「安全領域を除いた」実寸。 */
+    --mobile-tab-bar-height: 3.5rem;
+
     /*
      * === サイト全体の角丸ルール ===
      * --radius (0.875rem = 14px) を基準に、tailwind.config.ts の borderRadius

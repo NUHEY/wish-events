@@ -53,7 +53,7 @@ export function FloatingRegistrationCta({
   return (
     <div
       aria-hidden={!visible}
-      className={`fixed inset-x-0 bottom-[calc(3.9rem+env(safe-area-inset-bottom))] z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-4 pb-3 pt-8 backdrop-blur-[2px] transition-[opacity,transform] duration-200 ease-out sm:bottom-0 sm:pb-4 ${
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 isolate bg-gradient-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] pt-10 backdrop-blur-md [transform:translateZ(0)] transition-[opacity,transform] duration-200 ease-out sm:pb-4 sm:pt-8 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >

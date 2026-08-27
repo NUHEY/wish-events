@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FeatureFlagState } from "@/lib/feature-flags";
@@ -19,12 +19,9 @@ export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden"
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const routeActive = (searchParams.get("tab") as TalksTab | null) ?? "events";
-  const [active, setActive] = useState<TalksTab>(routeActive);
+  const active = (searchParams.get("tab") as TalksTab | null) ?? "events";
   const [pending, startTransition] = useTransition();
   const visibleTabs = friendDmState === "hidden" ? TABS.filter((tab) => tab !== "friends") : TABS;
-
-  useEffect(() => setActive(routeActive), [routeActive]);
 
   function setTab(tab: TalksTab) {
     if (pending || tab === active) return;
@@ -37,7 +34,6 @@ export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden"
     const qs = params.toString();
     const href = qs ? `${pathname}?${qs}` : pathname;
     if (!signalNavigation(href)) return;
-    setActive(tab);
     startTransition(() => {
       router.replace(href, { scroll: false });
     });

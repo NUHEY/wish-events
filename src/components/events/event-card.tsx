@@ -58,7 +58,7 @@ export async function EventCard({
     !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
 
   return (
-    <Link href={`/events/${event.id}`} className="group block h-full w-full min-w-0">
+    <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0">
       <Card
         className={cn(
           // WebKitではfilter/transformを持つ子をoverflow-hiddenだけで丸めると

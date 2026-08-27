@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
@@ -26,6 +26,14 @@ const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   display: "swap",
 });
+
+// iOSのホームインジケーター領域まで背景を連続させたうえで、操作要素には
+// safe-area-insetを個別に足す。下部タブとCTAの間にブラウザ背景が見えるのを防ぐ。
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 // サイト設定（RAダッシュボードの「サイト設定」から変更可能）を反映した動的メタデータ。
 // カスタムOGP画像が未設定の場合は openGraph.images を敢えて指定しないことで、

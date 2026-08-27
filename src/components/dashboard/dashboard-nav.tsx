@@ -77,7 +77,9 @@ function NavGroups({ pathname, onNavigate, tabIndex }: { pathname: string; onNav
                 <Link
                   key={item.href}
                   href={item.href}
-                  prefetch
+                  // 管理画面はそれぞれDB取得が多い。サイドバー表示だけで全画面を
+                  // 同時取得しないよう、選ばれたページだけ読み込む。
+                  prefetch={false}
                   onClick={onNavigate}
                   tabIndex={tabIndex}
                   aria-current={active ? "page" : undefined}

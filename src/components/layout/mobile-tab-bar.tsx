@@ -24,8 +24,11 @@ function TabLink({
   return (
     <Link
       href={href}
+      // 常時見えている3タブを一斉に先読みすると、各動的画面のSupabase取得が
+      // 実際のタップと競合する。専用スケルトンが即時表示されるため先読みは切る。
+      prefetch={false}
       className={cn(
-        "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors",
+        "flex h-full flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
@@ -45,12 +48,14 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
   const dict = useDict();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 isolate flex items-stretch border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md [transform:translateZ(0)] sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 isolate border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md [transform:translateZ(0)] sm:hidden"
       aria-label={dict.nav.home}
     >
-      <TabLink href="/" icon={Home} label={dict.nav.home} exact />
-      <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} />
-      <TabLink href="/talks" icon={MessageCircle} label="トーク" badge={hasUnreadTalk} />
+      <div className="flex h-[var(--mobile-tab-bar-height)] items-stretch">
+        <TabLink href="/" icon={Home} label={dict.nav.home} exact />
+        <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} />
+        <TabLink href="/talks" icon={MessageCircle} label="トーク" badge={hasUnreadTalk} />
+      </div>
     </nav>
   );
 }
