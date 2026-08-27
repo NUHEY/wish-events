@@ -37,12 +37,15 @@ export async function EventCard({
   event,
   variant = "default",
   attendingFriends,
+  labelRotationMs,
 }: {
   event: EventCardData;
   /** "muted" は過去イベント一覧など、目立たせたくない場所で使う控えめな見た目。 */
   variant?: "default" | "muted";
   /** 指定すると、カード左下に参加している友達のアイコンを重ねて表示する。 */
   attendingFriends?: EventCardFriend[];
+  /** 左上ラベルの切り替え間隔。省略時は読みやすさを優先した3秒。 */
+  labelRotationMs?: number;
 }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -83,11 +86,11 @@ export async function EventCard({
             roundedClassName="rounded-none"
             softenBackdrop={false}
           />
-          <EventLabelRotator labels={labels} />
+          <EventLabelRotator labels={labels} intervalMs={labelRotationMs} />
           {event.fee_amount ? (
-            <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
+            <span className="absolute bottom-2 right-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
           ) : event.show_free_tag !== false ? (
-            <span className="absolute bottom-2 right-2 rounded-full bg-success/90 px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
+            <span className="absolute bottom-2 right-2 rounded-full bg-success px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
         </div>
