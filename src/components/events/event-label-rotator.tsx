@@ -88,15 +88,21 @@ export function EventLabelRotator({
       )}
       style={style}
     >
-      <div className={cn("event-label-window h-5 min-w-0 overflow-hidden", shouldRotate && "event-label-window--rotating")}>
-        <div className={cn("event-label-track flex min-w-0 flex-col", shouldRotate && "event-label-track--rotating")}>
+      <div className={cn("event-label-window h-5 w-fit max-w-full min-w-0 overflow-hidden", shouldRotate && "event-label-window--rotating")}>
+        <div
+          className={cn(
+            "event-label-track flex w-max max-w-full min-w-0 flex-col",
+            position === "top-right" ? "items-end" : "items-start",
+            shouldRotate && "event-label-track--rotating"
+          )}
+        >
           {visibleLabels.map((label, index) => (
             <Badge
               key={`${label.tone}-${label.text}-${index}`}
               variant={label.tone === "deadline" ? "destructive" : "secondary"}
               title={label.text}
               className={cn(
-                "max-w-full min-w-0 shrink-0 overflow-hidden border-0 shadow-sm",
+                "w-fit max-w-full min-w-0 shrink-0 overflow-hidden border-0 shadow-sm",
                 label.tone === "category" && "bg-card text-card-foreground",
                 label.tone === "new" && "bg-info text-info-foreground"
               )}
