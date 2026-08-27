@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useRouter } from "next/navigation";
-import { CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
+import { CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, Sparkles, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -117,6 +117,12 @@ export function UserMenu({
           <Link href="/directory" className="cursor-pointer">
             <Users className="h-4 w-4" />
             {dict.nav.directory}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/tools" className="cursor-pointer">
+            <Sparkles className="h-4 w-4" />
+            便利ツール
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

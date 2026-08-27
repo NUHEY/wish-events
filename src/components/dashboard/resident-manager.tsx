@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatRoomNumber } from "@/lib/utils";
-import { releaseRoom, resetAllRoomAssignments } from "@/actions/residents";
+import { releaseRoom, resetAllRoomAssignments, setNewResidentStatus } from "@/actions/residents";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -44,6 +44,16 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
     });
   }
 
+  function toggleNewResident(resident: UserRow) {
+    startTransition(async () => {
+      const result = await setNewResidentStatus(resident.id, !resident.is_new_resident);
+      if (result?.error) toast.error(result.error); else {
+        toast.success(resident.is_new_resident ? "新寮生の対象から外しました" : "Let's Chat!対象の新寮生に設定しました");
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -65,12 +75,10 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
               {formatRoomNumber(r.floor_number, r.room_number)}
             </TableCell>
             <TableCell>
-              {r.role === "ra" ? <Badge variant="default">RA</Badge> : <Badge variant="secondary">{dict.residents.resident}</Badge>}
+              <div className="flex flex-wrap gap-1">{r.role === "ra" ? <Badge variant="default">RA</Badge> : <Badge variant="secondary">{dict.residents.resident}</Badge>}{r.is_new_resident && <Badge variant="outline">新寮生</Badge>}</div>
             </TableCell>
             <TableCell>
-              <Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>
-                {dict.residents.releaseButton}
-              </Button>
+              <div className="flex flex-wrap justify-end gap-1"><Button size="sm" variant={r.is_new_resident ? "secondary" : "outline"} disabled={pending || r.role === "ra"} onClick={() => toggleNewResident(r)}>{r.is_new_resident ? "新寮生を解除" : "新寮生に設定"}</Button><Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>{dict.residents.releaseButton}</Button></div>
             </TableCell>
           </TableRow>
         ))}

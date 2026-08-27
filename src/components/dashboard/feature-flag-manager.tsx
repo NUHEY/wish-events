@@ -11,6 +11,11 @@ import { cn } from "@/lib/utils";
 const featureCopy: Record<FeatureFlagKey, { title: string; description: string }> = {
   friend_dm: { title: "友達とのトーク", description: "通信量と無料枠を見ながら段階的に公開できます。" },
   event_calendar_export: { title: "イベントをカレンダーに追加", description: "端末の標準カレンダーへイベント日時を保存できます。" },
+  availability_matching: { title: "みんなの日程調整", description: "任意の2人以上で空き時間を重ねて確認できます。" },
+  lets_chat_booking: { title: "Let's Chat! 予約", description: "同じフロアの寮生がRAの空き時間を予約できます。" },
+  unit_room_sessions: { title: "URS 日程調整", description: "ルームメイトとRAが全員集まれる時間を探せます。" },
+  ra_question_box: { title: "RAへの質問箱", description: "質問への回答と、全寮生向けQ&Aの公開ができます。" },
+  ra_link_hub: { title: "RAリンクページ", description: "外泊届やSNSなど、よく使うリンクをまとめて公開できます。" },
 };
 
 export function FeatureFlagManager({ featureKey, initialState }: { featureKey: FeatureFlagKey; initialState: FeatureFlagState }) {

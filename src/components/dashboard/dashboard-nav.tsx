@@ -11,10 +11,12 @@ import {
   LayoutDashboard,
   MapPinHouse,
   Megaphone,
+  MessageCircleQuestion,
   Menu,
   Send,
   Settings2,
   Share2,
+  Link2,
   Users,
   X,
 } from "lucide-react";
@@ -39,6 +41,8 @@ const groups = [
     items: [
       { href: "/dashboard/home-layout", icon: LayoutDashboard, title: "ホーム編集", desc: "表示内容と並び順" },
       { href: "/dashboard/badges", icon: Award, title: "バッジ管理", desc: "獲得条件と表示" },
+      { href: "/dashboard/questions", icon: MessageCircleQuestion, title: "RA質問箱", desc: "回答・Q&A公開" },
+      { href: "/dashboard/link-hub", icon: Link2, title: "リンクページ", desc: "よく使うURLを共有" },
     ],
   },
   {

@@ -36,3 +36,14 @@ export async function resetAllRoomAssignments(confirmText: string) {
   revalidatePath("/dashboard/ra-rooms");
   return { success: true, count: data as number };
 }
+
+/** Let's Chat!の予約対象となる「今学期の新寮生」区分をRAが切り替える。 */
+export async function setNewResidentStatus(userId: string, isNewResident: boolean) {
+  await requireRa();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_new_resident_status", { p_user_id: userId, p_is_new: isNewResident });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/residents");
+  revalidatePath("/tools/schedule/[token]", "page");
+  return { success: true };
+}

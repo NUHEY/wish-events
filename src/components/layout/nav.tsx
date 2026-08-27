@@ -51,6 +51,7 @@ export function Nav({ role: _role, hasUnreadTalk = false }: { role: UserRole; ha
       </NavLink>
       <NavLink href="/events">{dict.nav.events}</NavLink>
       <NavLink href="/talks"><span className="relative">トーク{hasUnreadTalk && <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-destructive" />}</span></NavLink>
+      <NavLink href="/tools">ツール</NavLink>
     </nav>
   );
 }
