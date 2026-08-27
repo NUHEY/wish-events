@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useFormState, useFormStatus } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -23,8 +24,15 @@ import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import type { EventRow, EventLocationOptionRow, EventAudienceOptionRow, TeamMemberRow } from "@/types/database";
 import type { ActionResult } from "@/actions/events";
+import type { EventImportDraft } from "@/lib/event-import";
 
 type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
+
+// 編集画面や通常のフォーム表示へExcel解析UIを混ぜないよう、新規作成時だけ遅延読込する。
+const EventSheetImporter = dynamic(
+  () => import("@/components/events/event-sheet-importer").then((module) => module.EventSheetImporter),
+  { ssr: false }
+);
 
 function SubmitButton({ label, savingLabel }: { label: string; savingLabel: string }) {
   const { pending } = useFormStatus();
@@ -62,6 +70,19 @@ export function EventForm({
     undefined
   );
   const [posterUrl, setPosterUrl] = useState(initialEvent?.poster_url ?? "");
+  const [title, setTitle] = useState(initialEvent?.title ?? "");
+  const [category, setCategory] = useState(initialEvent?.category ?? "");
+  const [location, setLocation] = useState(initialEvent?.location ?? "");
+  const [targetAudience, setTargetAudience] = useState(initialEvent?.target_audience ?? "");
+  const [capacity, setCapacity] = useState(initialEvent?.capacity ? String(initialEvent.capacity) : "");
+  const [notes, setNotes] = useState(initialEvent?.notes ?? "");
+  const [contactInfo, setContactInfo] = useState(initialEvent?.contact_info ?? "");
+  const [eventDateDefault, setEventDateDefault] = useState(
+    initialEvent ? utcIsoToJstWallClockInput(initialEvent.event_date) : undefined
+  );
+  const [eventDateRevision, setEventDateRevision] = useState(0);
+  const [importedMemberIds, setImportedMemberIds] = useState(initialEvent?.member_ids ?? []);
+  const [teamPickerRevision, setTeamPickerRevision] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [surveyType, setSurveyType] = useState(initialEvent?.survey_type ?? "none");
@@ -72,6 +93,36 @@ export function EventForm({
 
   const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
+
+  function applyImportedDraft(draft: EventImportDraft) {
+    if (draft.title) setTitle(draft.title);
+    if (draft.category) setCategory(draft.category);
+    if (draft.description) setDescription(draft.description);
+    if (draft.location) setLocation(draft.location);
+    if (draft.targetAudience) setTargetAudience(draft.targetAudience);
+    if (draft.capacity) setCapacity(String(draft.capacity));
+    if (draft.notes) setNotes(draft.notes);
+    if (draft.contactInfo) setContactInfo(draft.contactInfo);
+    if (draft.eventDate) {
+      setEventDateDefault(draft.eventDate);
+      setEventDateRevision((current) => current + 1);
+    }
+
+    const matchedIds = draft.organizerNames.flatMap((sourceName) => {
+      const normalizedSource = sourceName.replaceAll(/\s+/g, "").toLocaleLowerCase("ja");
+      const matches = teamMembers.filter((member) => {
+        const normalizedMember = (member.full_name ?? "").replaceAll(/\s+/g, "").toLocaleLowerCase("ja");
+        return normalizedMember === normalizedSource || normalizedMember.includes(normalizedSource);
+      });
+      return matches.length === 1 ? [matches[0].id] : [];
+    });
+    const uniqueIds = [...new Set(matchedIds)];
+    if (uniqueIds.length > 0) {
+      setImportedMemberIds(uniqueIds);
+      setTeamPickerRevision((current) => current + 1);
+    }
+    markDirty();
+  }
 
   async function handlePosterFile(file: File) {
     setUploading(true);
@@ -107,13 +158,16 @@ export function EventForm({
     >
       <input type="hidden" name="poster_url" value={posterUrl} />
 
+      {!initialEvent && <EventSheetImporter onImported={applyImportedDraft} />}
+
       <div className="grid gap-2">
         <Label htmlFor="title">{dict.eventForm.titleLabel}</Label>
         <Input
           id="title"
           name="title"
           required
-          defaultValue={initialEvent?.title}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
           placeholder={dict.eventForm.titlePlaceholder}
         />
       </div>
@@ -131,7 +185,7 @@ export function EventForm({
 
       <div className="grid gap-2">
         <Label htmlFor="category">{dict.eventForm.categoryLabel}</Label>
-        <Select id="category" name="category" required defaultValue={initialEvent?.category}>
+        <Select id="category" name="category" required value={category} onChange={(event) => setCategory(event.target.value as typeof category)}>
           <option value="" disabled>
             {dict.eventForm.categoryPlaceholder}
           </option>
@@ -211,7 +265,8 @@ export function EventForm({
             id="location"
             name="location"
             list="location-options-ja"
-            defaultValue={initialEvent?.location ?? ""}
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
             placeholder={dict.eventForm.locationPlaceholder}
           />
           <datalist id="location-options-ja">
@@ -252,7 +307,8 @@ export function EventForm({
             id="target_audience"
             name="target_audience"
             list="audience-options-ja"
-            defaultValue={initialEvent?.target_audience ?? ""}
+            value={targetAudience}
+            onChange={(event) => setTargetAudience(event.target.value)}
             placeholder={dict.eventForm.audiencePlaceholder}
           />
           <datalist id="audience-options-ja">
@@ -330,11 +386,10 @@ export function EventForm({
       <div className="grid gap-2 sm:w-1/2">
         <Label>{dict.eventForm.dateLabel}</Label>
         <DateTimePicker
+          key={`event-date-${eventDateRevision}`}
           name="event_date"
           required
-          defaultValue={
-            initialEvent ? utcIsoToJstWallClockInput(initialEvent.event_date) : undefined
-          }
+          defaultValue={eventDateDefault}
         />
       </div>
 
@@ -380,7 +435,8 @@ export function EventForm({
                 name="capacity"
                 type="number"
                 min={1}
-                defaultValue={initialEvent?.capacity ?? undefined}
+                value={capacity}
+                onChange={(event) => setCapacity(event.target.value)}
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -485,7 +541,8 @@ export function EventForm({
           <Input
             id="contact_info"
             name="contact_info"
-            defaultValue={initialEvent?.contact_info ?? ""}
+            value={contactInfo}
+            onChange={(event) => setContactInfo(event.target.value)}
             placeholder={dict.eventForm.contactInfoPlaceholder}
           />
         </div>
@@ -496,15 +553,17 @@ export function EventForm({
             id="notes"
             name="notes"
             rows={3}
-            defaultValue={initialEvent?.notes ?? ""}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
             placeholder={dict.eventForm.notesPlaceholder}
           />
         </div>
       </fieldset>
 
       <TeamPicker
+        key={`team-picker-${teamPickerRevision}`}
         members={teamMembers}
-        initialMemberIds={initialEvent?.member_ids ?? []}
+        initialMemberIds={importedMemberIds}
         initialAllRa={initialEvent?.all_ra_members ?? false}
       />
 
