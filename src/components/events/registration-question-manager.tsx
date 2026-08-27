@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,8 @@ import { useDict } from "@/lib/i18n/locale-provider";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 
 type DraftQuestion = {
+  id?: string;
+  editorId: string;
   question_text: string;
   question_type: RegistrationQuestionType;
   options: string[];
@@ -32,6 +35,8 @@ function SubmitButton() {
 
 function toDraft(q: RegistrationQuestionRow): DraftQuestion {
   return {
+    id: q.id,
+    editorId: q.id,
     question_text: q.question_text,
     question_type: q.question_type as RegistrationQuestionType,
     options: q.options ?? [],
@@ -50,8 +55,8 @@ export function RegistrationQuestionManager({
   const [state, formAction] = useFormState<ActionResult, FormData>(action, undefined);
   const [questions, setQuestions] = useState<DraftQuestion[]>(
     initialQuestions?.length
-      ? initialQuestions.sort((a, b) => a.position - b.position).map(toDraft)
-      : [{ question_text: "", question_type: "text", options: [], is_required: true }]
+      ? [...initialQuestions].sort((a, b) => a.position - b.position).map(toDraft)
+      : [{ editorId: crypto.randomUUID(), question_text: "", question_type: "text", options: [], is_required: true }]
   );
 
   function updateQuestion(index: number, patch: Partial<DraftQuestion>) {
@@ -59,9 +64,9 @@ export function RegistrationQuestionManager({
   }
 
   function addQuestion() {
-    setQuestions((qs) => [
-      ...qs,
-      { question_text: "", question_type: "text", options: [], is_required: true },
+    setQuestions((current) => current.length >= 20 ? current : [
+      ...current,
+      { editorId: crypto.randomUUID(), question_text: "", question_type: "text", options: [], is_required: true },
     ]);
   }
 
@@ -69,25 +74,34 @@ export function RegistrationQuestionManager({
     setQuestions((qs) => qs.filter((_, i) => i !== index));
   }
 
+  function moveQuestion(index: number, direction: -1 | 1) {
+    setQuestions((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-6">
-      <input type="hidden" name="questions_json" value={JSON.stringify(questions)} />
+      <input type="hidden" name="questions_json" value={JSON.stringify(questions.map(({ editorId: _editorId, ...question }) => question))} />
 
       <p className="text-sm text-muted-foreground">{dict.registrationQuestions.intro}</p>
 
       <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
-          <div key={index} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+          <div key={q.editorId} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
                 {dict.surveys.questionLabel} {index + 1}
               </span>
-              <Button type="button" size="sm" variant="ghost" onClick={() => removeQuestion(index)}>
-                {dict.surveys.removeQuestion}
-              </Button>
+              <div className="flex items-center gap-1"><Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={index === 0} onClick={() => moveQuestion(index, -1)} aria-label="上へ移動"><ArrowUp className="h-4 w-4" /></Button><Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={index === questions.length - 1} onClick={() => moveQuestion(index, 1)} aria-label="下へ移動"><ArrowDown className="h-4 w-4" /></Button><Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeQuestion(index)} aria-label={dict.surveys.removeQuestion}><Trash2 className="h-4 w-4" /></Button></div>
             </div>
             <Input
               placeholder={dict.surveys.questionPlaceholder}
+              maxLength={300}
               value={q.question_text}
               onChange={(e) => updateQuestion(index, { question_text: e.target.value })}
               required
@@ -130,12 +144,13 @@ export function RegistrationQuestionManager({
                 />
               </div>
             )}
+            {(q.question_type === "single_choice" || q.question_type === "multiple_choice") && q.options.length < 2 && <p className="text-xs text-destructive">選択肢をカンマ区切りで2件以上入力してください。</p>}
           </div>
         ))}
       </div>
 
-      <Button type="button" variant="outline" onClick={addQuestion} className="w-fit">
-        {dict.surveys.addQuestion}
+      <Button type="button" variant="outline" onClick={addQuestion} disabled={questions.length >= 20} className="w-fit">
+        <Plus className="h-4 w-4" />{dict.surveys.addQuestion}（{questions.length}/20）
       </Button>
 
       <p className="text-xs text-muted-foreground">{dict.registrationQuestions.emptyHint}</p>

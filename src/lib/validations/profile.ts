@@ -46,6 +46,15 @@ export function getProfileSchema(locale: Locale) {
       .string()
       .trim()
       .regex(/^[A-Za-z0-9]{8}$/, t.studentIdFormat),
+    wish_entry_month: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, locale === "ja" ? "WISH入居年月を選択してください" : "Select the month you moved into WISH")
+      .refine((value) => {
+        const month = new Date(`${value}-01T00:00:00+09:00`);
+        const now = new Date();
+        return !Number.isNaN(month.getTime()) && month.getTime() <= now.getTime() && month.getFullYear() >= 2010;
+      }, locale === "ja" ? "WISH入居年月を正しく選択してください" : "Select a valid WISH entry month")
+      .transform((value) => `${value}-01`),
     room_number: z
       .string()
       .trim()

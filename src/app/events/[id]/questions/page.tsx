@@ -21,7 +21,7 @@ export default async function RegistrationQuestionsPage({
   // event と questions は id のみで取得できるため並列取得する。
   const [{ data: event }, { data: questions }] = await Promise.all([
     supabase.from("events").select("id, title").eq("id", id).maybeSingle(),
-    supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
+    supabase.from("registration_questions").select("*").eq("event_id", id).eq("is_active", true).order("position", { ascending: true }),
   ]);
   if (!event) notFound();
 

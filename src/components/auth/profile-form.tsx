@@ -26,6 +26,7 @@ type InitialProfile = Pick<
   UserRow,
   | "full_name"
   | "student_id"
+  | "wish_entry_month"
   | "floor_number"
   | "room_number"
   | "faculty"
@@ -167,6 +168,22 @@ export function ProfileForm({
           placeholder={dict.profile.fullNamePlaceholder}
           defaultValue={initialProfile?.full_name ?? ""}
         />
+      </div>
+
+      <div className="grid gap-2">
+        <FieldLabel htmlFor="wish_entry_month" required>
+          {locale === "ja" ? "WISH入居年月" : "Month moved into WISH"}
+        </FieldLabel>
+        <Input
+          id="wish_entry_month"
+          name="wish_entry_month"
+          type="month"
+          required
+          defaultValue={initialProfile?.wish_entry_month?.slice(0, 7) ?? ""}
+        />
+        <p className="text-xs text-muted-foreground">
+          {locale === "ja" ? "入居から6か月未満の場合、Let's Chat!対象の新寮生として自動判定されます。" : "Residents who moved in less than six months ago are automatically treated as new residents for Let's Chat!."}
+        </p>
       </div>
 
       <div className="grid gap-2">

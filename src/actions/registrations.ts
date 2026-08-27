@@ -5,17 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 
 export async function registerForEvent(eventId: string) {
-  const profile = await getCurrentProfile();
+  await getCurrentProfile();
   const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("registrations")
-    .insert({ event_id: eventId, user_id: profile.id });
+  const { error } = await supabase.rpc("register_for_event", { p_event_id: eventId, p_answers: [] });
 
   if (error) {
-    return { error: error.message.includes("duplicate")
-      ? "既に申し込み済みです"
-      : `申し込みに失敗しました: ${error.message}` };
+    return { error: `申し込みに失敗しました: ${error.message}` };
   }
 
   revalidatePath(`/events/${eventId}`);
@@ -40,40 +35,10 @@ export async function registerForEventWithAnswers(
   eventId: string,
   answers: RegistrationAnswerInput[]
 ): Promise<{ error?: string; success?: boolean; talkHref?: string }> {
-  const profile = await getCurrentProfile();
+  await getCurrentProfile();
   const supabase = await createClient();
-
-  const { data: registration, error } = await supabase
-    .from("registrations")
-    .insert({ event_id: eventId, user_id: profile.id })
-    .select("id")
-    .single();
-
-  if (error || !registration) {
-    return {
-      error: error?.message.includes("duplicate")
-        ? "既に申し込み済みです"
-        : `申し込みに失敗しました: ${error?.message ?? ""}`,
-    };
-  }
-
-  const rows = answers
-    .filter((a) => a.answer_text || (a.answer_options && a.answer_options.length))
-    .map((a) => ({
-      registration_id: registration.id,
-      question_id: a.question_id,
-      answer_text: a.answer_text ?? null,
-      answer_options: a.answer_options ?? null,
-    }));
-
-  if (rows.length) {
-    const { error: aError } = await supabase.from("registration_answers").insert(rows);
-    if (aError) {
-      // 回答の保存に失敗した場合は申込自体も取り消す（不整合な状態を残さないため）
-      await supabase.from("registrations").delete().eq("id", registration.id);
-      return { error: `回答の保存に失敗しました: ${aError.message}` };
-    }
-  }
+  const { error } = await supabase.rpc("register_for_event", { p_event_id: eventId, p_answers: answers });
+  if (error) return { error: `申し込みに失敗しました: ${error.message}` };
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/talks");

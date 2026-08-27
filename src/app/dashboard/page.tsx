@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { formatEventDateTime } from "@/lib/utils";
+import { EventActionsMenu } from "@/components/dashboard/event-actions-menu";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { EventCategory } from "@/types/database";
 
@@ -53,8 +52,8 @@ export default async function DashboardPage() {
               dict.categories[event.category as EventCategory] ?? event.category;
             return (
               <Card key={event.id}>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                  <div>
+                <CardContent className="flex items-start justify-between gap-3 p-4">
+                  <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-2">
                       <Badge variant="secondary">{categoryLabel}</Badge>
                       {event.requires_registration && (
@@ -75,26 +74,7 @@ export default async function DashboardPage() {
                     <p className="font-medium">{title}</p>
                     <p className="text-sm text-muted-foreground">{formatEventDateTime(event.event_date, locale)}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Link href={`/events/${event.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                      {dict.dashboard.detailButton}
-                    </Link>
-                    <Link href={`/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {dict.dashboard.editButton}
-                    </Link>
-                    <Link
-                      href={`/dashboard/${event.id}/participants`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
-                    >
-                      {dict.dashboard.participantsButton}
-                    </Link>
-                    <Link
-                      href={`/dashboard/${event.id}/survey`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
-                    >
-                      {dict.dashboard.surveyButton}
-                    </Link>
-                  </div>
+                  <EventActionsMenu eventId={event.id} title={title} hasRegistrationQuestions={!!event.registration_requires_answers} />
                 </CardContent>
               </Card>
             );

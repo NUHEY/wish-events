@@ -10,9 +10,8 @@ export type ActionResult = { error?: string } | void;
 
 /**
  * イベント申込前の事前質問（アレルギー等）を保存する。
- * サーベイと同様、既存の質問は一旦全削除してから作り直すシンプルな方式。
- * 回答済みデータ(registration_answers)側にはquestion_id参照が残るのみで、
- * 質問文の変更履歴管理はスコープ外（サーベイと同じ割り切り）。
+ * 既存質問はIDを維持して更新し、画面から外した質問は非表示にする。
+ * 物理削除しないため、過去の参加者が回答した内容も参加者管理に残る。
  */
 export async function saveRegistrationQuestions(
   eventId: string,
@@ -35,29 +34,15 @@ export async function saveRegistrationQuestions(
   }
 
   const supabase = await createClient();
-
-  await supabase.from("registration_questions").delete().eq("event_id", eventId);
-
-  const questionsToInsert = parsed.data.questions.map((q, index) => ({
-    event_id: eventId,
-    question_text: q.question_text,
-    question_type: q.question_type,
-    options: q.question_type === "single_choice" || q.question_type === "multiple_choice" ? q.options : null,
-    is_required: q.is_required,
-    position: index,
-  }));
-
-  const { error } = await supabase.from("registration_questions").insert(questionsToInsert);
-  if (error) return { error: error.message };
-
-  // 事前質問を1つでも設定したら、そのイベントは回答必須に切り替える
-  // （空にして保存した場合は逆に不要へ戻す）。
-  await supabase
-    .from("events")
-    .update({ registration_requires_answers: questionsToInsert.length > 0 })
-    .eq("id", eventId);
+  // 既存の質問IDと過去回答を保持したまま、有効/非表示の切替までDB内で一括保存する。
+  const { error } = await supabase.rpc("replace_registration_questions", {
+    p_event_id: eventId,
+    p_questions: parsed.data.questions,
+  });
+  if (error) return { error: `保存できませんでした: ${error.message}` };
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath(`/events/${eventId}/questions`);
+  revalidatePath(`/dashboard/${eventId}/participants`);
   redirect(`/events/${eventId}/questions?saved=1`);
 }

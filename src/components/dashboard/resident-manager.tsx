@@ -16,10 +16,18 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatRoomNumber } from "@/lib/utils";
-import { releaseRoom, resetAllRoomAssignments, setNewResidentStatus } from "@/actions/residents";
+import { releaseRoom, resetAllRoomAssignments } from "@/actions/residents";
 import type { UserRow } from "@/types/database";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+
+function isNewResident(entryMonth: string | null) {
+  if (!entryMonth) return false;
+  const [year, month] = entryMonth.slice(0, 7).split("-").map(Number);
+  const now = new Date();
+  const elapsedMonths = now.getFullYear() * 12 + now.getMonth() - (year * 12 + month - 1);
+  return elapsedMonths >= 0 && elapsedMonths < 6;
+}
 
 function ResidentTable({ residents }: { residents: UserRow[] }) {
   const [pending, startTransition] = useTransition();
@@ -39,16 +47,6 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
         toast.error(result.error);
       } else {
         toast.success(dict.toast.updated);
-        router.refresh();
-      }
-    });
-  }
-
-  function toggleNewResident(resident: UserRow) {
-    startTransition(async () => {
-      const result = await setNewResidentStatus(resident.id, !resident.is_new_resident);
-      if (result?.error) toast.error(result.error); else {
-        toast.success(resident.is_new_resident ? "新寮生の対象から外しました" : "Let's Chat!対象の新寮生に設定しました");
         router.refresh();
       }
     });
@@ -75,10 +73,10 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
               {formatRoomNumber(r.floor_number, r.room_number)}
             </TableCell>
             <TableCell>
-              <div className="flex flex-wrap gap-1">{r.role === "ra" ? <Badge variant="default">RA</Badge> : <Badge variant="secondary">{dict.residents.resident}</Badge>}{r.is_new_resident && <Badge variant="outline">新寮生</Badge>}</div>
+              <div className="flex flex-wrap gap-1">{r.role === "ra" ? <Badge variant="default">RA</Badge> : <Badge variant="secondary">{dict.residents.resident}</Badge>}{isNewResident(r.wish_entry_month) && <Badge variant="outline">新寮生</Badge>}</div>{r.wish_entry_month && <p className="mt-1 text-[10px] text-muted-foreground">{r.wish_entry_month.slice(0, 7).replace("-", "年")}月入居</p>}
             </TableCell>
             <TableCell>
-              <div className="flex flex-wrap justify-end gap-1"><Button size="sm" variant={r.is_new_resident ? "secondary" : "outline"} disabled={pending || r.role === "ra"} onClick={() => toggleNewResident(r)}>{r.is_new_resident ? "新寮生を解除" : "新寮生に設定"}</Button><Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>{dict.residents.releaseButton}</Button></div>
+              <Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>{dict.residents.releaseButton}</Button>
             </TableCell>
           </TableRow>
         ))}

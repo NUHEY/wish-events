@@ -74,7 +74,7 @@ export default async function EventDetailPage({
       .eq("user_id", profile.id)
       .maybeSingle(),
     supabase.from("event_likes").select("user_id").eq("event_id", id),
-    supabase.from("registration_questions").select("*").eq("event_id", id).order("position", { ascending: true }),
+    supabase.from("registration_questions").select("*").eq("event_id", id).eq("is_active", true).order("position", { ascending: true }),
     supabase.from("event_comments").select("*").eq("event_id", id).order("created_at", { ascending: false }),
     getFeatureFlagState("event_calendar_export"),
   ]);

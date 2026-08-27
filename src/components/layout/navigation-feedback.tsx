@@ -16,10 +16,16 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
   const currentSearch = searchParams.toString();
 
   useEffect(() => {
-    navigationLockedRef.current = false;
-    targetHrefRef.current = null;
-    setStalled(false);
-    setTargetPath(null);
+    // スマホではpathnameが先に切り替わり、重いServer Componentの描画が直後まで
+    // 続くことがある。短い描画安定時間まで入力を保持し、連続RSC取得を防ぐ。
+    const settleMs = window.matchMedia("(max-width: 639px)").matches ? 420 : 0;
+    const timer = window.setTimeout(() => {
+      navigationLockedRef.current = false;
+      targetHrefRef.current = null;
+      setStalled(false);
+      setTargetPath(null);
+    }, settleMs);
+    return () => window.clearTimeout(timer);
   }, [pathname, currentSearch]);
   useEffect(() => {
     if (!targetPath) return;
@@ -87,7 +93,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
     <>
       <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] h-1 overflow-hidden bg-primary/15" role="progressbar" aria-label="ページを読み込み中"><div className="h-full w-1/2 animate-[navigation-progress_900ms_ease-in-out_infinite] rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))] motion-reduce:animate-pulse" /></div>
       {/* ヘッダー・下部タブを含む画面全体で次の入力を受け止め、進行中の遷移を1件に保つ。 */}
-      {lockEnabled && <div className="fixed inset-0 z-[89] cursor-wait" aria-hidden />}
+      {lockEnabled && <div className="fixed inset-0 z-[89] cursor-wait touch-none" aria-hidden />}
       {stalled && (
         <div className="fixed left-1/2 top-4 z-[101] flex w-[min(calc(100%_-_2rem),24rem)] -translate-x-1/2 items-center justify-between gap-3 rounded-xl border border-border bg-card/95 px-3 py-2.5 text-sm shadow-elevated backdrop-blur-md" role="alert">
           <span className="min-w-0 text-muted-foreground">読み込みに時間がかかっています</span>

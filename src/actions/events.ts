@@ -200,3 +200,15 @@ export async function deleteEvent(eventId: string) {
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
+
+/** 管理一覧のメニュー用。削除後に一覧へ留まり、クライアント側で行だけ更新する。 */
+export async function deleteEventFromDashboard(eventId: string): Promise<{ success?: boolean; error?: string }> {
+  await requireRa();
+  const supabase = await createClient();
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
+  if (error) return { error: `削除に失敗しました: ${error.message}` };
+  revalidatePath("/");
+  revalidatePath("/events");
+  revalidatePath("/dashboard");
+  return { success: true };
+}

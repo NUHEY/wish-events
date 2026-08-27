@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         if (user) {
           const { data: profile } = await supabase
             .from("users")
-            .select("role, full_name, student_id, floor_number, room_number")
+            .select("role, full_name, student_id, floor_number, room_number, wish_entry_month")
             .eq("id", user.id)
             .maybeSingle();
 
@@ -31,6 +31,7 @@ export async function GET(request: Request) {
           const profileComplete =
             !!profile?.full_name &&
             !!profile?.student_id &&
+            !!profile?.wish_entry_month &&
             profile?.floor_number != null &&
             !!profile?.room_number;
 

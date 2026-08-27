@@ -107,7 +107,7 @@ async function updateSessionInner(request: NextRequest) {
     if (!isPublicPath) {
       const { data: profile } = await supabase
         .from("users")
-        .select("full_name, student_id, floor_number, room_number, role, moved_out_at")
+        .select("full_name, student_id, floor_number, room_number, role, moved_out_at, wish_entry_month")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -121,6 +121,7 @@ async function updateSessionInner(request: NextRequest) {
       const profileComplete =
         !!profile?.full_name &&
         !!profile?.student_id &&
+        !!profile?.wish_entry_month &&
         profile?.floor_number != null &&
         !!profile?.room_number;
 

@@ -43,6 +43,7 @@ export interface UserRow {
   profile_accents: string[] | null;
   profile_cover_url: string | null;
   moved_out_at: string | null;
+  wish_entry_month: string | null;
   is_new_resident: boolean;
   created_at: string;
   updated_at: string;
@@ -363,6 +364,7 @@ export interface RegistrationQuestionRow {
   options: string[] | null;
   is_required: boolean;
   position: number;
+  is_active: boolean;
   created_at: string;
 }
 
