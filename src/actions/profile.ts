@@ -17,6 +17,7 @@ export async function submitProfile(
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const schema = getProfileSchema(locale);
+  const startOnboarding = formData.get("start_onboarding") === "1";
 
   const parsed = schema.safeParse({
     full_name: formData.get("full_name"),
@@ -77,5 +78,6 @@ export async function submitProfile(
   revalidatePath("/", "layout");
   revalidatePath("/directory");
   revalidatePath(`/directory/${profile.id}`);
+  if (startOnboarding) redirect("/onboarding?saved=1");
   redirect(`/directory/${profile.id}?saved=1`);
 }

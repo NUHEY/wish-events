@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useRouter } from "next/navigation";
-import { DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
+import { CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { formatRoomNumber } from "@/lib/utils";
-import { useDict } from "@/lib/i18n/locale-provider";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { UserRole } from "@/types/database";
@@ -46,6 +46,7 @@ export function UserMenu({
   variant?: "header" | "tab";
 }) {
   const dict = useDict();
+  const locale = useLocale();
   const router = useRouter();
 
   async function handleSignOut() {
@@ -116,6 +117,12 @@ export function UserMenu({
           <Link href="/directory" className="cursor-pointer">
             <Users className="h-4 w-4" />
             {dict.nav.directory}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/onboarding" className="cursor-pointer">
+            <CircleHelp className="h-4 w-4" />
+            {locale === "en" ? "Quick guide" : "使い方ガイド"}
           </Link>
         </DropdownMenuItem>
         {role === "ra" && variant !== "tab" && (

@@ -20,7 +20,11 @@ export default async function ProfileSetupPage() {
           <CardDescription>{dict.profile.setupSubtitle}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm initialProfile={profile} initialLineQrSignedUrl={initialLineQrSignedUrl} />
+          <ProfileForm
+            initialProfile={profile}
+            initialLineQrSignedUrl={initialLineQrSignedUrl}
+            startOnboardingAfterSave
+          />
         </CardContent>
       </Card>
     </div>

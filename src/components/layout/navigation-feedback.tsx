@@ -12,6 +12,7 @@ import {
   EventsPageSkeleton,
   HomePageSkeleton,
   NotificationsPageSkeleton,
+  OnboardingPageSkeleton,
   ParticipantsPageSkeleton,
   ProfileFormPageSkeleton,
   TalkRoomSkeleton,
@@ -84,5 +85,6 @@ function RouteShape({ pathname }: { pathname: string }) {
   if (pathname.startsWith("/announcements/")) return <AnnouncementDetailSkeleton />;
   if (pathname === "/notifications") return <NotificationsPageSkeleton />;
   if (pathname.startsWith("/profile/")) return <ProfileFormPageSkeleton showBack={pathname === "/profile/edit"} />;
+  if (pathname === "/onboarding") return <OnboardingPageSkeleton />;
   return <HomePageSkeleton />;
 }

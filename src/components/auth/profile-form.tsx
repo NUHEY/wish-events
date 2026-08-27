@@ -98,10 +98,13 @@ export function ProfileForm({
   initialProfile,
   initialLineQrSignedUrl = null,
   submitLabel,
+  startOnboardingAfterSave = false,
 }: {
   initialProfile?: InitialProfile;
   initialLineQrSignedUrl?: string | null;
   submitLabel?: string;
+  /** 初回登録だけ、保存後に使い方ガイドへ進む。プロフィール編集時の遷移先は変えない。 */
+  startOnboardingAfterSave?: boolean;
 }) {
   const dict = useDict();
   const locale = useLocale();
@@ -147,6 +150,7 @@ export function ProfileForm({
       onChange={markDirty}
       className="flex flex-col gap-4"
     >
+      {startOnboardingAfterSave && <input type="hidden" name="start_onboarding" value="1" />}
       <div className="grid gap-3 pb-2">
         <ProfileCoverUploader initialUrl={initialProfile?.profile_cover_url ?? null} />
         <AvatarUploader initialUrl={initialProfile?.avatar_url ?? null} />
