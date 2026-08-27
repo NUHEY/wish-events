@@ -26,7 +26,7 @@ export function BackButton({
     // 目安にして先にローディング表示（プログレスバー＋スケルトン）を開始する。
     // 実際の遷移先が違っても、NavigationFeedbackはpathname変化を検知した時点で
     // 自動的にローディング表示を終了するため、体感上の不整合は生じない。
-    signalNavigation(fallbackHref);
+    if (!signalNavigation(fallbackHref)) return;
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
     } else {

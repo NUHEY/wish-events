@@ -62,8 +62,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
 
   const datesWithEvents = useMemo(() => new Set(eventDates.map(toJstDateKey)), [eventDates]);
 
-  function navigateWithParams(mutate: (params: URLSearchParams) => void) {
-    if (pending) return;
+  function navigateWithParams(mutate: (params: URLSearchParams) => void): boolean {
+    if (pending) return false;
     const params = new URLSearchParams(searchParams.toString());
     // 日付系の絞り込みは常に排他（同時に有効なのは1種類だけ）にする。
     params.delete("date");
@@ -73,19 +73,20 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
     mutate(params);
     const qs = params.toString();
     const href = qs ? `${pathname}?${qs}` : pathname;
-    signalNavigation(href);
+    if (!signalNavigation(href)) return false;
     startTransition(() => router.replace(href, { scroll: false }));
+    return true;
   }
 
   function selectSingleDate(dateKey: string) {
     if (selectedDate === dateKey) {
-      setOptimisticDate(null);
-      navigateWithParams(() => {});
+      if (navigateWithParams(() => {})) setOptimisticDate(null);
       return;
     }
-    setOptimisticDate(dateKey);
-    setPanelOpen(false);
-    navigateWithParams((params) => params.set("date", dateKey));
+    if (navigateWithParams((params) => params.set("date", dateKey))) {
+      setOptimisticDate(dateKey);
+      setPanelOpen(false);
+    }
   }
 
   function applyRange() {
@@ -103,8 +104,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   }
 
   function clearDateFilter() {
-    setOptimisticDate(null);
-    navigateWithParams(() => {});
+    if (navigateWithParams(() => {})) setOptimisticDate(null);
   }
 
   const { year, month: viewMonth } = viewDate;

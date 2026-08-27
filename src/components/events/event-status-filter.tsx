@@ -32,7 +32,7 @@ export function EventStatusFilter() {
     }
     const qs = params.toString();
     const href = qs ? `${pathname}?${qs}` : pathname;
-    signalNavigation(href);
+    if (!signalNavigation(href)) return;
     startTransition(() => {
       router.replace(href, { scroll: false });
     });

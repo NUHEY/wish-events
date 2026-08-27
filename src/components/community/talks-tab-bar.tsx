@@ -28,7 +28,6 @@ export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden"
 
   function setTab(tab: TalksTab) {
     if (pending || tab === active) return;
-    setActive(tab);
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "events") {
       params.delete("tab");
@@ -36,9 +35,11 @@ export function TalksTabBar({ hasUnreadFriends = false, friendDmState = "hidden"
       params.set("tab", tab);
     }
     const qs = params.toString();
-    signalNavigation(qs ? `${pathname}?${qs}` : pathname);
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    if (!signalNavigation(href)) return;
+    setActive(tab);
     startTransition(() => {
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      router.replace(href, { scroll: false });
     });
   }
 

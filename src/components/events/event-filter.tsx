@@ -37,7 +37,7 @@ export function EventFilter() {
   function setCategory(category: string | null) {
     if (pending) return;
     const href = buildHref(category);
-    signalNavigation(href);
+    if (!signalNavigation(href)) return;
     startTransition(() => {
       router.replace(href, { scroll: false });
     });

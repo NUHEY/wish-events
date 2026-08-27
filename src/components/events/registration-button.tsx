@@ -124,8 +124,7 @@ export function RegistrationButton({
       else {
         toast.success(dict.toast.registered);
         const href = result.talkHref ?? `/talks/${eventId}?joined=1`;
-        signalNavigation(href);
-        router.push(href);
+        if (signalNavigation(href)) router.push(href);
       }
     });
   }
@@ -154,8 +153,7 @@ export function RegistrationButton({
         toast.success(dict.toast.registered);
         setExpanded(false);
         const href = result.talkHref ?? `/talks/${eventId}?joined=1`;
-        signalNavigation(href);
-        router.push(href);
+        if (signalNavigation(href)) router.push(href);
       }
     });
   }

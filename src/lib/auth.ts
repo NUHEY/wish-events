@@ -29,17 +29,38 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) {
+    // 未ログインは通常どおりログインへ。一方、負荷や通信断による認証確認の
+    // 失敗を未ログイン扱いにすると、不要なリダイレクトが重なってしまう。
+    if (authError && authError.name !== "AuthSessionMissingError") {
+      console.error("Failed to verify current user", authError);
+      throw new Error("認証情報を確認できませんでした。しばらくしてからもう一度お試しください。");
+    }
+    redirect("/login");
+  }
 
-  const { data: profile } = await supabase
+  if (authError) {
+    console.error("Failed to verify current user", authError);
+    throw new Error("認証情報を確認できませんでした。しばらくしてからもう一度お試しください。");
+  }
+
+  const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
   if (profile) return profile;
+
+  // 通信エラーやレート制限を「行が存在しない」と取り違えてinsertすると、
+  // 高負荷時に問い合わせがさらに増える。正常に0件だった場合だけ復旧処理へ進む。
+  if (profileError) {
+    console.error("Failed to load current profile", profileError);
+    throw new Error("プロフィールを読み込めませんでした。しばらくしてからもう一度お試しください。");
+  }
 
   // スタブ行が無ければここで作成する（トリガーが効かなかった場合の保険）。
   // upsert ではなく plain insert を使う理由: role/email 列はRLSにより
@@ -55,7 +76,7 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
   if (created) return created;
 
   // 競合で既に作成されていた場合はここで拾えるはず
-  const { data: retried } = await supabase
+  const { data: retried, error: retryError } = await supabase
     .from("users")
     .select("*")
     .eq("id", user.id)
@@ -63,8 +84,8 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
 
   if (retried) return retried;
 
-  console.error("Failed to provision public.users row", insertError);
-  redirect("/login");
+  console.error("Failed to provision public.users row", { insertError, retryError });
+  throw new Error("プロフィールを準備できませんでした。しばらくしてからもう一度お試しください。");
 });
 
 /** RAでなければホームへリダイレクトする */
