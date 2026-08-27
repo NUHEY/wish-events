@@ -50,6 +50,9 @@ export type ScheduleParticipant = {
   avatar_url?: string | null;
   floor_number?: number | null;
   room_number?: string | null;
+  faculty?: string | null;
+  languages?: string[] | null;
+  self_intro?: string | null;
 };
 
 export type ScheduleAvailability = {
@@ -68,4 +71,5 @@ export type ScheduleBooking = {
   start_at: string;
   end_at: string;
   status: "confirmed" | "cancelled";
+  completed_at?: string | null;
 };

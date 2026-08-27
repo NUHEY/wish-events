@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SurveyBuilder } from "@/components/surveys/survey-builder";
@@ -8,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 export default async function ManageSurveyPage({
   params,
@@ -65,6 +68,9 @@ export default async function ManageSurveyPage({
             {dict.surveys.responseCountUnit}
           </span>
           <SurveyActiveToggle surveyId={survey.id} isActive={survey.is_active} />
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/dashboard/${id}/survey/results`}><BarChart3 className="h-4 w-4" />結果を見る</Link>
+          </Button>
         </div>
       )}
 

@@ -181,9 +181,6 @@ export function ProfileForm({
           required
           defaultValue={initialProfile?.wish_entry_month?.slice(0, 7) ?? ""}
         />
-        <p className="text-xs text-muted-foreground">
-          {locale === "ja" ? "入居から6か月未満の場合、Let's Chat!対象の新寮生として自動判定されます。" : "Residents who moved in less than six months ago are automatically treated as new residents for Let's Chat!."}
-        </p>
       </div>
 
       <div className="grid gap-2">

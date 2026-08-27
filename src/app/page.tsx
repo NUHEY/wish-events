@@ -4,11 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { EventCard, type EventCardFriend } from "@/components/events/event-card";
+import { RESIDENT_TOOLS, ResidentToolGrid } from "@/components/tools/resident-tool-grid";
 import { buttonVariants } from "@/components/ui/button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { endOfThisWeek, EVENT_CARD_COLUMNS } from "@/lib/utils";
 import { HOME_ACCENT_HEX } from "@/lib/constants";
 import type { HomeAccentKeyValue } from "@/lib/constants";
+import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import type { AnnouncementRow, EventCardData, HomeLayoutSectionRow } from "@/types/database";
 
 const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
@@ -18,6 +20,7 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "featured_events", section_key: "featured_events", visible: true, position: 4, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "popular_events", section_key: "popular_events", visible: true, position: 5, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "friends_events", section_key: "friends_events", visible: true, position: 6, accent: null, title_ja: null, title_en: null, updated_at: "" },
+  { id: "tools", section_key: "tools", visible: true, position: 7, accent: null, title_ja: null, title_en: null, updated_at: "" },
 ];
 
 /** モバイルは横スクロールのスナップ、sm以上はグリッドで表示するイベントカード列 */
@@ -70,6 +73,7 @@ export default async function HomePage() {
     { data: pinnedEventsDataRaw },
     { data: popularRowsDataRaw },
     { data: friendsRowsDataRaw },
+    { data: homeToolRowsRaw },
   ] = await Promise.all([
     supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
     // EventCard に必要な列だけを取得し、ホーム画面の表示を高速化する。
@@ -109,6 +113,7 @@ export default async function HomePage() {
     supabase.rpc("popular_upcoming_events", { p_limit: 6 }),
     // 友達が参加するイベント: 承認済みの友達の申込みだけをfriend_requests経由で解決する。
     supabase.rpc("friends_attending_events"),
+    supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)).order("home_position", { ascending: true }),
   ]);
   const layoutRows = layoutRowsRaw as HomeLayoutSectionRow[] | null;
   const weekEvents = weekEventsRaw as EventCardData[] | null;
@@ -116,6 +121,9 @@ export default async function HomePage() {
   const pinnedEvents = (pinnedEventsDataRaw as EventCardData[] | null) ?? [];
   const popularRows = (popularRowsDataRaw as { event_id: string; registration_count: number }[] | null) ?? [];
   const friendsRows = (friendsRowsDataRaw as { event_id: string; friend_id: string }[] | null) ?? [];
+  const homeToolRows = (homeToolRowsRaw ?? []) as { key: FeatureFlagKey; state: FeatureFlagState; show_on_home: boolean; home_position: number }[];
+  const visibleHomeToolKeys = homeToolRows.filter((row) => row.show_on_home && row.state !== "hidden").map((row) => row.key);
+  const homeToolStates = Object.fromEntries(homeToolRows.map((row) => [row.key, row.state])) as Partial<Record<FeatureFlagKey, FeatureFlagState>>;
 
   // 上のfriends_attending_events / popular_upcoming_eventsはevent_id（と登録数/friend_id）
   // しか返さないため、必要なイベント本体・友達プロフィールをここでまとめて取得する。
@@ -161,8 +169,11 @@ export default async function HomePage() {
     ])
   );
 
-  const sections =
-    layoutRows && layoutRows.length === FALLBACK_SECTIONS.length ? layoutRows : FALLBACK_SECTIONS;
+  // DBへ新しいセクションを段階追加しても、既存の並び順やタイトル設定を失わないよう
+  // 行数の完全一致ではなくsection_key単位で既定値とマージする。
+  const layoutByKey = new Map((layoutRows ?? []).map((section) => [section.section_key, section]));
+  const sections = FALLBACK_SECTIONS.map((fallback) => layoutByKey.get(fallback.section_key) ?? fallback)
+    .sort((a, b) => a.position - b.position);
 
   function sectionTitle(s: HomeLayoutSectionRow, fallback: string) {
     const override = isEn ? s.title_en : s.title_ja;
@@ -277,6 +288,22 @@ export default async function HomePage() {
                   <EventScroller events={friendsEvents} friendsByEventId={friendsByEventId} />
                 ) : (
                   <EmptyNote>{dict.homePortal.friendsEvents.empty}</EmptyNote>
+                )}
+              </section>
+            );
+          }
+
+          if (s.section_key === "tools") {
+            return (
+              <section key={s.id} className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <SectionHeading s={s} title={sectionTitle(s, isEn ? "Resident tools" : "寮生活の便利ツール")} />
+                  <Link href="/tools" className="text-xs font-semibold text-primary">すべて見る</Link>
+                </div>
+                {visibleHomeToolKeys.length > 0 ? (
+                  <ResidentToolGrid stateByKey={homeToolStates} profileRole={profile.role} includedKeys={visibleHomeToolKeys} compact />
+                ) : (
+                  <EmptyNote>{isEn ? "No tools are currently available." : "現在ホームに表示中のツールはありません"}</EmptyNote>
                 )}
               </section>
             );

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
@@ -12,7 +11,7 @@ import { uploadLineQr } from "@/actions/line-qr";
  * LINEのQRコード画像は非公開Storageバケットに保存されるため、表示には
  * サーバー側で発行した短命の署名付きURLが必要（`getLineQrSignedUrl`）。
  * このコンポーネントはページ(Server Component)から初期の署名付きURLを
- * 受け取り、アップロード/削除後は `router.refresh()` でページごと再取得する。
+ * 受け取り、アップロード後は入力中の他項目を守るため画面全体を再取得しない。
  */
 export function LineQrUploader({
   hasQr,
@@ -22,7 +21,6 @@ export function LineQrUploader({
   initialSignedUrl: string | null;
 }) {
   const dict = useDict();
-  const router = useRouter();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialSignedUrl);
   const [uploaded, setUploaded] = React.useState(hasQr);
   const [pending, startTransition] = React.useTransition();
@@ -61,7 +59,7 @@ export function LineQrUploader({
         setPreviewUrl(initialSignedUrl);
       } else {
         setUploaded(true);
-        router.refresh();
+        setPreviewUrl(result.url ?? localPreview);
       }
     });
   }

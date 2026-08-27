@@ -16,9 +16,11 @@ import type { SurveyQuestionRow } from "@/types/database";
 
 export function SurveyResponseForm({
   surveyId,
+  eventId,
   questions,
 }: {
   surveyId: string;
+  eventId: string;
   questions: SurveyQuestionRow[];
 }) {
   const dict = useDict();
@@ -81,7 +83,7 @@ export function SurveyResponseForm({
       } else {
         toast.success(dict.toast.registered);
         setDone(true);
-        router.refresh();
+        router.replace(`/events/${eventId}?survey=completed`);
       }
     });
   }

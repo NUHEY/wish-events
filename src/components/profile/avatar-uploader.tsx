@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { User, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,6 @@ import { uploadAvatar, removeAvatar } from "@/actions/avatar";
 
 export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
   const dict = useDict();
-  const router = useRouter();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialUrl);
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
@@ -48,7 +46,7 @@ export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
         setPreviewUrl(initialUrl);
       } else {
         toast.success(dict.toast.saved);
-        router.refresh();
+        setPreviewUrl(result.url ?? localPreview);
       }
     });
   }
@@ -62,7 +60,6 @@ export function AvatarUploader({ initialUrl }: { initialUrl: string | null }) {
       } else {
         setPreviewUrl(null);
         toast.success(dict.toast.removed);
-        router.refresh();
       }
     });
   }

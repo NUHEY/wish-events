@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRa } from "@/lib/auth";
 import { homeLayoutSchema } from "@/lib/validations/home-layout";
 import { HOME_SECTION_KEYS } from "@/lib/constants";
+import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/feature-flags";
 
 export type HomeLayoutActionResult = { error?: string; success?: boolean };
 
 /**
- * ホーム画面の3セクション（今週のイベント/あなたの階のイベント/お知らせ）の
+ * ホーム画面の各セクションの
  * 表示・非表示、並び順、アクセントカラー、タイトル上書きをRAが一括保存する。
  * セクションの追加・削除はできない（行はマイグレーションで固定シード済み）ため、
  * ここでは常にupdateのみを行う。
@@ -59,6 +60,34 @@ export async function saveHomeLayout(
     }
   }
 
+  revalidatePath("/");
+  revalidatePath("/dashboard/home-layout");
+  return { success: true };
+}
+
+export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnHome: boolean; position: number }[]) {
+  const profile = await requireRa();
+  const allowed = new Set<FeatureFlagKey>([
+    "availability_matching",
+    "lets_chat_booking",
+    "unit_room_sessions",
+    "ra_question_box",
+    "ra_link_hub",
+  ]);
+  if (input.length !== allowed.size || input.some((item) => !FEATURE_FLAG_KEYS.includes(item.key) || !allowed.has(item.key))) {
+    return { error: "ツール設定が不足しています。" };
+  }
+  const keys = new Set(input.map((item) => item.key));
+  if (keys.size !== allowed.size) return { error: "同じツールが重複しています。" };
+
+  const supabase = await createClient();
+  const results = await Promise.all(input.map((item, index) => supabase.from("feature_flags").update({
+    show_on_home: item.showOnHome,
+    home_position: index + 1,
+    updated_by: profile.id,
+    updated_at: new Date().toISOString(),
+  }).eq("key", item.key)));
+  if (results.some((result) => result.error)) return { error: "保存できませんでした。20260828のSQLを適用してください。" };
   revalidatePath("/");
   revalidatePath("/dashboard/home-layout");
   return { success: true };

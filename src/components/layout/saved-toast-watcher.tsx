@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useDict } from "@/lib/i18n/locale-provider";
 
@@ -18,7 +18,6 @@ type ParamKey = (typeof PARAM_KEYS)[number];
 
 export function SavedToastWatcher() {
   const dict = useDict();
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
@@ -44,9 +43,9 @@ export function SavedToastWatcher() {
 
     if (fired) {
       const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      window.history.replaceState(window.history.state, "", qs ? `${pathname}?${qs}` : pathname);
     }
-    // dict/router/pathnameは変化してもトースト再表示のトリガーにはしない
+    // dict/pathnameは変化してもトースト再表示のトリガーにはしない
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParamsString]);
 

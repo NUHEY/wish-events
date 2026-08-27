@@ -11,7 +11,7 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/webp": "webp",
 };
 
-export async function uploadLineQr(formData: FormData): Promise<{ error?: string }> {
+export async function uploadLineQr(formData: FormData): Promise<{ error?: string; url?: string }> {
   const profile = await getCurrentProfile();
   const file = formData.get("line_qr");
 
@@ -47,7 +47,8 @@ export async function uploadLineQr(formData: FormData): Promise<{ error?: string
 
   revalidatePath("/profile/edit");
   revalidatePath("/profile/setup");
-  return {};
+  const { data: signed } = await supabase.storage.from("line-qr").createSignedUrl(path, 60 * 10);
+  return { url: signed?.signedUrl };
 }
 
 export async function removeLineQr(): Promise<{ error?: string }> {

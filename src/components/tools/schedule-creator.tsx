@@ -38,7 +38,7 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
   const ras = useMemo(() => profiles.filter((profile) => profile.role === "ra" && (kind !== "lets_chat" || profile.floor_number === floorNumber) && `${profile.full_name ?? ""} ${profile.room_number ?? ""}`.toLowerCase().includes(query.toLowerCase())), [floorNumber, kind, profiles, query]);
 
   function toggleParticipant(id: string) {
-    setParticipantIds((current) => current.includes(id) ? current.filter((value) => value !== id) : kind === "urs" && current.length >= 3 ? current : [...current, id]);
+    setParticipantIds((current) => current.includes(id) ? current.filter((value) => value !== id) : kind === "urs" && current.length >= 4 ? current : [...current, id]);
   }
 
   function toggleRa(id: string) {
@@ -54,11 +54,11 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
         return;
       }
       toast.success("日程調整ページを作成しました");
-      router.push(`/tools/schedule/${result.token}`);
+      router.replace(`/tools/schedule/${result.token}`);
     });
   }
 
-  const selectedCount = kind === "lets_chat" ? raIds.length : participantIds.length + 1 + (kind === "urs" ? raIds.length : 0);
+  const selectedCount = kind === "lets_chat" ? raIds.length : participantIds.length + (kind === "general" ? 1 : raIds.length);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -86,7 +86,7 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
       <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5">
         <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 font-bold"><Users className="h-4 w-4 text-primary" />{kind === "lets_chat" ? "担当RA" : kind === "urs" ? "ルームメイトと担当RA" : "参加する寮生"}</div><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{selectedCount}人</span></div>
         <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="search" value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="名前・部屋番号で検索" /></div>
-        {kind !== "lets_chat" && <div><p className="mb-2 text-xs font-semibold text-muted-foreground">{kind === "urs" ? "ルームメイト（自分を含め2〜4人）" : "寮生を選択"}</p><div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-border p-2">{residents.map((person) => <PersonRow key={person.id} person={person} checked={participantIds.includes(person.id)} onToggle={() => toggleParticipant(person.id)} />)}{residents.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">該当する寮生がいません</p>}</div></div>}
+        {kind !== "lets_chat" && <div><p className="mb-2 text-xs font-semibold text-muted-foreground">{kind === "urs" ? "参加するルームメイト（2〜4人）" : "寮生を選択"}</p><div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-border p-2">{residents.map((person) => <PersonRow key={person.id} person={person} checked={participantIds.includes(person.id)} onToggle={() => toggleParticipant(person.id)} />)}{residents.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">該当する寮生がいません</p>}</div></div>}
         {(kind === "lets_chat" || kind === "urs") && <div><p className="mb-2 text-xs font-semibold text-muted-foreground">担当RA {kind === "urs" && "（1人）"}</p><div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-border p-2">{ras.map((person) => <PersonRow key={person.id} person={person} checked={raIds.includes(person.id)} onToggle={() => toggleRa(person.id)} />)}{ras.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">対象のRAがいません</p>}</div></div>}
       </section>
 
@@ -96,5 +96,5 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
 }
 
 function PersonRow({ person, checked, onToggle }: { person: DirectoryProfileRow; checked: boolean; onToggle: () => void }) {
-  return <button type="button" onClick={onToggle} className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors active:scale-[0.99]", checked ? "bg-primary/[0.09]" : "active:bg-secondary")}><Checkbox checked={checked} aria-label={`${person.full_name ?? "名前未登録"}を選択`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{person.full_name ?? "名前未登録"}</span><span className="block text-xs text-muted-foreground">{formatRoomNumber(person.floor_number, person.room_number)}</span></span>{person.role === "ra" && <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">RA</span>}</button>;
+  return <label className={cn("flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors active:scale-[0.99]", checked ? "bg-primary/[0.09]" : "active:bg-secondary")}><Checkbox checked={checked} onCheckedChange={onToggle} aria-label={`${person.full_name ?? "名前未登録"}を選択`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{person.full_name ?? "名前未登録"}</span><span className="block text-xs text-muted-foreground">{formatRoomNumber(person.floor_number, person.room_number)}</span></span>{person.role === "ra" && <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">RA</span>}</label>;
 }

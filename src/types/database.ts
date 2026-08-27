@@ -181,7 +181,8 @@ export type HomeLayoutSectionKey =
   | "announcements"
   | "featured_events"
   | "popular_events"
-  | "friends_events";
+  | "friends_events"
+  | "tools";
 export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
 
 export interface HomeLayoutSectionRow {
@@ -192,6 +193,15 @@ export interface HomeLayoutSectionRow {
   accent: string | null;
   title_ja: string | null;
   title_en: string | null;
+  updated_at: string;
+}
+
+export interface FeatureFlagRow {
+  key: string;
+  state: "public" | "beta" | "hidden";
+  show_on_home: boolean;
+  home_position: number;
+  updated_by: string | null;
   updated_at: string;
 }
 
@@ -634,6 +644,12 @@ export interface Database {
         Update: Partial<HomeLayoutSectionRow>;
         Relationships: [];
       };
+      feature_flags: {
+        Row: FeatureFlagRow;
+        Insert: Partial<FeatureFlagRow> & { key: string };
+        Update: Partial<FeatureFlagRow>;
+        Relationships: [];
+      };
       event_location_options: {
         Row: EventLocationOptionRow;
         Insert: Partial<EventLocationOptionRow> & { label_ja: string };
@@ -739,6 +755,42 @@ export interface Database {
       send_ra_broadcast_notification: {
         Args: { p_target_ids: string[]; p_preview_text: string; p_link: string; p_broadcast_id: string; p_sender_mode: string; p_sender_label: string };
         Returns: number;
+      };
+      create_schedule_session: {
+        Args: {
+          p_kind: string;
+          p_title: string;
+          p_description: string | null;
+          p_start_date: string;
+          p_end_date: string;
+          p_daily_start_time: string;
+          p_daily_end_time: string;
+          p_slot_minutes: number;
+          p_floor_number: number | null;
+          p_participant_ids: string[];
+          p_ra_ids: string[];
+        };
+        Returns: { id: string; share_token: string }[];
+      };
+      submit_survey_response: {
+        Args: { p_survey_id: string; p_answers: unknown };
+        Returns: string;
+      };
+      save_event_survey: {
+        Args: { p_event_id: string; p_title: string; p_questions: unknown };
+        Returns: string;
+      };
+      set_schedule_status: {
+        Args: { p_session_id: string; p_status: string };
+        Returns: undefined;
+      };
+      delete_schedule_session: {
+        Args: { p_session_id: string };
+        Returns: undefined;
+      };
+      set_lets_chat_completed: {
+        Args: { p_booking_id: string; p_completed: boolean };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

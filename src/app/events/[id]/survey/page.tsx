@@ -53,7 +53,7 @@ export default async function EventSurveyPage({
               {dict.event.surveyAlreadyAnswered}
             </p>
           ) : (
-            <SurveyResponseForm surveyId={survey.id} questions={questions ?? []} />
+            <SurveyResponseForm surveyId={survey.id} eventId={id} questions={questions ?? []} />
           )}
         </CardContent>
       </Card>

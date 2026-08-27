@@ -34,7 +34,9 @@ export async function createScheduleSession(input: CreateScheduleInput) {
   if (!(input.kind in SCHEDULE_COPY) || !(await featureAllowed(input.kind, profile.role))) {
     return { error: "この機能は現在公開されていません。" };
   }
-  if (input.kind === "lets_chat" && profile.role !== "ra") return { error: "Let's Chat!の日程はRAが作成します。" };
+  if ((input.kind === "lets_chat" || input.kind === "urs") && profile.role !== "ra") {
+    return { error: `${SCHEDULE_COPY[input.kind].shortTitle}の日程はRAが作成します。` };
+  }
 
   const title = input.title.trim();
   const description = input.description?.trim() || null;
@@ -50,11 +52,15 @@ export async function createScheduleSession(input: CreateScheduleInput) {
   }
   if (![15, 30, 60].includes(input.slotMinutes)) return { error: "時間枠が正しくありません。" };
 
-  const participantIds = [...new Set([profile.id, ...input.participantIds.filter((id) => UUID_PATTERN.test(id))])];
+  const participantIds = [...new Set([
+    ...(input.kind === "general" ? [profile.id] : []),
+    ...input.participantIds.filter((id) => UUID_PATTERN.test(id)),
+  ])];
   const raIds = [...new Set(input.raIds.filter((id) => UUID_PATTERN.test(id)))];
-  if (input.kind !== "lets_chat" && participantIds.length < 2) return { error: "自分を含めて2人以上を選択してください。" };
+  if (input.kind === "general" && participantIds.length < 2) return { error: "自分を含めて2人以上を選択してください。" };
   if (input.kind === "lets_chat" && raIds.length === 0) return { error: "予約を担当するRAを1人以上選択してください。" };
   if (input.kind === "urs" && raIds.length !== 1) return { error: "URSを担当するRAを1人選択してください。" };
+  if (input.kind === "urs" && (participantIds.length < 2 || participantIds.length > 4)) return { error: "URSの寮生を2〜4人選択してください。" };
   const floorNumber = input.floorNumber == null ? profile.floor_number : Number(input.floorNumber);
   if (input.kind === "lets_chat" && (!floorNumber || floorNumber < 1 || floorNumber > 20)) return { error: "対象フロアを選択してください。" };
 
@@ -71,30 +77,23 @@ export async function createScheduleSession(input: CreateScheduleInput) {
     return { error: "Let's Chat!では対象フロアのRAを選択してください。" };
   }
 
-  const { data: session, error } = await supabase.from("schedule_sessions").insert({
-    kind: input.kind,
-    title,
-    description,
-    created_by: profile.id,
-    floor_number: input.kind === "general" ? null : floorNumber,
-    start_date: input.startDate,
-    end_date: input.endDate,
-    daily_start_time: input.dailyStartTime,
-    daily_end_time: input.dailyEndTime,
-    slot_minutes: input.slotMinutes,
-  }).select("id, share_token").single();
+  // セッションと参加者をDB内の1トランザクションで作成する。
+  // 途中失敗時に「本体だけ残る」状態を防ぎ、画面側とRLS側のRA判定差もなくす。
+  const { data: sessions, error } = await supabase.rpc("create_schedule_session", {
+    p_kind: input.kind,
+    p_title: title,
+    p_description: description,
+    p_start_date: input.startDate,
+    p_end_date: input.endDate,
+    p_daily_start_time: input.dailyStartTime,
+    p_daily_end_time: input.dailyEndTime,
+    p_slot_minutes: input.slotMinutes,
+    p_floor_number: input.kind === "general" ? null : floorNumber,
+    p_participant_ids: participantIds,
+    p_ra_ids: raIds,
+  });
+  const session = sessions?.[0];
   if (error || !session) return { error: `日程を作成できませんでした: ${error?.message ?? "不明なエラー"}` };
-
-  const rows = allIds.map((userId) => ({
-    session_id: session.id,
-    user_id: userId,
-    participant_role: raIds.includes(userId) ? "ra" : userId === profile.id ? "organizer" : "participant",
-  }));
-  const { error: participantError } = await supabase.from("schedule_participants").insert(rows);
-  if (participantError) {
-    await supabase.from("schedule_sessions").delete().eq("id", session.id);
-    return { error: `参加者を登録できませんでした: ${participantError.message}` };
-  }
   revalidatePath("/tools");
   return { success: true, token: session.share_token as string };
 }
@@ -117,6 +116,39 @@ export async function bookLetsChatSlot(sessionId: string, raId: string, startAt:
   const { error } = await supabase.rpc("book_lets_chat_slot", { p_session_id: sessionId, p_ra_id: raId, p_start_at: startAt });
   if (error) return { error: error.message };
   revalidatePath("/tools/schedule/[token]", "page");
+  return { success: true };
+}
+
+export async function setScheduleStatus(sessionId: string, status: "open" | "closed") {
+  await requireRa();
+  if (!UUID_PATTERN.test(sessionId) || !["open", "closed"].includes(status)) return { error: "日程の状態が正しくありません。" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_schedule_status", { p_session_id: sessionId, p_status: status });
+  if (error) return { error: `状態を更新できませんでした: ${error.message}` };
+  revalidatePath("/dashboard/schedules");
+  revalidatePath("/tools/schedule/[token]", "page");
+  return { success: true };
+}
+
+export async function deleteScheduleSession(sessionId: string) {
+  await requireRa();
+  if (!UUID_PATTERN.test(sessionId)) return { error: "日程IDが正しくありません。" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_schedule_session", { p_session_id: sessionId });
+  if (error) return { error: `削除できませんでした: ${error.message}` };
+  revalidatePath("/dashboard/schedules");
+  revalidatePath("/tools");
+  return { success: true };
+}
+
+export async function setLetsChatCompleted(bookingId: string, completed: boolean) {
+  await requireRa();
+  if (!UUID_PATTERN.test(bookingId)) return { error: "予約IDが正しくありません。" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_lets_chat_completed", { p_booking_id: bookingId, p_completed: completed });
+  if (error) return { error: `実施状況を更新できませんでした: ${error.message}` };
+  revalidatePath("/tools/schedule/[token]", "page");
+  revalidatePath("/dashboard/schedules");
   return { success: true };
 }
 
