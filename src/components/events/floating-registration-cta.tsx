@@ -53,11 +53,16 @@ export function FloatingRegistrationCta({
   return (
     <div
       aria-hidden={!visible}
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 isolate bg-gradient-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] pt-10 backdrop-blur-md [transform:translateZ(0)] transition-[opacity,transform] duration-200 ease-out sm:pb-4 sm:pt-8 ${
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 isolate px-4 pb-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] pt-16 [transform:translateZ(0)] transition-[opacity,transform] duration-200 ease-out sm:pb-4 sm:pt-12 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >
-      <div className="pointer-events-auto mx-auto max-w-2xl">
+      {/*
+       * ブラーを矩形の端で突然切らず、独立した背景レイヤーだけをCSSマスクで
+       * 徐々に透明化する。ボタンまでマスクすると操作面も薄くなるため分離する。
+       */}
+      <div className="cta-backdrop-fade absolute inset-0 -z-10" aria-hidden />
+      <div className="pointer-events-auto relative mx-auto max-w-2xl">
         <Button
           type="button"
           disabled={disabled}

@@ -88,9 +88,21 @@ export function DirectoryListSkeleton() {
 
 export function DirectoryProfileSkeleton() {
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <div className="flex items-center gap-2"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-6 w-32" /><Skeleton className="h-3 w-24" /></div></div>
-      <div className="overflow-hidden rounded-2xl border border-border bg-card"><Skeleton className="aspect-[3/1] w-full rounded-none" /><div className="flex flex-col gap-4 p-5"><div className="-mt-14 flex items-end justify-between"><Skeleton className="h-16 w-16 rounded-full ring-4 ring-card" /><Skeleton className="h-9 w-24" /></div><div className="space-y-2"><Skeleton className="h-6 w-56 max-w-full" /><Skeleton className="h-4 w-20" /></div><div className="grid grid-cols-3 gap-px rounded-xl border border-border p-2"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div><Skeleton className="h-20 w-full" /><div className="flex flex-wrap gap-2"><Skeleton className="h-9 w-32 rounded-xl" /><Skeleton className="h-9 w-24 rounded-xl" /></div><div className="flex gap-2"><Skeleton className="h-9 w-28" /><Skeleton className="h-9 w-24" /></div></div></div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-elevated">
+        <Skeleton className="aspect-[2.7/1] min-h-28 w-full rounded-none" />
+        <div className="flex flex-col gap-5 p-4 sm:p-6">
+          <div className="-mt-14 flex items-end justify-between"><Skeleton className="h-[84px] w-[84px] rounded-full ring-4 ring-card" /><Skeleton className="h-9 w-24" /></div>
+          <div className="-mt-2 space-y-2"><Skeleton className="h-7 w-64 max-w-full" /><Skeleton className="h-4 w-20" /></div>
+          <div className="grid grid-cols-3 gap-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></div>
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <div className="flex flex-wrap gap-2"><Skeleton className="h-10 w-40 rounded-xl" /><Skeleton className="h-10 w-28 rounded-xl" /></div>
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="flex gap-2 border-t border-border pt-4"><Skeleton className="h-9 w-28" /><Skeleton className="h-9 w-24" /></div>
+        </div>
+      </div>
     </div>
   );
 }

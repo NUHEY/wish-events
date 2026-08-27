@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { EventPoster } from "@/components/events/event-poster";
+import { EventLabelRotator, type EventCardLabel } from "@/components/events/event-label-rotator";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
@@ -56,6 +56,11 @@ export async function EventCard({
   const closesAt = event.registration_closes_at ? new Date(event.registration_closes_at).getTime() : null;
   const isDeadlineSoon =
     !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
+  const labels: EventCardLabel[] = [
+    { text: categoryLabel, tone: "category" },
+    ...(isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
+    ...(isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),
+  ];
 
   return (
     <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0">
@@ -78,21 +83,7 @@ export async function EventCard({
             roundedClassName="rounded-none"
             softenBackdrop={false}
           />
-          <div
-            className={cn(
-              "absolute left-2 top-2 flex flex-wrap gap-1",
-              isNew ? "right-12" : "right-2"
-            )}
-          >
-            <Badge variant="secondary" className="bg-card/95 shadow-sm backdrop-blur">{categoryLabel}</Badge>
-            {isDeadlineSoon && <Badge variant="destructive" className="border-0 shadow-sm">{dict.event.deadlineSoonTag}</Badge>}
-          </div>
-          {/* 「新規」は左上のタグ群に混ぜず、右上に独立した帯（リボン）として配置する。 */}
-          {isNew && (
-            <span className="absolute right-0 top-3 inline-flex h-5 items-center rounded-l-full bg-info py-0 pl-2.5 pr-2 text-[10px] font-bold uppercase leading-none tracking-wide text-info-foreground shadow-sm">
-              {dict.event.newTag}
-            </span>
-          )}
+          <EventLabelRotator labels={labels} />
           {event.fee_amount ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
           ) : event.show_free_tag !== false ? (

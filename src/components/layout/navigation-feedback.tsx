@@ -115,8 +115,9 @@ export function NavigationFeedback() {
           </button>
         </div>
       )}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px))] top-[65px] z-[90] overflow-hidden bg-background sm:bottom-0" aria-live="polite" aria-label="移動先を読み込み中">
-        <div className="mx-auto h-full max-w-5xl overflow-hidden px-4 py-4 sm:py-6"><RouteShape pathname={targetPath} /></div>
+      {/* 現在の画面を消さずに残し、次画面の輪郭を半透明で重ねる。遷移が遅くても真っ白にならない。 */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px))] top-[65px] z-[90] overflow-hidden bg-background/74 backdrop-blur-[2px] motion-safe:animate-fade-in sm:bottom-0" aria-live="polite" aria-label="移動先を読み込み中">
+        <div className="mx-auto h-full max-w-5xl overflow-hidden px-4 py-4 opacity-90 sm:py-6"><RouteShape pathname={targetPath} /></div>
       </div>
     </>
   );

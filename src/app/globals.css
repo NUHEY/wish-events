@@ -41,6 +41,16 @@
     --instagram-middle: 337 69% 50%;
     --instagram-end: 236 48% 53%;
     --line-brand: 142 94% 40%;
+    --profile-pop-pink: 344 92% 95%;
+    --profile-pop-pink-foreground: 344 58% 34%;
+    --profile-pop-blue: 203 92% 94%;
+    --profile-pop-blue-foreground: 207 63% 32%;
+    --profile-pop-mint: 154 68% 92%;
+    --profile-pop-mint-foreground: 157 52% 27%;
+    --profile-pop-yellow: 43 96% 91%;
+    --profile-pop-yellow-foreground: 34 70% 29%;
+    --profile-pop-lilac: 264 86% 95%;
+    --profile-pop-lilac-foreground: 263 52% 38%;
 
     /* 下部タブと、その上に置く固定CTAで共有する「安全領域を除いた」実寸。 */
     --mobile-tab-bar-height: 3.5rem;
@@ -95,6 +105,16 @@
     --instagram-middle: 337 69% 58%;
     --instagram-end: 236 65% 68%;
     --line-brand: 142 75% 46%;
+    --profile-pop-pink: 344 32% 19%;
+    --profile-pop-pink-foreground: 344 78% 78%;
+    --profile-pop-blue: 203 31% 19%;
+    --profile-pop-blue-foreground: 203 78% 76%;
+    --profile-pop-mint: 154 28% 18%;
+    --profile-pop-mint-foreground: 154 62% 72%;
+    --profile-pop-yellow: 43 31% 19%;
+    --profile-pop-yellow-foreground: 43 82% 75%;
+    --profile-pop-lilac: 264 28% 20%;
+    --profile-pop-lilac-foreground: 264 73% 80%;
   }
 }
 
@@ -129,6 +149,12 @@
   100% { transform: translateX(110%); }
 }
 
+@keyframes event-label-cycle {
+  0% { opacity: 0; transform: translateY(5px) scale(0.98); }
+  14%, 78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-5px) scale(0.98); }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -157,6 +183,19 @@
     inset: 0;
     background: linear-gradient(100deg, transparent 20%, hsl(var(--card) / 0.72) 50%, transparent 80%);
     animation: skeleton-shimmer 1.35s ease-in-out infinite;
+  }
+  .cta-backdrop-fade {
+    background: linear-gradient(
+      to top,
+      hsl(var(--background)) 0%,
+      hsl(var(--background) / 0.96) 44%,
+      hsl(var(--background) / 0.72) 68%,
+      transparent 100%
+    );
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    backdrop-filter: blur(16px) saturate(1.08);
+    -webkit-mask-image: linear-gradient(to top, #000 0%, #000 48%, rgb(0 0 0 / 0.76) 70%, transparent 100%);
+    mask-image: linear-gradient(to top, #000 0%, #000 48%, rgb(0 0 0 / 0.76) 70%, transparent 100%);
   }
 }
 

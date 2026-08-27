@@ -24,9 +24,8 @@ function TabLink({
   return (
     <Link
       href={href}
-      // 常時見えている3タブを一斉に先読みすると、各動的画面のSupabase取得が
-      // 実際のタップと競合する。専用スケルトンが即時表示されるため先読みは切る。
-      prefetch={false}
+      // 常設3タブはNext.js標準の部分先読みを使い、タップ後の待ち時間を短縮する。
+      // 大量に並ぶイベントカード側は先読みを切ったままなので通信量は増幅しない。
       className={cn(
         "flex h-full flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
@@ -39,8 +38,8 @@ function TabLink({
 }
 
 /**
- * モバイル幅（sm未満）専用の下部固定タブバー。ホーム/イベント一覧/(RAのみ)
- * ダッシュボード/アバターメニューへ常に1タップで移動できるようにすることで、
+ * モバイル幅（sm未満）専用の下部固定タブバー。ホーム/イベント一覧/トークへ
+ * 常に1タップで移動できるようにすることで、
  * ページ間の行き来の体感速度を上げる。sm以上ではヘッダーの通常ナビに戻るため
  * このバー自体を非表示にする。
  */

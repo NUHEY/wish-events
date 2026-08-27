@@ -44,8 +44,13 @@ function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType
 
 type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
 
-/** 言語・国籍・学部・学年などの付随情報チップに共通で使う配色（白黒+アクセントに統一）。 */
-const INFO_CHIP_STYLE = "border-border bg-secondary text-secondary-foreground";
+const INFO_CHIP_STYLES = [
+  "border-transparent bg-[hsl(var(--profile-pop-blue))] text-[hsl(var(--profile-pop-blue-foreground))]",
+  "border-transparent bg-[hsl(var(--profile-pop-mint))] text-[hsl(var(--profile-pop-mint-foreground))]",
+  "border-transparent bg-[hsl(var(--profile-pop-yellow))] text-[hsl(var(--profile-pop-yellow-foreground))]",
+  "border-transparent bg-[hsl(var(--profile-pop-lilac))] text-[hsl(var(--profile-pop-lilac-foreground))]",
+  "border-transparent bg-[hsl(var(--profile-pop-pink))] text-[hsl(var(--profile-pop-pink-foreground))]",
+] as const;
 
 function countryFlag(code: string) {
   const normalized = code.toUpperCase();
@@ -57,8 +62,8 @@ function ChipList({ codes, list, locale, kind }: { codes: string[] | null; list:
   if (!codes || codes.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
-      {codes.map((code) => (
-        <span key={code} className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm", INFO_CHIP_STYLE)}>
+      {codes.map((code, index) => (
+        <span key={code} className={cn("inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold", INFO_CHIP_STYLES[index % INFO_CHIP_STYLES.length])}>
           {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon className="h-3.5 w-3.5" />}
           {findLabel(list, code, locale)}
         </span>
@@ -129,7 +134,6 @@ export default async function DirectoryProfilePage({
     .filter((hex): hex is string => Boolean(hex))
     .slice(0, 5);
   const accentBackgroundGradient = buildAccentBackgroundGradient(accentHexList);
-  const hasCoverBanner = Boolean(target.profile_cover_url || accentHexList.length > 0);
 
   let pastEvents: PastEvent[] = [];
   if (isSelf) {
@@ -146,8 +150,10 @@ export default async function DirectoryProfilePage({
   const roomText = formatRoomNumber(target.floor_number, target.room_number);
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <div className="flex items-center gap-2">
+    <div className="relative mx-auto flex max-w-2xl flex-col gap-4">
+      <div className="pointer-events-none absolute -left-20 top-24 -z-10 h-52 w-52 rounded-full bg-[hsl(var(--profile-pop-pink))] opacity-70 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-20 top-80 -z-10 h-56 w-56 rounded-full bg-[hsl(var(--profile-pop-blue))] opacity-60 blur-3xl" aria-hidden />
+      <div className="flex items-center gap-2 px-1">
         <BackButton fallbackHref="/directory" className="-ml-2" />
         <div className="min-w-0">
           <h1 className="break-words text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
@@ -160,22 +166,17 @@ export default async function DirectoryProfilePage({
       </div>
 
       <Card
-        className="overflow-hidden rounded-2xl"
-        style={
-          !target.profile_cover_url && accentBackgroundGradient
-            ? { backgroundImage: accentBackgroundGradient }
-            : undefined
-        }
+        className="overflow-hidden rounded-2xl border-white/60 bg-card/95 shadow-elevated dark:border-border"
       >
-        {/*
-          カバー（背景）表示: 写真が設定されていればそれを幅いっぱいに広く表示し、
-          未設定でもアクセントカラーが選ばれていればその帯を表示する。どちらも
-          ない場合は何も表示しない（マイページ背景画像はご要望により未設定時は
-          「画像なし」のままでよい仕様）。
-          下に十分な余白(pb-8)を取り、アイコン・名前の行と重ならないようにする。
-        */}
-        {target.profile_cover_url ? (
-          <div className="relative aspect-[3/1] w-full bg-secondary">
+        {/* 写真または選択済みアクセントを優先し、未設定時だけ淡い装飾背景を使う。 */}
+        <div
+          className="relative aspect-[2.7/1] min-h-28 w-full overflow-hidden bg-[linear-gradient(135deg,hsl(var(--profile-pop-blue)),hsl(var(--profile-pop-lilac))_48%,hsl(var(--profile-pop-pink)))]"
+          style={!target.profile_cover_url && accentBackgroundGradient ? { backgroundImage: accentBackgroundGradient } : undefined}
+        >
+          <span className="absolute -left-8 -top-12 h-32 w-32 rounded-full border-[18px] border-white/25" aria-hidden />
+          <span className="absolute -bottom-14 right-5 h-32 w-32 rounded-full bg-white/20" aria-hidden />
+          <span className="absolute right-10 top-5 h-3 w-3 rotate-12 rounded-sm bg-white/55" aria-hidden />
+          {target.profile_cover_url && (
             <Image
               src={target.profile_cover_url}
               alt=""
@@ -184,30 +185,18 @@ export default async function DirectoryProfilePage({
               className="object-cover"
               priority
             />
-          </div>
-        ) : (
-          accentHexList.length > 0 && (
-            <div
-              className="h-16 w-full"
-              style={{
-                background:
-                  accentHexList.length === 1
-                    ? accentHexList[0]
-                    : `linear-gradient(90deg, ${accentHexList.join(", ")})`,
-              }}
-            />
-          )
-        )}
-        <CardContent className="flex flex-col gap-4 p-5">
-          <div className={cn("flex items-end justify-between gap-3", hasCoverBanner && "-mt-10")}>
-            <div className={cn("shrink-0 rounded-full", hasCoverBanner && "ring-[3px] ring-card")}>
-              <AvatarRing role={target.role} eventCount={stats.event_count} size={64}>
+          )}
+        </div>
+        <CardContent className="flex flex-col gap-5 p-4 sm:p-6">
+          <div className="-mt-14 flex items-end justify-between gap-3">
+            <div className="shrink-0 rounded-full bg-card p-1.5 shadow-card">
+              <AvatarRing role={target.role} eventCount={stats.event_count} size={72}>
                 <Image
                   src={target.avatar_url || DEFAULT_AVATAR_IMAGE_URL}
                   alt=""
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 shrink-0 rounded-full object-cover"
+                  width={72}
+                  height={72}
+                  className="h-[72px] w-[72px] shrink-0 rounded-full object-cover"
                 />
               </AvatarRing>
             </div>
@@ -228,39 +217,42 @@ export default async function DirectoryProfilePage({
             )}
           </div>
 
-          <div className="-mt-1 min-w-0">
+          <div className="-mt-2 min-w-0 px-0.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 break-words text-xl font-bold leading-tight [overflow-wrap:anywhere]">{target.full_name ?? dict.common.notRegistered}</h2>
+              <h2 className="min-w-0 max-w-full break-words text-2xl font-black leading-tight tracking-tight [overflow-wrap:anywhere]">{target.full_name ?? dict.common.notRegistered}</h2>
               {target.role === "ra" && <Badge variant="default">RA</Badge>}
               {isSelf && <span className="text-xs font-normal text-muted-foreground">({dict.raRooms.you})</span>}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">{roomText}</p>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border py-2.5 text-center">
-            <div>
-              <p className="text-lg font-bold">{stats.event_count}</p>
-              <p className="text-[11px] text-muted-foreground">{dict.directory.statsEvents}</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-[hsl(var(--profile-pop-pink))] px-2 py-3 text-[hsl(var(--profile-pop-pink-foreground))]">
+              <span className="text-base" aria-hidden>🎉</span>
+              <p className="text-xl font-black leading-tight">{stats.event_count}</p>
+              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsEvents}</p>
             </div>
-            <div>
-              <p className="text-lg font-bold">{earnedBadges.length}</p>
-              <p className="text-[11px] text-muted-foreground">{dict.directory.statsBadges}</p>
+            <div className="rounded-xl bg-[hsl(var(--profile-pop-yellow))] px-2 py-3 text-[hsl(var(--profile-pop-yellow-foreground))]">
+              <span className="text-base" aria-hidden>🏅</span>
+              <p className="text-xl font-black leading-tight">{earnedBadges.length}</p>
+              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsBadges}</p>
             </div>
-            <div>
-              <p className="text-lg font-bold">{stats.friend_count}</p>
-              <p className="text-[11px] text-muted-foreground">{dict.directory.statsFriends}</p>
+            <div className="rounded-xl bg-[hsl(var(--profile-pop-blue))] px-2 py-3 text-[hsl(var(--profile-pop-blue-foreground))]">
+              <span className="text-base" aria-hidden>🤝</span>
+              <p className="text-xl font-black leading-tight">{stats.friend_count}</p>
+              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsFriends}</p>
             </div>
           </div>
 
           {isSelf && <IncomingFriendRequests requests={incomingRequests} />}
 
           {earnedBadges.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 rounded-xl bg-[hsl(var(--profile-pop-yellow))]/60 p-3">
               {earnedBadges.map((b, i) => (
                 <span
                   key={i}
                   title={b.description ?? b.label}
-                  className="flex items-center gap-1 rounded-full border border-border bg-secondary/50 px-2.5 py-1 text-xs font-medium"
+                  className="flex items-center gap-1 rounded-full border border-white/70 bg-card/80 px-2.5 py-1 text-xs font-bold shadow-sm dark:border-border"
                 >
                   <span className="text-sm leading-none">{b.icon}</span>
                   {b.label}
@@ -269,9 +261,9 @@ export default async function DirectoryProfilePage({
             </div>
           )}
 
-          <div className="grid gap-1.5">
-            <p className="text-xs text-muted-foreground">{dict.profile.selfIntroLabel}</p>
-            <p className="whitespace-pre-wrap text-sm">
+          <div className="grid gap-2 rounded-xl bg-[hsl(var(--profile-pop-lilac))] p-4 text-[hsl(var(--profile-pop-lilac-foreground))]">
+            <p className="text-xs font-bold opacity-75">✦ {dict.profile.selfIntroLabel}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {target.self_intro || (
                 <span className="text-muted-foreground">{dict.directory.noSelfIntro}</span>
               )}
@@ -281,13 +273,13 @@ export default async function DirectoryProfilePage({
           {(target.faculty || target.grade_level) && (
             <div className="flex flex-wrap gap-2 text-sm">
               {target.faculty && (
-                <span className={cn("inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-semibold shadow-sm", INFO_CHIP_STYLE)}>
+                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-transparent bg-[hsl(var(--profile-pop-mint))] px-3 py-2 font-bold text-[hsl(var(--profile-pop-mint-foreground))]">
                   <GraduationCap className="h-4 w-4" />
                   {dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}
                 </span>
               )}
               {target.grade_level && (
-                <span className={cn("inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-semibold shadow-sm", INFO_CHIP_STYLE)}>
+                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-transparent bg-[hsl(var(--profile-pop-pink))] px-3 py-2 font-bold text-[hsl(var(--profile-pop-pink-foreground))]">
                   <Sparkles className="h-4 w-4" />
                   {dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}
                 </span>
@@ -296,28 +288,28 @@ export default async function DirectoryProfilePage({
           )}
 
           {target.languages && target.languages.length > 0 && (
-            <div className="grid gap-1.5">
-              <p className="text-xs text-muted-foreground">{dict.profile.languagesLabel}</p>
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
+              <p className="text-xs font-bold text-muted-foreground">{dict.profile.languagesLabel}</p>
               <ChipList codes={target.languages} list={LANGUAGES} locale={locale} kind="language" />
             </div>
           )}
 
           {target.nationalities && target.nationalities.length > 0 && (
-            <div className="grid gap-1.5">
-              <p className="text-xs text-muted-foreground">{dict.profile.nationalitiesLabel}</p>
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
+              <p className="text-xs font-bold text-muted-foreground">{dict.profile.nationalitiesLabel}</p>
               <ChipList codes={target.nationalities} list={COUNTRIES} locale={locale} kind="country" />
             </div>
           )}
 
           {target.lived_countries && target.lived_countries.length > 0 && (
-            <div className="grid gap-1.5">
-              <p className="text-xs text-muted-foreground">{dict.profile.livedCountriesLabel}</p>
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
+              <p className="text-xs font-bold text-muted-foreground">{dict.profile.livedCountriesLabel}</p>
               <ChipList codes={target.lived_countries} list={COUNTRIES} locale={locale} kind="country" />
             </div>
           )}
 
           {(target.instagram_handle || target.x_handle || target.line_id) && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[hsl(var(--profile-pop-blue))]/55 p-3">
               {target.instagram_handle && (
                 <a
                   href={`https://instagram.com/${target.instagram_handle}`}
@@ -361,7 +353,7 @@ export default async function DirectoryProfilePage({
           )}
 
           {canViewFull && (
-            <div className="grid gap-1.5 border-t border-border pt-4">
+            <div className="grid gap-2 rounded-xl border border-border/60 bg-secondary/30 p-4">
               <p className="text-xs text-muted-foreground">{dict.profile.lineLabel}</p>
               {lineQrSignedUrl ? (
                 <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
@@ -376,12 +368,12 @@ export default async function DirectoryProfilePage({
           )}
 
           {isSelf && pastEvents.length > 0 && (
-            <div className="grid gap-2 border-t border-border pt-4">
-              <p className="text-xs text-muted-foreground">{dict.directory.pastEventsTitle}</p>
+            <div className="grid gap-2 rounded-xl bg-[hsl(var(--profile-pop-mint))]/55 p-3">
+              <p className="text-xs font-bold text-[hsl(var(--profile-pop-mint-foreground))]">{dict.directory.pastEventsTitle}</p>
               <div className="grid grid-cols-4 gap-2">
                 {pastEvents.map((event) => (
                   <Link key={event.id} href={`/events/${event.id}`} className="group flex flex-col gap-1">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-white/70 dark:ring-border">
                       {event.poster_url ? (
                         <Image
                           src={event.poster_url}
@@ -405,7 +397,7 @@ export default async function DirectoryProfilePage({
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
             {isSelf && (
               <Link
                 href="/profile/edit"

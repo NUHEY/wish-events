@@ -23,7 +23,6 @@ function NavLink({
   return (
     <Link
       href={href}
-      prefetch={false}
       className={cn(
         "rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
         isActive
