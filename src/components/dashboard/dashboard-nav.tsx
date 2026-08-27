@@ -31,7 +31,7 @@ const groups = [
       { href: "/dashboard/new-event", icon: CalendarPlus, title: "イベント作成", desc: "イベントを追加" },
       { href: "/dashboard/new-announcement", icon: Megaphone, title: "お知らせ作成", desc: "お知らせを投稿" },
       { href: "/dashboard/notifications", icon: Send, title: "通知を送信", desc: "対象を絞って配信" },
-      { href: "/dashboard/event-options", icon: Settings2, title: "会場・対象", desc: "選択肢を管理" },
+      { href: "/dashboard/event-options", icon: Settings2, title: "イベント設定", desc: "表示・会場・対象" },
     ],
   },
   {
@@ -52,7 +52,7 @@ const groups = [
     label: "設定",
     items: [
       { href: "/dashboard/features", icon: Beaker, title: "機能の公開設定", desc: "ベータ機能" },
-      { href: "/dashboard/settings", icon: Share2, title: "共有・OGP設定", desc: "サイトの共有表示" },
+      { href: "/dashboard/settings", icon: Share2, title: "サイト設定", desc: "共有・操作・アニメーション" },
     ],
   },
 ] as const;

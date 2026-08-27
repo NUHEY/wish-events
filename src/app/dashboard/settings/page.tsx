@@ -11,7 +11,7 @@ export default async function SiteSettingsPage() {
       <div>
         <h2 className="text-xl font-bold">サイト設定</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          URLを共有した際に表示されるタイトル・説明・プレビュー画像（OGP）を管理します。
+          共有時の表示、サイトカラー、画面遷移、タッチ操作、固定ボタンを管理します。
         </p>
       </div>
       <SiteSettingsForm
@@ -23,6 +23,14 @@ export default async function SiteSettingsPage() {
         initialAccentColor={settings.accentColor}
         initialColorfulStatus={settings.colorfulStatus}
         defaultAccentColor={SITE_DEFAULT_ACCENT_COLOR}
+        navigationLockEnabled={settings.navigationLockEnabled}
+        navigationStallSeconds={settings.navigationStallSeconds}
+        mobileTouchFeedbackEnabled={settings.mobileTouchFeedbackEnabled}
+        mobileTouchFeedbackMs={settings.mobileTouchFeedbackMs}
+        motionLevel={settings.motionLevel}
+        ctaBlurPx={settings.ctaBlurPx}
+        ctaFadeHeightPx={settings.ctaFadeHeightPx}
+        ctaTransitionMs={settings.ctaTransitionMs}
       />
     </div>
   );

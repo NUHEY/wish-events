@@ -8,11 +8,13 @@ import {
   removeAudienceOption,
 } from "@/actions/event-options";
 import { getLocale, getDictionary } from "@/lib/i18n";
+import { getSiteSettings } from "@/lib/site-settings";
+import { EventDisplaySettingsForm } from "@/components/dashboard/event-display-settings-form";
 
 export default async function EventOptionsPage() {
   await requireRa();
   const supabase = await createClient();
-  const locale = await getLocale();
+  const [locale, settings] = await Promise.all([getLocale(), getSiteSettings()]);
   const dict = getDictionary(locale);
 
   const [{ data: locations }, { data: audiences }] = await Promise.all([
@@ -21,11 +23,15 @@ export default async function EventOptionsPage() {
   ]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold">{dict.eventOptions.title}</h1>
-        <p className="text-sm text-muted-foreground">{dict.eventOptions.subtitle}</p>
+        <h1 className="text-2xl font-bold">イベント設定</h1>
+        <p className="text-sm text-muted-foreground">イベント一覧の表示と、作成フォームで使う選択肢を管理します。</p>
       </div>
+
+      <EventDisplaySettingsForm settings={settings} />
+
+      <div className="border-t border-border pt-6"><h2 className="text-lg font-bold">作成フォームの選択肢</h2><p className="mt-1 text-sm text-muted-foreground">会場と対象者の候補を管理します。</p></div>
 
       <EventOptionManager
         title={dict.eventOptions.locationTitle}

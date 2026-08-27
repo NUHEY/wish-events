@@ -7,6 +7,7 @@ import { EventLabelRotator, type EventCardLabel } from "@/components/events/even
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { cn, formatEventDateTime } from "@/lib/utils";
 import { getLocale, getDictionary } from "@/lib/i18n";
+import { getSiteSettings } from "@/lib/site-settings";
 import type { EventCardData } from "@/types/database";
 
 export type EventCardFriend = { id: string; full_name: string | null; avatar_url: string | null };
@@ -44,26 +45,30 @@ export async function EventCard({
   variant?: "default" | "muted";
   /** 指定すると、カード左下に参加している友達のアイコンを重ねて表示する。 */
   attendingFriends?: EventCardFriend[];
-  /** 左上ラベルの切り替え間隔。省略時は読みやすさを優先した3秒。 */
+  /** ラベルの切り替え間隔。省略時はRAのイベント表示設定を使う。 */
   labelRotationMs?: number;
 }) {
-  const locale = await getLocale();
+  const [locale, settings] = await Promise.all([getLocale(), getSiteSettings()]);
   const dict = getDictionary(locale);
   const title = (locale === "en" && event.title_en) || event.title;
   const categoryLabel = dict.categories[event.category] ?? event.category;
   const isMuted = variant === "muted";
 
-  // 自動タグ: 登録から1週間以内は「新規」、締切が近い（48時間以内）場合は「締切間近」。
+  // 自動タグの判定期間・表示有無はRAの「イベント設定」から変更できる。
   const now = Date.now();
-  const isNew = !isMuted && now - new Date(event.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
+  const isNew = !isMuted && now - new Date(event.created_at).getTime() < settings.eventNewDays * 24 * 60 * 60 * 1000;
   const closesAt = event.registration_closes_at ? new Date(event.registration_closes_at).getTime() : null;
   const isDeadlineSoon =
-    !isMuted && closesAt != null && closesAt > now && closesAt - now < 48 * 60 * 60 * 1000;
+    !isMuted && closesAt != null && closesAt > now && closesAt - now < settings.eventDeadlineHours * 60 * 60 * 1000;
   const labels: EventCardLabel[] = [
-    { text: categoryLabel, tone: "category" },
-    ...(isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
-    ...(isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),
+    ...(settings.eventShowCategoryLabel ? [{ text: categoryLabel, tone: "category" as const }] : []),
+    ...(settings.eventShowDeadlineLabel && isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
+    ...(settings.eventShowNewLabel && isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),
   ];
+  const titleLineClass = settings.eventTitleLines === 1 ? "line-clamp-1 h-5 sm:h-6" : settings.eventTitleLines === 3 ? "line-clamp-3 h-[60px] sm:h-[66px]" : "line-clamp-2 h-10 sm:h-11";
+  const contentHeightClass = settings.eventCardDensity === "comfortable"
+    ? settings.eventTitleLines === 3 ? "h-[120px] sm:h-[138px]" : "h-[100px] sm:h-[118px]"
+    : settings.eventTitleLines === 3 ? "h-[108px] sm:h-[126px]" : "h-[84px] sm:h-[102px]";
 
   return (
     <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0">
@@ -86,10 +91,19 @@ export async function EventCard({
             roundedClassName="rounded-none"
             softenBackdrop={false}
           />
-          <EventLabelRotator labels={labels} intervalMs={labelRotationMs} />
-          {event.fee_amount ? (
+          <EventLabelRotator
+            labels={labels}
+            seed={event.id}
+            enabled={settings.eventLabelRotationEnabled}
+            intervalMs={labelRotationMs ?? settings.eventLabelDurationMs}
+            jitterPercent={settings.eventLabelJitterPercent}
+            shuffle={settings.eventLabelShuffleEnabled}
+            limit={settings.eventLabelLimit}
+            position={settings.eventLabelPosition}
+          />
+          {event.fee_amount && settings.eventShowFeeLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
-          ) : event.show_free_tag !== false ? (
+          ) : !event.fee_amount && event.show_free_tag !== false && settings.eventShowFreeLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-success px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
@@ -100,10 +114,11 @@ export async function EventCard({
          * タイトルでも余白として同じ高さを保つ。長いタイトルは line-clamp によって
          * 2行目末尾に「…」で省略される。
          */}
-        <CardContent className={cn("flex h-[84px] flex-col justify-between gap-1.5 p-2.5 sm:h-[102px] sm:gap-2 sm:p-3.5", isMuted && "p-2.5 sm:p-3")}>
+        <CardContent className={cn("flex flex-col justify-between gap-1.5 p-2.5 sm:gap-2 sm:p-3.5", contentHeightClass, isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "line-clamp-2 h-10 text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:h-11 sm:text-base",
+              "text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:text-base",
+              titleLineClass,
               isMuted && "text-sm"
             )}
           >

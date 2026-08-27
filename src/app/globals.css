@@ -144,10 +144,14 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes event-label-cycle {
-  0% { opacity: 0; transform: translateY(5px) scale(0.98); }
-  14%, 78% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-5px) scale(0.98); }
+@keyframes event-label-track {
+  to { transform: translateY(var(--event-label-travel)); }
+}
+
+@keyframes event-label-pulse {
+  0% { opacity: 0; transform: translateY(var(--motion-distance)); }
+  14%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(calc(-1 * var(--motion-distance))); }
 }
 
 @layer base {
@@ -167,6 +171,14 @@
   .text-balance {
     text-wrap: balance;
   }
+  .event-label-track--rotating {
+    animation: event-label-track var(--event-label-cycle) steps(var(--event-label-count), end) infinite;
+    animation-delay: var(--event-label-delay);
+  }
+  .event-label-window--rotating {
+    animation: event-label-pulse var(--event-label-slot) ease-in-out infinite;
+    animation-delay: var(--event-label-delay);
+  }
   .cta-backdrop-fade {
     background: linear-gradient(
       to top,
@@ -175,10 +187,13 @@
       hsl(var(--background) / 0.72) 68%,
       transparent 100%
     );
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    backdrop-filter: blur(16px) saturate(1.08);
+    -webkit-backdrop-filter: blur(var(--cta-blur)) saturate(1.08);
+    backdrop-filter: blur(var(--cta-blur)) saturate(1.08);
     -webkit-mask-image: linear-gradient(to top, #000 0%, #000 48%, rgb(0 0 0 / 0.76) 70%, transparent 100%);
     mask-image: linear-gradient(to top, #000 0%, #000 48%, rgb(0 0 0 / 0.76) 70%, transparent 100%);
+  }
+  .floating-registration-cta {
+    transition-duration: var(--cta-transition-duration);
   }
 }
 
@@ -208,11 +223,15 @@
   button:not(:disabled):active,
   a[href]:active,
   [role="button"]:active {
-    animation: mobile-touch-feedback 180ms ease-out;
+    animation: var(--mobile-touch-animation) var(--mobile-touch-duration) ease-out;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .event-label-track--rotating,
+  .event-label-window--rotating {
+    animation: none;
+  }
   button:not(:disabled):active,
   a[href]:active,
   [role="button"]:active {

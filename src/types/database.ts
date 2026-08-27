@@ -394,6 +394,40 @@ export interface TeamMemberRow {
   avatar_url: string | null;
 }
 
+export interface SiteSettingsRow {
+  id: number;
+  og_title: string | null;
+  og_description: string | null;
+  og_image_url: string | null;
+  accent_color: string | null;
+  colorful_status: boolean;
+  event_label_rotation_enabled: boolean;
+  event_label_duration_ms: number;
+  event_label_jitter_percent: number;
+  event_label_shuffle_enabled: boolean;
+  event_label_limit: number;
+  event_label_position: "top-left" | "top-right";
+  event_show_category_label: boolean;
+  event_show_new_label: boolean;
+  event_show_deadline_label: boolean;
+  event_show_fee_label: boolean;
+  event_show_free_label: boolean;
+  event_new_days: number;
+  event_deadline_hours: number;
+  event_title_lines: 1 | 2 | 3;
+  event_card_density: "compact" | "comfortable";
+  navigation_lock_enabled: boolean;
+  navigation_stall_seconds: number;
+  mobile_touch_feedback_enabled: boolean;
+  mobile_touch_feedback_ms: number;
+  motion_level: "subtle" | "standard" | "lively";
+  cta_blur_px: number;
+  cta_fade_height_px: number;
+  cta_transition_ms: number;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -401,6 +435,12 @@ export interface Database {
         Row: UserRow;
         Insert: Partial<UserRow> & { id: string; email: string };
         Update: Partial<UserRow>;
+        Relationships: [];
+      };
+      site_settings: {
+        Row: SiteSettingsRow;
+        Insert: Partial<SiteSettingsRow> & { id?: number };
+        Update: Partial<SiteSettingsRow>;
         Relationships: [];
       };
       events: {

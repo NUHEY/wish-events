@@ -82,7 +82,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <LocaleProvider locale={locale}>
             <ConfirmDialogProvider>
-              <NavigationFeedback />
+              <NavigationFeedback lockEnabled={siteSettings.navigationLockEnabled} stallSeconds={siteSettings.navigationStallSeconds} />
               <Header />
               <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
               <AppToaster />

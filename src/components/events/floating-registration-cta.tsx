@@ -53,7 +53,7 @@ export function FloatingRegistrationCta({
   return (
     <div
       aria-hidden={!visible}
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 isolate px-4 pb-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] pt-16 [transform:translateZ(0)] transition-[opacity,transform] duration-200 ease-out sm:pb-4 sm:pt-12 ${
+      className={`floating-registration-cta pointer-events-none fixed inset-x-0 bottom-0 z-30 isolate px-4 pb-[calc(var(--mobile-tab-bar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] pt-[var(--cta-fade-height)] [transform:translateZ(0)] transition-[opacity,transform] ease-out sm:pb-4 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >

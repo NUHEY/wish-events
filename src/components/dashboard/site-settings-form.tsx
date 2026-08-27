@@ -8,6 +8,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { updateSiteSettings, uploadOgImage, removeOgImage, type SiteSettingsActionResult } from "@/actions/site-settings";
 
@@ -29,6 +30,14 @@ export function SiteSettingsForm({
   initialAccentColor,
   initialColorfulStatus,
   defaultAccentColor,
+  navigationLockEnabled,
+  navigationStallSeconds,
+  mobileTouchFeedbackEnabled,
+  mobileTouchFeedbackMs,
+  motionLevel,
+  ctaBlurPx,
+  ctaFadeHeightPx,
+  ctaTransitionMs,
 }: {
   initialTitle: string;
   initialDescription: string;
@@ -38,6 +47,14 @@ export function SiteSettingsForm({
   initialAccentColor: string;
   initialColorfulStatus: boolean;
   defaultAccentColor: string;
+  navigationLockEnabled: boolean;
+  navigationStallSeconds: number;
+  mobileTouchFeedbackEnabled: boolean;
+  mobileTouchFeedbackMs: number;
+  motionLevel: "subtle" | "standard" | "lively";
+  ctaBlurPx: number;
+  ctaFadeHeightPx: number;
+  ctaTransitionMs: number;
 }) {
   const [accentColor, setAccentColor] = useState(initialAccentColor);
   const [state, formAction] = useFormState<SiteSettingsActionResult, FormData>(updateSiteSettings, {});
@@ -179,6 +196,34 @@ export function SiteSettingsForm({
               <span className="mt-0.5 block text-xs text-muted-foreground">オフの場合、これらも白黒+アクセントカラーで統一表示されます（既定はオフ）。</span>
             </span>
           </label>
+        </div>
+        <div className="border-t border-border pt-4">
+          <h2 className="font-bold">画面遷移とタッチ操作</h2>
+          <p className="mt-1 text-sm text-muted-foreground">高速な連打による二重遷移を防ぎ、待ち時間とスマホの反応を調整します。</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="flex items-start gap-2 rounded-xl bg-secondary/35 p-3 text-sm">
+              <input type="checkbox" name="navigation_lock_enabled" defaultChecked={navigationLockEnabled} className="mt-0.5 h-4 w-4 rounded border-border" />
+              <span><span className="font-medium">遷移中は次の画面操作を止める</span><span className="mt-0.5 block text-xs text-muted-foreground">白画面や競合を防ぐため、通常はオンを推奨します。</span></span>
+            </label>
+            <label className="flex items-start gap-2 rounded-xl bg-secondary/35 p-3 text-sm">
+              <input type="checkbox" name="mobile_touch_feedback_enabled" defaultChecked={mobileTouchFeedbackEnabled} className="mt-0.5 h-4 w-4 rounded border-border" />
+              <span><span className="font-medium">スマホのタップ反応を表示</span><span className="mt-0.5 block text-xs text-muted-foreground">PCのホバーではなく短いアニメーションで反応します。</span></span>
+            </label>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-1.5"><Label htmlFor="navigation_stall_seconds">遅延案内を出すまで</Label><Input id="navigation_stall_seconds" name="navigation_stall_seconds" type="number" min={3} max={30} defaultValue={navigationStallSeconds} className="h-11 rounded-xl" /><p className="text-xs text-muted-foreground">3〜30秒</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="mobile_touch_feedback_ms">タップ反応の長さ</Label><Input id="mobile_touch_feedback_ms" name="mobile_touch_feedback_ms" type="number" min={80} max={500} step={10} defaultValue={mobileTouchFeedbackMs} className="h-11 rounded-xl" /><p className="text-xs text-muted-foreground">80〜500ms</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="motion_level">動きの大きさ</Label><Select id="motion_level" name="motion_level" defaultValue={motionLevel}><option value="subtle">控えめ</option><option value="standard">標準</option><option value="lively">活発</option></Select><p className="text-xs text-muted-foreground">端末の「動きを減らす」が最優先です。</p></div>
+          </div>
+        </div>
+        <div className="border-t border-border pt-4">
+          <h2 className="font-bold">イベント申込の固定ボタン</h2>
+          <p className="mt-1 text-sm text-muted-foreground">本文との境界を自然にぼかす範囲と、出入りの速さを調整します。</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-1.5"><Label htmlFor="cta_blur_px">背景のぼかし</Label><Input id="cta_blur_px" name="cta_blur_px" type="number" min={0} max={32} defaultValue={ctaBlurPx} className="h-11 rounded-xl" /><p className="text-xs text-muted-foreground">0〜32px</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="cta_fade_height_px">フェードの高さ</Label><Input id="cta_fade_height_px" name="cta_fade_height_px" type="number" min={32} max={128} defaultValue={ctaFadeHeightPx} className="h-11 rounded-xl" /><p className="text-xs text-muted-foreground">32〜128px</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="cta_transition_ms">出入りの時間</Label><Input id="cta_transition_ms" name="cta_transition_ms" type="number" min={100} max={600} step={10} defaultValue={ctaTransitionMs} className="h-11 rounded-xl" /><p className="text-xs text-muted-foreground">100〜600ms</p></div>
+          </div>
         </div>
         {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
         <div>
