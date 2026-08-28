@@ -73,6 +73,8 @@ export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnH
     "unit_room_sessions",
     "ra_question_box",
     "ra_link_hub",
+    "wish_knowledge",
+    "resident_events",
   ]);
   if (input.length !== allowed.size || input.some((item) => !FEATURE_FLAG_KEYS.includes(item.key) || !allowed.has(item.key))) {
     return { error: "ツール設定が不足しています。" };

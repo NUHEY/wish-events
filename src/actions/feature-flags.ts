@@ -18,5 +18,9 @@ export async function updateFeatureFlag(key: FeatureFlagKey, state: FeatureFlagS
   revalidatePath("/tools");
   revalidatePath("/questions");
   revalidatePath("/links");
+  revalidatePath("/wisdom");
+  revalidatePath("/events");
+  revalidatePath("/events/community");
+  revalidatePath("/");
   return { success: true };
 }

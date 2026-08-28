@@ -49,6 +49,11 @@ export async function cancelRegistration(eventId: string) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
+  const { data: event } = await supabase.from("events").select("created_by, creator_type").eq("id", eventId).maybeSingle();
+  if (event?.creator_type === "resident" && event.created_by === profile.id) {
+    return { error: "主催者は参加をキャンセルできません。募集自体を取り下げる場合は「自分が作った募集」から削除してください。" };
+  }
+
   const { error } = await supabase
     .from("registrations")
     .delete()

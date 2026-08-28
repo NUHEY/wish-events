@@ -1,4 +1,5 @@
-import { ChevronRight, Search } from "lucide-react";
+import Link from "next/link";
+import { CalendarPlus, ChevronRight, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
@@ -10,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { EVENT_CARD_COLUMNS } from "@/lib/utils";
 import type { EventCategory, EventCardData } from "@/types/database";
+import { getFeatureFlagState } from "@/lib/feature-flags";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function EventsPage({
   searchParams,
@@ -31,6 +34,7 @@ export default async function EventsPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const now = new Date().toISOString();
+  const residentEventState = await getFeatureFlagState("resident_events");
 
   const isDateKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
   const isMonthKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}$/.test(v);
@@ -113,9 +117,9 @@ export default async function EventsPage({
       <PendingSurveyBanner userId={profile.id} />
 
       <div className="flex flex-col gap-3.5 border-b border-border pb-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1>
-          <p className="text-sm text-muted-foreground">{dict.home.subtitle}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1.5"><h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1><p className="text-sm text-muted-foreground">{dict.home.subtitle}</p></div>
+          {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">イベントを募集</span><span className="sm:hidden">募集</span></Link>}
         </div>
         <form className="relative max-w-md">
           {category && <input type="hidden" name="category" value={category} />}

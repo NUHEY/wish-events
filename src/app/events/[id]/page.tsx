@@ -85,7 +85,7 @@ export default async function EventDetailPage({
 
   const [{ data: teamRows }, { data: commentUsers }, { data: likes }] = await Promise.all([
     event.member_ids?.length
-      ? supabase.from("users").select("id, full_name, avatar_url").in("id", event.member_ids)
+      ? supabase.rpc("event_community_profiles_v3", { profile_ids: event.member_ids })
       : Promise.resolve({ data: [] as TeamMemberRow[] }),
     commentUserIds.length
       ? supabase.rpc("event_community_profiles_v3", { profile_ids: commentUserIds })
@@ -158,6 +158,7 @@ export default async function EventDetailPage({
               {dict.event.pinnedBadge}
             </Badge>
           )}
+          {event.creator_type === "resident" && <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">寮生企画</Badge>}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <h1 className="text-2xl font-bold sm:pr-2">{title}</h1>

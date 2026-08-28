@@ -61,6 +61,7 @@ export async function EventCard({
   const isDeadlineSoon =
     !isMuted && closesAt != null && closesAt > now && closesAt - now < settings.eventDeadlineHours * 60 * 60 * 1000;
   const labels: EventCardLabel[] = [
+    ...(event.creator_type === "resident" ? [{ text: "寮生企画", tone: "category" as const }] : []),
     ...(settings.eventShowCategoryLabel ? [{ text: categoryLabel, tone: "category" as const }] : []),
     ...(settings.eventShowDeadlineLabel && isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
     ...(settings.eventShowNewLabel && isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),

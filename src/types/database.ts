@@ -127,6 +127,8 @@ export interface EventRow {
   description_en: string | null;
   poster_url: string | null;
   thumbnail_url: string | null;
+  creator_type: "ra" | "resident";
+  moderation_status: "published" | "pending" | "rejected";
   location: string | null;
   location_en: string | null;
   target_audience: string | null;
@@ -170,6 +172,7 @@ export type EventCardData = Pick<
   | "category"
   | "poster_url"
   | "thumbnail_url"
+  | "creator_type"
   | "fee_amount"
   | "show_free_tag"
   | "event_date"
@@ -204,6 +207,27 @@ export interface FeatureFlagRow {
   show_on_home: boolean;
   home_position: number;
   updated_by: string | null;
+  updated_at: string;
+}
+
+export interface WishQuestionRow {
+  id: string;
+  asked_by: string;
+  title: string;
+  body: string;
+  category: "life" | "rules" | "study" | "food" | "local" | "other";
+  accepted_answer_id: string | null;
+  answer_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WishAnswerRow {
+  id: string;
+  question_id: string;
+  answered_by: string;
+  body: string;
+  created_at: string;
   updated_at: string;
 }
 
@@ -476,6 +500,18 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<EventRow>;
+        Relationships: [];
+      };
+      wish_questions: {
+        Row: WishQuestionRow;
+        Insert: Partial<WishQuestionRow> & { asked_by: string; title: string; body: string };
+        Update: Partial<WishQuestionRow>;
+        Relationships: [];
+      };
+      wish_answers: {
+        Row: WishAnswerRow;
+        Insert: Partial<WishAnswerRow> & { question_id: string; answered_by: string; body: string };
+        Update: Partial<WishAnswerRow>;
         Relationships: [];
       };
       registrations: {
@@ -801,6 +837,14 @@ export interface Database {
       };
       set_lets_chat_completed: {
         Args: { p_booking_id: string; p_completed: boolean };
+        Returns: undefined;
+      };
+      create_resident_event: {
+        Args: { p_title: string; p_description: string; p_location: string; p_event_date: string; p_capacity: number | null; p_image_url: string };
+        Returns: string;
+      };
+      accept_wish_answer: {
+        Args: { p_question_id: string; p_answer_id: string };
         Returns: undefined;
       };
     };

@@ -56,6 +56,7 @@ export default async function DashboardPage() {
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-2">
                       <Badge variant="secondary">{categoryLabel}</Badge>
+                      {event.creator_type === "resident" && <Badge variant="outline">寮生企画</Badge>}
                       {event.requires_registration && (
                         <span className="text-xs text-muted-foreground">
                           {dict.dashboard.registrationCount} {count}/{event.capacity}

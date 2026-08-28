@@ -9,7 +9,9 @@ export type FeatureFlagKey =
   | "lets_chat_booking"
   | "unit_room_sessions"
   | "ra_question_box"
-  | "ra_link_hub";
+  | "ra_link_hub"
+  | "wish_knowledge"
+  | "resident_events";
 
 export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = [
   "friend_dm",
@@ -19,6 +21,8 @@ export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = [
   "unit_room_sessions",
   "ra_question_box",
   "ra_link_hub",
+  "wish_knowledge",
+  "resident_events",
 ];
 
 /** 設定行が未作成・移行未実行・取得失敗なら、安全側の「非公開」に倒す。 */

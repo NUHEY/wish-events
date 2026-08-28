@@ -16,6 +16,8 @@ const featureCopy: Record<FeatureFlagKey, { title: string; description: string }
   unit_room_sessions: { title: "URS 日程調整", description: "ルームメイトとRAが全員集まれる時間を探せます。" },
   ra_question_box: { title: "RAへの質問箱", description: "質問への回答と、全寮生向けQ&Aの公開ができます。" },
   ra_link_hub: { title: "RAリンクページ", description: "外泊届やSNSなど、よく使うリンクをまとめて公開できます。" },
+  wish_knowledge: { title: "WISH知恵袋", description: "寮生同士で質問し、経験や知識を回答として共有できます。" },
+  resident_events: { title: "寮生イベント募集", description: "ご飯や外出などの小さな集まりを寮生自身が募集できます。" },
 };
 
 export function FeatureFlagManager({ featureKey, initialState }: { featureKey: FeatureFlagKey; initialState: FeatureFlagState }) {

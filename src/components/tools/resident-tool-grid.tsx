@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, ChevronRight, Link2, MessageCircleQuestion, MessagesSquare, UsersRound } from "lucide-react";
+import { CalendarClock, CalendarPlus, ChevronRight, Lightbulb, Link2, MessageCircleQuestion, MessagesSquare, UsersRound } from "lucide-react";
 import { BetaBadge } from "@/components/tools/beta-badge";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ export const RESIDENT_TOOLS: {
   { key: "unit_room_sessions", createHref: "/tools/schedule/new?mode=urs", residentHref: "/tools#active-schedules", title: "URS 日程調整", description: "ルームメイトとRAの日程ページを作成", residentDescription: "RAが公開したページに予定を入力", icon: UsersRound, accent: "from-violet-500/15 to-fuchsia-400/5 text-violet-700 dark:text-violet-300", raCreates: true },
   { key: "ra_question_box", createHref: "/questions", residentHref: "/questions", title: "RAへの質問箱", description: "質問を送り、公開Q&Aを確認", icon: MessageCircleQuestion, accent: "from-amber-500/15 to-yellow-400/5 text-amber-700 dark:text-amber-300", raCreates: false },
   { key: "ra_link_hub", createHref: "/links", residentHref: "/links", title: "RAリンクページ", description: "外泊届・SNS・よく使うページ", icon: Link2, accent: "from-emerald-500/15 to-teal-400/5 text-emerald-700 dark:text-emerald-300", raCreates: false },
+  { key: "wish_knowledge", createHref: "/wisdom", residentHref: "/wisdom", title: "WISH知恵袋", description: "寮生活の疑問をみんなで解決", icon: Lightbulb, accent: "from-amber-400/15 to-lime-300/5 text-amber-700 dark:text-amber-300", raCreates: false },
+  { key: "resident_events", createHref: "/events/community", residentHref: "/events/community", title: "イベントを募集", description: "ご飯や外出の仲間を気軽に募集", icon: CalendarPlus, accent: "from-pink-400/15 to-violet-300/5 text-pink-700 dark:text-pink-300", raCreates: false },
 ];
 
 export function ResidentToolGrid({
