@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">2階生活窓口</title>
+  <defs>
+    <linearGradient id="bg" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DDF4F0"/>
+      <stop offset="1" stop-color="#B8DCD8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="244" r="152" fill="#FFFFFF" opacity=".88"/>
+  <path d="M154 248 256 164l102 84v104a24 24 0 0 1-24 24H178a24 24 0 0 1-24-24V248Z" fill="#2B6D69"/>
+  <path d="m132 252 124-104 124 104" fill="none" stroke="#174C49" stroke-linecap="round" stroke-linejoin="round" stroke-width="28"/>
+  <rect x="196" y="260" width="120" height="76" rx="18" fill="#E9F8F5"/>
+  <path d="M212 294h88M256 266v56" stroke="#2B6D69" stroke-linecap="round" stroke-width="14"/>
+  <circle cx="354" cy="154" r="54" fill="#F2B84B"/>
+  <path d="M354 132v4m0 22v28" stroke="#FFFFFF" stroke-linecap="round" stroke-width="16"/>
+</svg>

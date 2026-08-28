@@ -7,6 +7,11 @@ const DISPLAY_NAMES: Record<InstitutionalAccountKind, string> = {
   university_staff: "早稲田大学学生生活課",
 };
 
+const AVATAR_URLS: Record<InstitutionalAccountKind, string> = {
+  service_desk: "/images/institutional/service-desk.svg",
+  university_staff: "/images/institutional/university-staff.svg",
+};
+
 export function institutionalAccountEmail(kind: InstitutionalAccountKind) {
   return kind === "service_desk"
     ? process.env.INSTITUTIONAL_SERVICE_DESK_EMAIL?.trim()
@@ -15,6 +20,10 @@ export function institutionalAccountEmail(kind: InstitutionalAccountKind) {
 
 export function institutionalDisplayName(kind: InstitutionalAccountKind) {
   return DISPLAY_NAMES[kind];
+}
+
+export function institutionalAvatarUrl(kind: InstitutionalAccountKind) {
+  return AVATAR_URLS[kind];
 }
 
 /** Vercelに登録したメールと一致するユーザーだけを関係者アカウントとして扱う。 */

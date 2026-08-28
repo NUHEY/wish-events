@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useTransition, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ function GoogleIcon() {
 }
 
 function LoginContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const supabase = createClient();
@@ -72,8 +73,31 @@ function LoginContent() {
     if (institutionalPending || !selectedAccount || !institutionalPassword) return;
     const kind = selectedAccount;
     startInstitutionalTransition(async () => {
-      const result = await signInInstitutionalAccount(kind, institutionalPassword);
-      if (result?.error) setInstitutionalError(result.error);
+      try {
+        const result = await signInInstitutionalAccount(kind, institutionalPassword);
+        if (!result.success) {
+          setInstitutionalError(result.error);
+          return;
+        }
+
+        // Server Action側で発行されたセッションをブラウザにも明示的に反映してから
+        // 遷移する。Cookieの反映より先に画面遷移が走り、ログイン画面へ戻る競合を防ぐ。
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.accessToken,
+          refresh_token: result.refreshToken,
+        });
+        if (sessionError) {
+          setInstitutionalError(dict.login.authFailed);
+          return;
+        }
+
+        setInstitutionalPassword("");
+        router.replace("/");
+        router.refresh();
+      } catch (error) {
+        console.error("Institutional sign-in failed", error);
+        setInstitutionalError(dict.login.authFailed);
+      }
     });
   }
 

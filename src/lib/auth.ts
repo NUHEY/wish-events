@@ -2,12 +2,21 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRow } from "@/types/database";
-import { institutionalAccountKindForEmail, institutionalDisplayName } from "@/lib/institutional-accounts";
+import {
+  institutionalAccountKindForEmail,
+  institutionalAvatarUrl,
+  institutionalDisplayName,
+} from "@/lib/institutional-accounts";
 
 function withInstitutionalIdentity(profile: UserRow, email: string | null | undefined): UserRow {
   const accountKind = institutionalAccountKindForEmail(email);
   if (!accountKind) return profile;
-  return { ...profile, account_kind: accountKind, full_name: institutionalDisplayName(accountKind) };
+  return {
+    ...profile,
+    account_kind: accountKind,
+    full_name: institutionalDisplayName(accountKind),
+    avatar_url: institutionalAvatarUrl(accountKind),
+  };
 }
 
 /**

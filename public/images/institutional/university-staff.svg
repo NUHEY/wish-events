@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">早稲田大学学生生活課</title>
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6E7EB"/>
+      <stop offset="1" stop-color="#E8C9D2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="244" r="152" fill="#FFFFFF" opacity=".9"/>
+  <path d="m256 138 132 64-132 64-132-64 132-64Z" fill="#8E2944"/>
+  <path d="M170 238v100m57-72v94m58-94v94m57-122v100" stroke="#6E1F36" stroke-linecap="round" stroke-width="24"/>
+  <path d="M140 372h232" stroke="#6E1F36" stroke-linecap="round" stroke-width="28"/>
+  <path d="M388 206v92" stroke="#D79A3F" stroke-linecap="round" stroke-width="14"/>
+  <circle cx="388" cy="314" r="18" fill="#D79A3F"/>
+</svg>
