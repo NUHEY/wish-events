@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
+import { institutionalAccountKindForEmail } from "@/lib/institutional-accounts";
 
 const WASEDA_EMAIL_REGEX = /^[^@]+@([a-zA-Z0-9-]+\.)*waseda\.jp$/i;
 
@@ -111,7 +112,8 @@ async function updateSessionInner(request: NextRequest) {
         .eq("id", user.id)
         .maybeSingle();
 
-      const isInstitutional = !!profile && profile.account_kind !== "resident";
+      const isInstitutional = institutionalAccountKindForEmail(user.email) !== null
+        || (!!profile && profile.account_kind !== "resident");
 
       // 退寮設定済みのユーザーは、退寮ページ以外どこにアクセスしても
       // 退寮ページへ戻す（floor_number/room_numberがNULLになっているため

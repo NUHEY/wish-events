@@ -2,6 +2,13 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRow } from "@/types/database";
+import { institutionalAccountKindForEmail, institutionalDisplayName } from "@/lib/institutional-accounts";
+
+function withInstitutionalIdentity(profile: UserRow, email: string | null | undefined): UserRow {
+  const accountKind = institutionalAccountKindForEmail(email);
+  if (!accountKind) return profile;
+  return { ...profile, account_kind: accountKind, full_name: institutionalDisplayName(accountKind) };
+}
 
 /**
  * ログイン中のユーザーの public.users 行を取得する。未ログインなら /login へ。
@@ -53,7 +60,7 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile) return profile;
+  if (profile) return withInstitutionalIdentity(profile, user.email);
 
   // 通信エラーやレート制限を「行が存在しない」と取り違えてinsertすると、
   // 高負荷時に問い合わせがさらに増える。正常に0件だった場合だけ復旧処理へ進む。
@@ -73,7 +80,7 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
     .select("*")
     .single();
 
-  if (created) return created;
+  if (created) return withInstitutionalIdentity(created, user.email);
 
   // 競合で既に作成されていた場合はここで拾えるはず
   const { data: retried, error: retryError } = await supabase
@@ -82,7 +89,7 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (retried) return retried;
+  if (retried) return withInstitutionalIdentity(retried, user.email);
 
   console.error("Failed to provision public.users row", { insertError, retryError });
   throw new Error("プロフィールを準備できませんでした。しばらくしてからもう一度お試しください。");

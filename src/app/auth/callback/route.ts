@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { postLoginPath } from "@/lib/auth";
+import { institutionalAccountKindForEmail } from "@/lib/institutional-accounts";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -28,7 +29,8 @@ export async function GET(request: Request) {
             .maybeSingle();
 
           // プロフィール未登録なら/profile/setupへ（middlewareでも二重にガードされる）
-          const profileComplete = (!!profile && profile.account_kind !== "resident") || (
+          const profileComplete = institutionalAccountKindForEmail(user.email) !== null
+            || (!!profile && profile.account_kind !== "resident") || (
             !!profile?.full_name &&
             !!profile?.student_id &&
             !!profile?.wish_entry_month &&

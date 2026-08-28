@@ -5,6 +5,7 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { getFriendDmThreads } from "@/actions/direct-messages";
+import { institutionalAccountKindForEmail, institutionalDisplayName } from "@/lib/institutional-accounts";
 
 export async function Header() {
   const supabase = await createClient();
@@ -21,6 +22,9 @@ export async function Header() {
     .maybeSingle();
 
   if (!profile) return null;
+  const configuredAccountKind = institutionalAccountKindForEmail(user.email);
+  const accountKind = configuredAccountKind ?? profile.account_kind;
+  const fullName = configuredAccountKind ? institutionalDisplayName(configuredAccountKind) : profile.full_name;
   const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
   const eventIds = (registrations ?? []).map((registration) => registration.event_id);
   const [{ data: reads }, { data: messages }, friendThreads, { data: hasUnreadNotifications }] = await Promise.all([
@@ -60,9 +64,9 @@ export async function Header() {
             <NotificationBell hasUnread={!!hasUnreadNotifications} />
             <UserMenu
               userId={user.id}
-              fullName={profile.full_name}
+              fullName={fullName}
               role={profile.role}
-              accountKind={profile.account_kind}
+              accountKind={accountKind}
               floorNumber={profile.floor_number}
               roomNumber={profile.room_number}
               avatarUrl={profile.avatar_url}

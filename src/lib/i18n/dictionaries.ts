@@ -58,6 +58,10 @@ const ja = {
     universityStaffLogin: "早稲田大学学生生活課",
     institutionalNote: "共有端末では、利用後に必ずログアウトしてください。",
     institutionalLoggingIn: "ログイン中…",
+    institutionalPasswordLabel: "パスワード",
+    institutionalPasswordPlaceholder: "パスワードを入力",
+    institutionalSubmit: "ログイン",
+    institutionalCancel: "戻る",
   },
   home: {
     title: "イベント一覧",
@@ -747,6 +751,10 @@ const en: typeof ja = {
     universityStaffLogin: "Waseda University Student Affairs Division",
     institutionalNote: "Always sign out after using a shared device.",
     institutionalLoggingIn: "Signing in…",
+    institutionalPasswordLabel: "Password",
+    institutionalPasswordPlaceholder: "Enter password",
+    institutionalSubmit: "Sign in",
+    institutionalCancel: "Back",
   },
   home: {
     title: "Events",

@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState, useTransition } from "react";
+import { Suspense, useState, useTransition, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -40,6 +41,7 @@ function LoginContent() {
   const dict = useDict();
   const [institutionalError, setInstitutionalError] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<InstitutionalAccountKind | null>(null);
+  const [institutionalPassword, setInstitutionalPassword] = useState("");
   const [institutionalPending, startInstitutionalTransition] = useTransition();
 
   async function handleLogin() {
@@ -58,14 +60,20 @@ function LoginContent() {
     });
   }
 
-  function handleInstitutionalLogin(kind: InstitutionalAccountKind) {
+  function selectInstitutionalAccount(kind: InstitutionalAccountKind) {
     if (institutionalPending) return;
     setInstitutionalError(null);
     setSelectedAccount(kind);
+    setInstitutionalPassword("");
+  }
+
+  function handleInstitutionalLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (institutionalPending || !selectedAccount || !institutionalPassword) return;
+    const kind = selectedAccount;
     startInstitutionalTransition(async () => {
-      const result = await signInInstitutionalAccount(kind);
+      const result = await signInInstitutionalAccount(kind, institutionalPassword);
       if (result?.error) setInstitutionalError(result.error);
-      setSelectedAccount(null);
     });
   }
 
@@ -112,25 +120,60 @@ function LoginContent() {
           <p className="text-center text-xs text-muted-foreground">{dict.login.domainNote}</p>
           <div className="border-t border-border pt-4 text-center">
             <p className="text-xs leading-relaxed text-muted-foreground">{dict.login.institutionalPrompt}</p>
-            <p className="mt-2 text-sm leading-relaxed">
+            <p className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm leading-relaxed">
               <button
                 type="button"
                 disabled={institutionalPending}
-                onClick={() => handleInstitutionalLogin("service_desk")}
+                onClick={() => selectInstitutionalAccount("service_desk")}
                 className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
               >
-                {selectedAccount === "service_desk" ? dict.login.institutionalLoggingIn : dict.login.serviceDeskLogin}
+                {dict.login.serviceDeskLogin}
               </button>
-              <span className="mx-2 text-muted-foreground" aria-hidden>・</span>
               <button
                 type="button"
                 disabled={institutionalPending}
-                onClick={() => handleInstitutionalLogin("university_staff")}
+                onClick={() => selectInstitutionalAccount("university_staff")}
                 className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
               >
-                {selectedAccount === "university_staff" ? dict.login.institutionalLoggingIn : dict.login.universityStaffLogin}
+                {dict.login.universityStaffLogin}
               </button>
             </p>
+            {selectedAccount && (
+              <form onSubmit={handleInstitutionalLogin} className="mt-3 rounded-xl border border-border bg-secondary/35 p-3 text-left">
+                <p className="mb-2 text-center text-xs font-semibold text-foreground">
+                  {selectedAccount === "service_desk" ? dict.login.serviceDeskLogin : dict.login.universityStaffLogin}
+                </p>
+                <label htmlFor="institutional-password" className="text-xs font-medium text-muted-foreground">
+                  {dict.login.institutionalPasswordLabel}
+                </label>
+                <Input
+                  id="institutional-password"
+                  type="password"
+                  value={institutionalPassword}
+                  onChange={(event) => setInstitutionalPassword(event.target.value)}
+                  placeholder={dict.login.institutionalPasswordPlaceholder}
+                  autoComplete="current-password"
+                  autoFocus
+                  maxLength={256}
+                  disabled={institutionalPending}
+                  className="mt-1.5 h-11 rounded-xl bg-background text-base"
+                />
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1"
+                    disabled={institutionalPending}
+                    onClick={() => { setSelectedAccount(null); setInstitutionalPassword(""); setInstitutionalError(null); }}
+                  >
+                    {dict.login.institutionalCancel}
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={institutionalPending || !institutionalPassword}>
+                    {institutionalPending ? dict.login.institutionalLoggingIn : dict.login.institutionalSubmit}
+                  </Button>
+                </div>
+              </form>
+            )}
             <p className="mt-2 text-[11px] text-muted-foreground">{dict.login.institutionalNote}</p>
           </div>
         </CardContent>
