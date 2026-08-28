@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   BarChart3,
@@ -41,6 +41,7 @@ import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
+import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 
 type Message = {
   id: string;
@@ -131,6 +132,7 @@ export function EventTalk({
   hasMoreOlder = false,
   isRa,
   appOrigin = "",
+  initialLastReadAt = null,
 }: {
   eventId: string;
   currentUserId: string;
@@ -141,6 +143,7 @@ export function EventTalk({
   hasMoreOlder?: boolean;
   isRa: boolean;
   appOrigin?: string;
+  initialLastReadAt?: string | null;
 }) {
   const [liveMessages, setLiveMessages] = useState<Message[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
@@ -158,7 +161,6 @@ export function EventTalk({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const tapTimerRef = useRef<Map<string, number>>(new Map());
   const heartTimerRef = useRef<number | null>(null);
-  const initialScrollDone = useRef(false);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
   // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
   // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
@@ -179,17 +181,18 @@ export function EventTalk({
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
     [liveMessages, optimisticMessages]
   );
+  const { firstUnreadId, unreadMarkerRef } = useInitialChatPosition(
+    messages,
+    currentUserId,
+    initialLastReadAt,
+    scrollRef,
+    endRef
+  );
   const pollsById = useMemo(() => new Map(pollsState.map((poll) => [poll.id, poll])), [pollsState]);
 
   function scrollToBottom(smooth = true) {
     endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
   }
-
-  useEffect(() => {
-    if (initialScrollDone.current) return;
-    initialScrollDone.current = true;
-    scrollToBottom(false);
-  }, []);
 
   // 他の人からの新着メッセージだけを取得して直接末尾に追加する。
   // 以前はrouter.refresh()でページ全体（全履歴・全プロフィール・署名URL等）を
@@ -395,12 +398,19 @@ export function EventTalk({
           }`;
 
           return (
-            <div
-              key={message.id}
-              className={`group flex max-w-[91%] gap-2 ${mine ? "self-end" : "self-start"} ${
-                isGroupStart && index !== 0 ? "mt-3" : ""
-              }`}
-            >
+            <Fragment key={message.id}>
+              {message.id === firstUnreadId && (
+                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label="ここから未読">
+                  <span className="h-px flex-1 bg-destructive/35" />
+                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">ここから未読</span>
+                  <span className="h-px flex-1 bg-destructive/35" />
+                </div>
+              )}
+              <div
+                className={`group flex max-w-[91%] gap-2 ${mine ? "self-end" : "self-start"} ${
+                  isGroupStart && index !== 0 ? "mt-3" : ""
+                }`}
+              >
               {!mine &&
                 (isGroupEnd ? (
                   <Link href={`/directory/${message.sender_id}`} className="mt-1 self-end shrink-0">
@@ -554,7 +564,8 @@ export function EventTalk({
                   </>
                 )}
               </div>
-            </div>
+              </div>
+            </Fragment>
           );
         })}
         <div ref={endRef} />
@@ -568,6 +579,14 @@ export function EventTalk({
         onOptimisticRevert={revertOptimisticMessages}
         externalError={error}
         onDismissExternalError={() => setError(null)}
+        onFocus={() => {
+          scrollToBottom(false);
+          window.visualViewport?.addEventListener(
+            "resize",
+            () => window.requestAnimationFrame(() => scrollToBottom(false)),
+            { once: true }
+          );
+        }}
       />
       {lightboxUrl && <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </div>
@@ -583,6 +602,7 @@ function Composer({
   onOptimisticRevert,
   externalError,
   onDismissExternalError,
+  onFocus,
 }: {
   eventId: string;
   currentUserId: string;
@@ -592,6 +612,7 @@ function Composer({
   onOptimisticRevert: (tempIds: string[]) => void;
   externalError: string | null;
   onDismissExternalError: () => void;
+  onFocus: () => void;
 }) {
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -753,7 +774,7 @@ function Composer({
   }
 
   return (
-    <div className="border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+    <div className="max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:max-h-none sm:overflow-visible">
       {isRa && (
         <div className="mb-2">
           <button
@@ -881,6 +902,7 @@ function Composer({
           rows={1}
           maxLength={2000}
           placeholder={uploading ? "画像を送信中…" : "メッセージ..."}
+          onFocus={onFocus}
           className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
         />
         <Button

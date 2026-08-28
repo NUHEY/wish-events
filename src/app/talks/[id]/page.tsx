@@ -7,6 +7,7 @@ import { EventTalk } from "@/components/community/event-talk";
 import { TalkParticipantsButton } from "@/components/community/talk-participants-button";
 import { BackButton } from "@/components/layout/back-button";
 import { getInitialEventMessages, getEventTalkParticipants, getRequestOrigin } from "@/actions/event-community";
+import { MobileChatViewport } from "@/components/community/mobile-chat-viewport";
 
 const INITIAL_MESSAGE_LIMIT = 50;
 
@@ -34,8 +35,8 @@ export default async function EventTalkPage({
   if (profile.role !== "ra" && !registration) redirect(`/events/${id}`);
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl">
-      <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
+    <MobileChatViewport>
+      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
         <BackButton fallbackHref="/talks" className="-ml-2 !p-2" />
         {event.poster_url && (
           <Image src={event.poster_url} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
@@ -49,7 +50,7 @@ export default async function EventTalkPage({
         {participants.length > 0 && <TalkParticipantsButton participants={participants} total={participantTotal} />}
       </div>
       {joined === "1" && (
-        <div className="mx-3 mt-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+        <div className="mx-3 mt-3 shrink-0 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
           イベントへの参加ありがとうございます。最新情報はこのトークでお知らせします。
         </div>
       )}
@@ -63,7 +64,8 @@ export default async function EventTalkPage({
         hasMoreOlder={initial.hasMore}
         isRa={profile.role === "ra"}
         appOrigin={appOrigin}
+        initialLastReadAt={initial.lastReadAt}
       />
-    </div>
+    </MobileChatViewport>
   );
 }

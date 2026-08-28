@@ -66,15 +66,36 @@ export async function getFriendDmThreads() {
 export async function getInitialDirectMessages(friendId: string, limit = 50) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
+  const { data: readState } = await supabase
+    .from("direct_message_reads")
+    .select("last_read_at")
+    .eq("user_id", profile.id)
+    .eq("other_user_id", friendId)
+    .maybeSingle();
+
+  let effectiveLimit = limit;
+  if (readState?.last_read_at) {
+    const { count } = await supabase
+      .from("direct_messages")
+      .select("id", { count: "exact", head: true })
+      .or(pairFilter(profile.id, friendId))
+      .gt("created_at", readState.last_read_at);
+    effectiveLimit = Math.min(250, Math.max(limit, (count ?? 0) + 1));
+  }
+
   const { data: rows } = await supabase
     .from("direct_messages")
     .select("*")
     .or(pairFilter(profile.id, friendId))
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(effectiveLimit);
   const ordered = (rows ?? []).slice().reverse();
   const hydrated = await hydrateDirectMessages(supabase, ordered);
-  return { messages: hydrated, hasMore: (rows ?? []).length === limit };
+  return {
+    messages: hydrated,
+    hasMore: (rows ?? []).length === effectiveLimit,
+    lastReadAt: readState?.last_read_at ?? null,
+  };
 }
 
 /** DMスレッドの「さらに読み込む」用。 */

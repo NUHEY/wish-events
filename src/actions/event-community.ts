@@ -133,8 +133,28 @@ async function fetchEventMessagesPage(
  * 直近limit件だけを返す（デフォルト50件）。
  */
 export async function getInitialEventMessages(eventId: string, limit = 50) {
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
-  return fetchEventMessagesPage(supabase, eventId, { limit });
+  const { data: readState } = await supabase
+    .from("event_chat_reads")
+    .select("last_read_at")
+    .eq("event_id", eventId)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+
+  let effectiveLimit = limit;
+  if (readState?.last_read_at) {
+    const { count } = await supabase
+      .from("event_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .gt("created_at", readState.last_read_at);
+    // 通常は直近50件のまま。未読が多い時だけ最初の未読を含む件数まで広げる。
+    effectiveLimit = Math.min(250, Math.max(limit, (count ?? 0) + 1));
+  }
+
+  const page = await fetchEventMessagesPage(supabase, eventId, { limit: effectiveLimit });
+  return { ...page, lastReadAt: readState?.last_read_at ?? null };
 }
 
 /** トーク画面の「さらに読み込む」用に、指定時刻より前のメッセージをまとめて取得する。 */

@@ -48,6 +48,7 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
   const dict = useDict();
   const pathname = usePathname();
   const router = useRouter();
+  const isTalkRoom = pathname.startsWith("/talks/");
   // state更新を待たず同じフレーム内の連打も止めるため、共有refで3タブを排他制御する。
   const lockedRef = useRef(false);
 
@@ -67,6 +68,11 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
     if (signalNavigation(href)) router.push(href);
     else lockedRef.current = false;
   }
+
+  // 個別トークは入力欄まで含む全画面UIのため、下部タブを重ねない。
+  // 戻る導線はトークヘッダー内に常時表示される。
+  if (isTalkRoom) return null;
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 isolate border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md [transform:translateZ(0)] sm:hidden"

@@ -9,6 +9,7 @@ import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { BackButton } from "@/components/layout/back-button";
 import { getFeatureFlagState } from "@/lib/feature-flags";
+import { MobileChatViewport } from "@/components/community/mobile-chat-viewport";
 
 const INITIAL_MESSAGE_LIMIT = 50;
 
@@ -37,8 +38,8 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
   if (relation.status !== "friends") notFound();
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-background sm:static sm:mx-auto sm:flex sm:h-[calc(100dvh-8rem)] sm:max-w-2xl">
-      <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
+    <MobileChatViewport>
+      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
         <BackButton fallbackHref="/talks?tab=friends" className="-ml-2 !p-2" />
         <AvatarRing role={friend.role} size={40}>
           <Image src={friend.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
@@ -56,7 +57,8 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
         friendRole={friend.role}
         messages={initial.messages}
         hasMoreOlder={initial.hasMore}
+        initialLastReadAt={initial.lastReadAt}
       />
-    </div>
+    </MobileChatViewport>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import Image from "next/image";
@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { dmPairFolder } from "@/lib/utils";
 import { compressImageFile } from "@/lib/image-compress";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 
 type DirectMessage = {
   id: string;
@@ -74,6 +75,7 @@ export function FriendDm({
   friendRole,
   messages,
   hasMoreOlder = false,
+  initialLastReadAt = null,
 }: {
   friendId: string;
   currentUserId: string;
@@ -82,6 +84,7 @@ export function FriendDm({
   friendRole: string;
   messages: DirectMessage[];
   hasMoreOlder?: boolean;
+  initialLastReadAt?: string | null;
 }) {
   const [liveMessages, setLiveMessages] = useState<DirectMessage[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<DirectMessage[]>([]);
@@ -95,7 +98,6 @@ export function FriendDm({
   const [stagedImages, setStagedImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const initialScrollDone = useRef(false);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
   // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
   // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
@@ -115,16 +117,17 @@ export function FriendDm({
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
     [liveMessages, optimisticMessages]
   );
+  const { firstUnreadId, unreadMarkerRef } = useInitialChatPosition(
+    messages,
+    currentUserId,
+    initialLastReadAt,
+    scrollRef,
+    endRef
+  );
 
   function scrollToBottom(smooth = true) {
     endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
   }
-
-  useEffect(() => {
-    if (initialScrollDone.current) return;
-    initialScrollDone.current = true;
-    scrollToBottom(false);
-  }, []);
 
   // 相手からの新着メッセージだけをリアルタイムで差分取得する。
   useEffect(() => {
@@ -332,12 +335,19 @@ export function FriendDm({
           }`;
 
           return (
-            <div
-              key={message.id}
-              className={`group flex max-w-[85%] gap-2 ${mine ? "self-end" : "self-start"} ${
-                isGroupStart && index !== 0 ? "mt-3" : ""
-              }`}
-            >
+            <Fragment key={message.id}>
+              {message.id === firstUnreadId && (
+                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label="ここから未読">
+                  <span className="h-px flex-1 bg-destructive/35" />
+                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">ここから未読</span>
+                  <span className="h-px flex-1 bg-destructive/35" />
+                </div>
+              )}
+              <div
+                className={`group flex max-w-[85%] gap-2 ${mine ? "self-end" : "self-start"} ${
+                  isGroupStart && index !== 0 ? "mt-3" : ""
+                }`}
+              >
               {!mine &&
                 (isGroupEnd ? (
                   <span className="mt-1 self-end shrink-0">
@@ -385,13 +395,14 @@ export function FriendDm({
 
                 {isGroupEnd && <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}><span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span></div>}
               </div>
-            </div>
+              </div>
+            </Fragment>
           );
         })}
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+      <div className="max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:max-h-none sm:overflow-visible">
         {stagedImages.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {stagedImages.map((item) => (
@@ -438,6 +449,14 @@ export function FriendDm({
             rows={1}
             maxLength={2000}
             placeholder={uploading ? "画像を送信中…" : "メッセージ..."}
+            onFocus={() => {
+              scrollToBottom(false);
+              window.visualViewport?.addEventListener(
+                "resize",
+                () => window.requestAnimationFrame(() => scrollToBottom(false)),
+                { once: true }
+              );
+            }}
             className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
           />
           <Button
