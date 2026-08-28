@@ -23,7 +23,6 @@ export type SiteSettings = {
   eventShowDeadlineLabel: boolean;
   eventShowFeeLabel: boolean;
   eventShowFreeLabel: boolean;
-  eventNewDays: number;
   eventDeadlineHours: number;
   eventTitleLines: 1 | 2 | 3;
   eventCardDensity: "compact" | "comfortable";
@@ -75,7 +74,6 @@ export const SITE_SETTINGS_DEFAULTS: SiteSettings = {
   eventShowDeadlineLabel: true,
   eventShowFeeLabel: true,
   eventShowFreeLabel: true,
-  eventNewDays: 7,
   eventDeadlineHours: 48,
   eventTitleLines: 2,
   eventCardDensity: "compact",
@@ -143,7 +141,6 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       eventShowDeadlineLabel: booleanSetting(row.event_show_deadline_label, SITE_SETTINGS_DEFAULTS.eventShowDeadlineLabel),
       eventShowFeeLabel: booleanSetting(row.event_show_fee_label, SITE_SETTINGS_DEFAULTS.eventShowFeeLabel),
       eventShowFreeLabel: booleanSetting(row.event_show_free_label, SITE_SETTINGS_DEFAULTS.eventShowFreeLabel),
-      eventNewDays: numberSetting(row.event_new_days, SITE_SETTINGS_DEFAULTS.eventNewDays, 1, 30),
       eventDeadlineHours: numberSetting(row.event_deadline_hours, SITE_SETTINGS_DEFAULTS.eventDeadlineHours, 1, 168),
       eventTitleLines: numberSetting(row.event_title_lines, SITE_SETTINGS_DEFAULTS.eventTitleLines, 1, 3) as 1 | 2 | 3,
       eventCardDensity: row.event_card_density === "comfortable" ? "comfortable" : "compact",

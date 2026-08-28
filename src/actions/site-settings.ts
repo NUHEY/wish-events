@@ -93,7 +93,6 @@ export async function updateEventDisplaySettings(
       event_show_deadline_label: formData.get("event_show_deadline_label") === "on",
       event_show_fee_label: formData.get("event_show_fee_label") === "on",
       event_show_free_label: formData.get("event_show_free_label") === "on",
-      event_new_days: intFromForm(formData, "event_new_days", 1, 30, 7),
       event_deadline_hours: intFromForm(formData, "event_deadline_hours", 1, 168, 48),
       event_title_lines: intFromForm(formData, "event_title_lines", 1, 3, 2) as 1 | 2 | 3,
       event_card_density: densityRaw === "comfortable" ? "comfortable" : "compact",

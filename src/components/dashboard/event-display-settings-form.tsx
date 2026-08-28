@@ -68,13 +68,12 @@ export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings 
           <h3 className="text-sm font-bold">表示する情報</h3>
           <div className="grid gap-2 sm:grid-cols-2">
             <CheckSetting name="event_show_category_label" label="カテゴリ" checked={settings.eventShowCategoryLabel} />
-            <CheckSetting name="event_show_new_label" label="NEWラベル" checked={settings.eventShowNewLabel} />
+            <CheckSetting name="event_show_new_label" label="NEWラベル" note="公開開始から24時間以内のイベントに表示します。" checked={settings.eventShowNewLabel} />
             <CheckSetting name="event_show_deadline_label" label="締切間近ラベル" checked={settings.eventShowDeadlineLabel} />
             <CheckSetting name="event_show_fee_label" label="参加費" checked={settings.eventShowFeeLabel} />
             <CheckSetting name="event_show_free_label" label="無料ラベル" checked={settings.eventShowFreeLabel} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <NumberSetting name="event_new_days" label="NEWとみなす期間" note="イベント作成日時からの日数です。" value={settings.eventNewDays} min={1} max={30} suffix="日" />
             <NumberSetting name="event_deadline_hours" label="締切間近とみなす時間" note="申込締切までの残り時間です。" value={settings.eventDeadlineHours} min={1} max={168} suffix="時間" />
           </div>
         </section>

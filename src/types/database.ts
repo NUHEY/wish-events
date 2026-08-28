@@ -178,6 +178,7 @@ export type EventCardData = Pick<
   | "fee_amount"
   | "show_free_tag"
   | "event_date"
+  | "publish_at"
   | "created_at"
   | "registration_closes_at"
 >;

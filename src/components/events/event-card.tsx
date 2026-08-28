@@ -55,9 +55,11 @@ export async function EventCard({
   const isMuted = variant === "muted";
   const isResidentEvent = event.creator_type === "resident";
 
-  // 自動タグの判定期間・表示有無はRAの「イベント設定」から変更できる。
+  // NEWは「イベントが寮生に公開されてから24時間」に固定する。
+  // 予約公開はpublish_at、即時公開（publish_at未設定）はcreated_atを公開開始として扱う。
   const now = Date.now();
-  const isNew = !isMuted && now - new Date(event.created_at).getTime() < settings.eventNewDays * 24 * 60 * 60 * 1000;
+  const publishedAt = new Date(event.publish_at ?? event.created_at).getTime();
+  const isNew = !isMuted && publishedAt <= now && now - publishedAt < 24 * 60 * 60 * 1000;
   const closesAt = event.registration_closes_at ? new Date(event.registration_closes_at).getTime() : null;
   const isDeadlineSoon =
     !isMuted && closesAt != null && closesAt > now && closesAt - now < settings.eventDeadlineHours * 60 * 60 * 1000;

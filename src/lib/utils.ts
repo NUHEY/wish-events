@@ -59,7 +59,7 @@ export function buildAccentBackgroundGradient(hexList: string[], alpha = 0.07): 
  * 一覧では使わない列の転送・シリアライズを省き、表示速度を改善する。
  */
 export const EVENT_CARD_COLUMNS =
-  "id, title, title_en, category, poster_url, thumbnail_url, creator_type, fee_amount, show_free_tag, event_date, created_at, registration_closes_at" as const;
+  "id, title, title_en, category, poster_url, thumbnail_url, creator_type, fee_amount, show_free_tag, event_date, publish_at, created_at, registration_closes_at" as const;
 
 /** "301A" のように floor_number + room_number を結合して表示用の部屋番号を作る */
 export function formatRoomNumber(
