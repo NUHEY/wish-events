@@ -287,6 +287,14 @@ export interface DirectMessageRow {
   created_at: string;
 }
 
+export interface FloorMessageRow {
+  id: string;
+  floor_number: number;
+  sender_id: string;
+  body: string;
+  created_at: string;
+}
+
 export interface EventMessageReactionRow {
   message_id: string;
   user_id: string;
@@ -608,6 +616,18 @@ export interface Database {
         Update: { last_read_at?: string };
         Relationships: [];
       };
+      floor_messages: {
+        Row: FloorMessageRow;
+        Insert: Partial<FloorMessageRow> & { floor_number: number; sender_id: string; body: string };
+        Update: never;
+        Relationships: [];
+      };
+      floor_message_reads: {
+        Row: { user_id: string; floor_number: number; last_read_at: string };
+        Insert: { user_id: string; floor_number: number; last_read_at?: string };
+        Update: { last_read_at?: string };
+        Relationships: [];
+      };
       surveys: {
         Row: SurveyRow;
         Insert: Partial<SurveyRow> & {
@@ -795,6 +815,21 @@ export interface Database {
           last_sender_id: string | null;
           unread: boolean;
         }[];
+      };
+      floor_group_thread: {
+        Args: Record<string, never>;
+        Returns: {
+          floor_number: number;
+          last_message_body: string | null;
+          last_message_at: string | null;
+          last_sender_id: string | null;
+          unread: boolean;
+          member_count: number;
+        }[];
+      };
+      floor_group_profiles: {
+        Args: Record<string, never>;
+        Returns: { id: string; full_name: string | null; avatar_url: string | null; role: UserRole; room_number: string | null }[];
       };
       can_access_dm_media: {
         Args: { p_pair: string };

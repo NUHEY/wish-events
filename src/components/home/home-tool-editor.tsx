@@ -43,7 +43,7 @@ export function HomeToolEditor({ initialTools, initialDensity }: { initialTools:
       <PendingFeedback active={pending} label="ホームのツール表示を保存しています…" />
       <div>
         <h2 className="font-bold">ホームに表示するツール</h2>
-        <p className="mt-1 text-sm text-muted-foreground">公開中のツールだけがホームに表示されます。ここでは掲載する種類と順番を選べます。</p>
+        <p className="mt-1 text-sm text-muted-foreground">公開中のツールだけがホームに表示されます。ここでは掲載する種類とツール同士の順番を選べます。ホーム全体での「便利ツール」欄の位置は、上のセクション設定から変更できます。</p>
       </div>
       <div className="space-y-2">
         {tools.map((tool, index) => {

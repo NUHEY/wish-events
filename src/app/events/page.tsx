@@ -104,24 +104,18 @@ export default async function EventsPage({
   const allUpcomingEvents = (upcomingEventsRaw as EventCardData[] | null) ?? [];
   const allPastEvents = (pastEventsRaw as EventCardData[] | null) ?? [];
   const allDateEvents = (dateEventsRaw as EventCardData[] | null) ?? [];
-  const upcomingEvents = allUpcomingEvents.filter((event) => event.creator_type === "ra");
-  const pastEvents = allPastEvents.filter((event) => event.creator_type === "ra");
-  const dateEvents = allDateEvents.filter((event) => event.creator_type === "ra");
   const canShowResidentEvents = profile.role === "ra" || residentEventState !== "hidden";
-  const residentEvents = canShowResidentEvents
-    ? (showDateOnly
-        ? allDateEvents
-        : status === "past"
-          ? allPastEvents
-          : allUpcomingEvents
-      ).filter((event) => event.creator_type === "resident")
-    : [];
-  const calendarDates = [...allUpcomingEvents, ...allPastEvents, ...allDateEvents].map((event) => event.event_date);
+  const canShowEvent = (event: EventCardData) =>
+    event.creator_type === "ra" || canShowResidentEvents;
+  // 一覧では公式・寮生イベントを同じ検索結果にまとめる。ホームのみ別セクションを維持する。
+  const upcomingEvents = allUpcomingEvents.filter(canShowEvent);
+  const pastEvents = allPastEvents.filter(canShowEvent);
+  const dateEvents = allDateEvents.filter(canShowEvent);
+  const calendarDates = [...upcomingEvents, ...pastEvents, ...dateEvents].map((event) => event.event_date);
 
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
   const hasDateResults = !!dateEvents && dateEvents.length > 0;
-  const hasResidentEvents = residentEvents.length > 0;
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -163,28 +157,9 @@ export default async function EventsPage({
         </p>
       )}
 
-      {hasResidentEvents && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="h-6 w-1.5 rounded-full bg-accent" />
-              <h2 className="text-lg font-bold">{locale === "en" ? "From the WISH community" : "みんなからの募集"}</h2>
-            </div>
-            <Link href="/events/community" className="text-xs font-semibold text-primary">
-              {locale === "en" ? "View all" : "すべて見る"}
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {residentEvents.map((event) => (
-              <EventCard key={event.id} event={event} variant={status === "past" ? "muted" : undefined} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {showDateOnly ? (
         <>
-          {!hasDateResults && !hasResidentEvents && (
+          {!hasDateResults && (
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
               <p className="text-sm font-medium">{dict.home.empty}</p>
               <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
@@ -193,9 +168,8 @@ export default async function EventsPage({
           {hasDateResults && (
             <>
               <p className="text-sm text-muted-foreground">
-                {dict.home.dateResultsCount.replace("{count}", String(dateEvents.length + residentEvents.length))}
+                {dict.home.dateResultsCount.replace("{count}", String(dateEvents.length))}
               </p>
-              {hasResidentEvents && <h2 className="text-lg font-bold">{locale === "en" ? "Official events" : "公式イベント"}</h2>}
               <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {dateEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
@@ -206,7 +180,7 @@ export default async function EventsPage({
         </>
       ) : (
         <>
-          {!hasUpcoming && !hasPast && !hasResidentEvents && (
+          {!hasUpcoming && !hasPast && (
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
               <p className="text-sm font-medium">
                 {query ? dict.home.noSearchResults.replace("{query}", query) : dict.home.empty}
@@ -221,7 +195,6 @@ export default async function EventsPage({
 
           {hasUpcoming && (
             <section className="flex flex-col gap-3">
-              {hasResidentEvents && <h2 className="text-lg font-bold">{locale === "en" ? "Official events" : "公式イベント"}</h2>}
               <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} />

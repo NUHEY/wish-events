@@ -49,22 +49,22 @@ export function ResidentToolGrid({
               key={tool.key}
               href={href}
               className={cn(
-                "flex shrink-0 snap-start items-center gap-3 rounded-xl border border-border bg-gradient-to-br px-3 shadow-sm transition-transform active:scale-[0.98] sm:w-auto",
-                density === "minimal" ? "h-14 w-44 py-2" : "h-[68px] w-52 py-2.5",
+                "flex shrink-0 snap-start flex-col items-start justify-between gap-3 rounded-xl border border-border bg-gradient-to-br p-3.5 shadow-sm transition-transform active:scale-[0.98] sm:h-24 sm:w-auto sm:flex-row sm:items-center",
+                density === "minimal" ? "h-40 w-40" : "h-48 w-44",
                 tool.accent
               )}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card/85 shadow-sm">
-                <tool.icon className="h-4 w-4" />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card/85 shadow-sm">
+                <tool.icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-extrabold text-foreground">{tool.title}</span>
+                  <span className="line-clamp-2 text-sm font-extrabold text-foreground">{tool.title}</span>
                   {state === "beta" && <BetaBadge />}
                 </span>
-                {density === "compact" && <span className="block truncate text-[11px] text-muted-foreground">{profileRole === "resident" && tool.residentDescription ? tool.residentDescription : tool.description}</span>}
+                <span className={cn("mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground", density === "minimal" && "sm:hidden")}>{profileRole === "resident" && tool.residentDescription ? tool.residentDescription : tool.description}</span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0" />
+              <ChevronRight className="h-4 w-4 shrink-0 self-end sm:self-auto" />
             </Link>
           );
         })}

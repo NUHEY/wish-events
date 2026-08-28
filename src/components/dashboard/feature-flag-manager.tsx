@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const featureCopy: Record<FeatureFlagKey, { title: string; description: string }> = {
   friend_dm: { title: "友達とのトーク", description: "通信量と無料枠を見ながら段階的に公開できます。" },
+  floor_group_chat: { title: "フロアグループ", description: "同じ階の寮生とRAが自動参加するグループトークです。" },
   event_calendar_export: { title: "イベントをカレンダーに追加", description: "端末の標準カレンダーへイベント日時を保存できます。" },
   availability_matching: { title: "みんなの日程調整", description: "任意の2人以上で空き時間を重ねて確認できます。" },
   lets_chat_booking: { title: "Let's Chat! 予約", description: "同じフロアの寮生がRAの空き時間を予約できます。" },

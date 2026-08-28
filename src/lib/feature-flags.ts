@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export type FeatureFlagState = "public" | "beta" | "hidden";
 export type FeatureFlagKey =
   | "friend_dm"
+  | "floor_group_chat"
   | "event_calendar_export"
   | "availability_matching"
   | "lets_chat_booking"
@@ -15,6 +16,7 @@ export type FeatureFlagKey =
 
 export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = [
   "friend_dm",
+  "floor_group_chat",
   "event_calendar_export",
   "availability_matching",
   "lets_chat_booking",

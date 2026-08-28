@@ -53,6 +53,7 @@ export async function EventCard({
   const title = (locale === "en" && event.title_en) || event.title;
   const categoryLabel = dict.categories[event.category] ?? event.category;
   const isMuted = variant === "muted";
+  const isResidentEvent = event.creator_type === "resident";
 
   // 自動タグの判定期間・表示有無はRAの「イベント設定」から変更できる。
   const now = Date.now();
@@ -61,8 +62,8 @@ export async function EventCard({
   const isDeadlineSoon =
     !isMuted && closesAt != null && closesAt > now && closesAt - now < settings.eventDeadlineHours * 60 * 60 * 1000;
   const labels: EventCardLabel[] = [
-    ...(event.creator_type === "resident" ? [{ text: "寮生企画", tone: "category" as const }] : []),
-    ...(settings.eventShowCategoryLabel ? [{ text: categoryLabel, tone: "category" as const }] : []),
+    ...(isResidentEvent ? [{ text: "寮生企画", tone: "category" as const }] : []),
+    ...(!isResidentEvent && settings.eventShowCategoryLabel ? [{ text: categoryLabel, tone: "category" as const }] : []),
     ...(settings.eventShowDeadlineLabel && isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
     ...(settings.eventShowNewLabel && isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),
   ];
@@ -105,7 +106,7 @@ export async function EventCard({
           />
           {event.fee_amount && settings.eventShowFeeLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-semibold text-background shadow-sm">{dict.event.feePrefix}{event.fee_amount.toLocaleString()}{dict.event.feeUnit}</span>
-          ) : !event.fee_amount && event.show_free_tag !== false && settings.eventShowFreeLabel ? (
+          ) : !isResidentEvent && !event.fee_amount && event.show_free_tag !== false && settings.eventShowFreeLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-success px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}

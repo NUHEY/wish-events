@@ -143,7 +143,7 @@ export default async function EventDetailPage({
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{categoryLabel}</Badge>
+          {event.creator_type !== "resident" && <Badge variant="secondary">{categoryLabel}</Badge>}
           {event.target_floors && event.target_floors.length > 0 && (
             <Badge variant="outline">
               {event.target_floors.map((f: number) => `${f}${dict.event.floorUnit}`).join("・")}
@@ -162,7 +162,7 @@ export default async function EventDetailPage({
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <h1 className="text-2xl font-bold sm:pr-2">{title}</h1>
-          <div className="flex items-center gap-1 self-end sm:shrink-0 sm:self-start"><EventShareButton eventId={event.id} title={title} categoryLabel={categoryLabel} eventDate={event.event_date} location={location} audience={audience} feeAmount={event.fee_amount} /><EventLikeButton eventId={event.id} count={(eventLikes ?? []).length} liked={(eventLikes ?? []).some((like) => like.user_id === profile.id)} /></div>
+          <div className="flex items-center gap-1 self-end sm:shrink-0 sm:self-start"><EventShareButton eventId={event.id} title={title} categoryLabel={event.creator_type === "resident" ? "寮生企画" : categoryLabel} eventDate={event.event_date} location={location} audience={audience} feeAmount={event.fee_amount} /><EventLikeButton eventId={event.id} count={(eventLikes ?? []).length} liked={(eventLikes ?? []).some((like) => like.user_id === profile.id)} /></div>
         </div>
         <dl className="grid grid-cols-1 gap-x-5 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
           <div className="flex items-start gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><dd>{formatEventDateTime(event.event_date, locale)}</dd></div>
