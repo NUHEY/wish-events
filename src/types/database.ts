@@ -5,6 +5,7 @@
  */
 
 export type UserRole = "resident" | "ra";
+export type UserAccountKind = "resident" | "service_desk" | "university_staff";
 export type EventCategory =
   | "RR"
   | "SI"
@@ -27,6 +28,7 @@ export interface UserRow {
   floor_number: number | null;
   room_number: string | null;
   role: UserRole;
+  account_kind: UserAccountKind;
   faculty: string | null;
   grade_level: string | null;
   languages: string[] | null;

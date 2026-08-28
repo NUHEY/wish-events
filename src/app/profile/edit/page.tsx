@@ -4,9 +4,11 @@ import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackButton } from "@/components/layout/back-button";
+import { redirect } from "next/navigation";
 
 export default async function ProfileEditPage() {
   const profile = await getCurrentProfile();
+  if (profile.account_kind !== "resident") redirect("/");
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const initialLineQrSignedUrl = profile.line_qr_path

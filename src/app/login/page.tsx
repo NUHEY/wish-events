@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDict } from "@/lib/i18n/locale-provider";
+import { signInInstitutionalAccount, type InstitutionalAccountKind } from "@/actions/institutional-login";
 
 function GoogleIcon() {
   return (
@@ -37,6 +38,9 @@ function LoginContent() {
   const error = searchParams.get("error");
   const supabase = createClient();
   const dict = useDict();
+  const [institutionalError, setInstitutionalError] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<InstitutionalAccountKind | null>(null);
+  const [institutionalPending, startInstitutionalTransition] = useTransition();
 
   async function handleLogin() {
     await supabase.auth.signInWithOAuth({
@@ -51,6 +55,17 @@ function LoginContent() {
           hd: "waseda.jp",
         },
       },
+    });
+  }
+
+  function handleInstitutionalLogin(kind: InstitutionalAccountKind) {
+    if (institutionalPending) return;
+    setInstitutionalError(null);
+    setSelectedAccount(kind);
+    startInstitutionalTransition(async () => {
+      const result = await signInInstitutionalAccount(kind);
+      if (result?.error) setInstitutionalError(result.error);
+      setSelectedAccount(null);
     });
   }
 
@@ -82,6 +97,11 @@ function LoginContent() {
               {dict.login.authFailed}
             </p>
           )}
+          {institutionalError && (
+            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
+              {institutionalError}
+            </p>
+          )}
           <Button onClick={handleLogin} variant="outline" className="h-auto w-full gap-2.5 py-3">
             <GoogleIcon />
             <span className="flex flex-col items-start leading-tight">
@@ -90,6 +110,29 @@ function LoginContent() {
             </span>
           </Button>
           <p className="text-center text-xs text-muted-foreground">{dict.login.domainNote}</p>
+          <div className="border-t border-border pt-4 text-center">
+            <p className="text-xs leading-relaxed text-muted-foreground">{dict.login.institutionalPrompt}</p>
+            <p className="mt-2 text-sm leading-relaxed">
+              <button
+                type="button"
+                disabled={institutionalPending}
+                onClick={() => handleInstitutionalLogin("service_desk")}
+                className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
+              >
+                {selectedAccount === "service_desk" ? dict.login.institutionalLoggingIn : dict.login.serviceDeskLogin}
+              </button>
+              <span className="mx-2 text-muted-foreground" aria-hidden>・</span>
+              <button
+                type="button"
+                disabled={institutionalPending}
+                onClick={() => handleInstitutionalLogin("university_staff")}
+                className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
+              >
+                {selectedAccount === "university_staff" ? dict.login.institutionalLoggingIn : dict.login.universityStaffLogin}
+              </button>
+            </p>
+            <p className="mt-2 text-[11px] text-muted-foreground">{dict.login.institutionalNote}</p>
+          </div>
         </CardContent>
       </Card>
     </div>

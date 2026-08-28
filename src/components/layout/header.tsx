@@ -16,7 +16,7 @@ export async function Header() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name, role, floor_number, room_number, avatar_url")
+    .select("full_name, role, account_kind, floor_number, room_number, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -62,6 +62,7 @@ export async function Header() {
               userId={user.id}
               fullName={profile.full_name}
               role={profile.role}
+              accountKind={profile.account_kind}
               floorNumber={profile.floor_number}
               roomNumber={profile.room_number}
               avatarUrl={profile.avatar_url}

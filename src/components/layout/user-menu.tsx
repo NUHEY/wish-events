@@ -19,7 +19,7 @@ import { formatRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import type { UserRole } from "@/types/database";
+import type { UserAccountKind, UserRole } from "@/types/database";
 
 /**
  * ヘッダー右端のアバターボタン。以前は「プロフィール編集」リンク・RA用の
@@ -31,6 +31,7 @@ export function UserMenu({
   userId,
   fullName,
   role,
+  accountKind = "resident",
   floorNumber,
   roomNumber,
   avatarUrl,
@@ -39,6 +40,7 @@ export function UserMenu({
   userId: string;
   fullName: string | null;
   role: UserRole;
+  accountKind?: UserAccountKind;
   floorNumber: number | null;
   roomNumber: string | null;
   avatarUrl: string | null;
@@ -89,6 +91,7 @@ export function UserMenu({
             <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
               {fullName ?? dict.common.notRegistered}
               {role === "ra" && <Badge variant="default">RA</Badge>}
+              {accountKind !== "resident" && <Badge variant="secondary">関係者</Badge>}
             </span>
             <span className="text-xs text-muted-foreground">
               {formatRoomNumber(floorNumber, roomNumber)}
@@ -107,12 +110,9 @@ export function UserMenu({
             {dict.header.viewMyPage}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/profile/edit" className="cursor-pointer">
-            <UserRound className="h-4 w-4" />
-            {dict.header.editProfile}
-          </Link>
-        </DropdownMenuItem>
+        {accountKind === "resident" && <DropdownMenuItem asChild>
+          <Link href="/profile/edit" className="cursor-pointer"><UserRound className="h-4 w-4" />{dict.header.editProfile}</Link>
+        </DropdownMenuItem>}
         <DropdownMenuItem asChild>
           <Link href="/directory" className="cursor-pointer">
             <Users className="h-4 w-4" />
@@ -139,12 +139,9 @@ export function UserMenu({
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
-          <Link href="/move-out" className="cursor-pointer">
-            <DoorOpen className="h-4 w-4" />
-            {dict.moveOut.navMenuLabel}
-          </Link>
-        </DropdownMenuItem>
+        {accountKind === "resident" && <DropdownMenuItem asChild>
+          <Link href="/move-out" className="cursor-pointer"><DoorOpen className="h-4 w-4" />{dict.moveOut.navMenuLabel}</Link>
+        </DropdownMenuItem>}
         <DropdownMenuSeparator />
         <DropdownMenuItem destructive onSelect={handleSignOut}>
           <LogOut className="h-4 w-4" />

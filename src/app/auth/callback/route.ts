@@ -23,17 +23,18 @@ export async function GET(request: Request) {
         if (user) {
           const { data: profile } = await supabase
             .from("users")
-            .select("role, full_name, student_id, floor_number, room_number, wish_entry_month")
+            .select("role, account_kind, full_name, student_id, floor_number, room_number, wish_entry_month")
             .eq("id", user.id)
             .maybeSingle();
 
           // プロフィール未登録なら/profile/setupへ（middlewareでも二重にガードされる）
-          const profileComplete =
+          const profileComplete = (!!profile && profile.account_kind !== "resident") || (
             !!profile?.full_name &&
             !!profile?.student_id &&
             !!profile?.wish_entry_month &&
             profile?.floor_number != null &&
-            !!profile?.room_number;
+            !!profile?.room_number
+          );
 
           if (profileComplete && profile) {
             next = postLoginPath(profile.role);

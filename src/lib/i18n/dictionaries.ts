@@ -53,6 +53,11 @@ const ja = {
     domainNote: "早稲田大学発行のGoogleアカウント（@waseda.jp）でログインします。個人のGmailアカウントではログインできません。",
     invalidDomain: "waseda.jp のメールアドレスでログインしてください。別のGoogleアカウントを選択してしまった可能性があります。",
     authFailed: "ログインに失敗しました。もう一度お試しください。改善しない場合は少し時間をおいてからお試しください。",
+    institutionalPrompt: "寮・大学関係者の方は、該当する名称を選択してログインできます。",
+    serviceDeskLogin: "２階生活窓口",
+    universityStaffLogin: "早稲田大学学生生活課",
+    institutionalNote: "共有端末では、利用後に必ずログアウトしてください。",
+    institutionalLoggingIn: "ログイン中…",
   },
   home: {
     title: "イベント一覧",
@@ -737,6 +742,11 @@ const en: typeof ja = {
     domainNote: "Sign in with your Waseda-issued Google account (@waseda.jp). Personal Gmail accounts can't sign in.",
     invalidDomain: "Please sign in with a waseda.jp email address. You may have selected the wrong Google account.",
     authFailed: "Sign-in failed. Please try again. If this keeps happening, wait a moment and retry.",
+    institutionalPrompt: "Dormitory and university staff can sign in by selecting the appropriate account below.",
+    serviceDeskLogin: "2F Life Support Desk",
+    universityStaffLogin: "Waseda University Student Affairs Division",
+    institutionalNote: "Always sign out after using a shared device.",
+    institutionalLoggingIn: "Signing in…",
   },
   home: {
     title: "Events",

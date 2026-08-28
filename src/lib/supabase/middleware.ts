@@ -107,23 +107,26 @@ async function updateSessionInner(request: NextRequest) {
     if (!isPublicPath) {
       const { data: profile } = await supabase
         .from("users")
-        .select("full_name, student_id, floor_number, room_number, role, moved_out_at, wish_entry_month")
+        .select("full_name, student_id, floor_number, room_number, role, account_kind, moved_out_at, wish_entry_month")
         .eq("id", user.id)
         .maybeSingle();
+
+      const isInstitutional = !!profile && profile.account_kind !== "resident";
 
       // 退寮設定済みのユーザーは、退寮ページ以外どこにアクセスしても
       // 退寮ページへ戻す（floor_number/room_numberがNULLになっているため
       // 通常のプロフィール未完了判定より先に判定する必要がある）。
-      if (profile?.moved_out_at && path !== "/move-out") {
+      if (!isInstitutional && profile?.moved_out_at && path !== "/move-out") {
         return redirectTo("/move-out");
       }
 
-      const profileComplete =
+      const profileComplete = isInstitutional || (
         !!profile?.full_name &&
         !!profile?.student_id &&
         !!profile?.wish_entry_month &&
         profile?.floor_number != null &&
-        !!profile?.room_number;
+        !!profile?.room_number
+      );
 
       if (!profile?.moved_out_at && !profileComplete && path !== "/profile/setup") {
         return redirectTo("/profile/setup");

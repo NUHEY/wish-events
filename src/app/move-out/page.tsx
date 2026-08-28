@@ -2,9 +2,11 @@ import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MoveOutConfirm } from "@/components/move-out/move-out-confirm";
 import { MoveOutCelebration } from "@/components/move-out/move-out-cards";
+import { redirect } from "next/navigation";
 
 export default async function MoveOutPage() {
   const profile = await getCurrentProfile();
+  if (profile.account_kind !== "resident") redirect("/");
   const supabase = await createClient();
 
   const { data: registrations } = await supabase
