@@ -21,7 +21,8 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "featured_events", section_key: "featured_events", visible: true, position: 4, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "popular_events", section_key: "popular_events", visible: true, position: 5, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "friends_events", section_key: "friends_events", visible: true, position: 6, accent: null, title_ja: null, title_en: null, updated_at: "" },
-  { id: "tools", section_key: "tools", visible: true, position: 7, accent: null, title_ja: null, title_en: null, updated_at: "" },
+  { id: "resident_events", section_key: "resident_events", visible: true, position: 7, accent: null, title_ja: null, title_en: null, updated_at: "" },
+  { id: "tools", section_key: "tools", visible: true, position: 8, accent: null, title_ja: null, title_en: null, updated_at: "" },
 ];
 
 /** モバイルは横スクロールのスナップ、sm以上はグリッドで表示するイベントカード列 */
@@ -74,6 +75,7 @@ export default async function HomePage() {
     { data: pinnedEventsDataRaw },
     { data: popularRowsDataRaw },
     { data: friendsRowsDataRaw },
+    { data: residentEventsRaw },
     { data: homeToolRowsRaw },
     homeSettings,
   ] = await Promise.all([
@@ -82,6 +84,7 @@ export default async function HomePage() {
     supabase
       .from("events")
       .select(EVENT_CARD_COLUMNS)
+      .eq("creator_type", "ra")
       .gte("event_date", now.toISOString())
       .lte("event_date", weekEnd.toISOString())
       .order("is_pinned", { ascending: false })
@@ -97,6 +100,7 @@ export default async function HomePage() {
       ? supabase
           .from("events")
           .select(EVENT_CARD_COLUMNS)
+          .eq("creator_type", "ra")
           .gte("event_date", now.toISOString())
           .contains("target_floors", [profile.floor_number])
           .order("is_pinned", { ascending: false })
@@ -106,6 +110,7 @@ export default async function HomePage() {
     supabase
       .from("events")
       .select(EVENT_CARD_COLUMNS)
+      .eq("creator_type", "ra")
       .eq("is_pinned", true)
       .gte("event_date", now.toISOString())
       .order("event_date", { ascending: true })
@@ -115,6 +120,14 @@ export default async function HomePage() {
     supabase.rpc("popular_upcoming_events", { p_limit: 6 }),
     // 友達が参加するイベント: 承認済みの友達の申込みだけをfriend_requests経由で解決する。
     supabase.rpc("friends_attending_events"),
+    // 寮生による小規模な募集は、公式イベントとは混ぜず独立した欄に表示する。
+    supabase
+      .from("events")
+      .select(EVENT_CARD_COLUMNS)
+      .eq("creator_type", "resident")
+      .gte("event_date", now.toISOString())
+      .order("event_date", { ascending: true })
+      .limit(10),
     supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)).order("home_position", { ascending: true }),
     getSiteSettings(),
   ]);
@@ -124,6 +137,7 @@ export default async function HomePage() {
   const pinnedEvents = (pinnedEventsDataRaw as EventCardData[] | null) ?? [];
   const popularRows = (popularRowsDataRaw as { event_id: string; registration_count: number }[] | null) ?? [];
   const friendsRows = (friendsRowsDataRaw as { event_id: string; friend_id: string }[] | null) ?? [];
+  const residentEvents = (residentEventsRaw as EventCardData[] | null) ?? [];
   const homeToolRows = (homeToolRowsRaw ?? []) as { key: FeatureFlagKey; state: FeatureFlagState; show_on_home: boolean; home_position: number }[];
   const visibleHomeToolKeys = homeToolRows.filter((row) => row.show_on_home && row.state !== "hidden").map((row) => row.key);
   const homeToolStates = Object.fromEntries(homeToolRows.map((row) => [row.key, row.state])) as Partial<Record<FeatureFlagKey, FeatureFlagState>>;
@@ -155,12 +169,14 @@ export default async function HomePage() {
   const friendProfilesById = new Map((friendProfilesData ?? []).map((p) => [p.id, p]));
 
   // 人気順（popular_upcoming_eventsの返り値の順序）を保って並べ直す。
-  const popularEvents = popularEventIds.map((id) => eventsById.get(id)).filter((e): e is EventCardData => !!e);
+  const popularEvents = popularEventIds
+    .map((id) => eventsById.get(id))
+    .filter((e): e is EventCardData => !!e && e.creator_type === "ra");
 
   // 友達が参加するイベントは開催日が近い順に並べる。
   const friendsEvents = friendsEventIds
     .map((id) => eventsById.get(id))
-    .filter((e): e is EventCardData => !!e)
+    .filter((e): e is EventCardData => !!e && e.creator_type === "ra")
     .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
   const friendsByEventId = new Map<string, EventCardFriend[]>(
     friendsEventIds.map((eventId) => [
@@ -291,6 +307,26 @@ export default async function HomePage() {
                   <EventScroller events={friendsEvents} friendsByEventId={friendsByEventId} />
                 ) : (
                   <EmptyNote>{dict.homePortal.friendsEvents.empty}</EmptyNote>
+                )}
+              </section>
+            );
+          }
+
+          if (s.section_key === "resident_events") {
+            // 非公開中もRAは公開前の見た目を確認できる。一般寮生にはセクション自体を出さない。
+            if (!isRa && homeToolStates.resident_events === "hidden") return null;
+            return (
+              <section key={s.id} className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <SectionHeading s={s} title={sectionTitle(s, isEn ? "From the WISH community" : "みんなからの募集")} />
+                  <Link href="/events/community" className="text-xs font-semibold text-primary">
+                    {isEn ? "View all" : "すべて見る"}
+                  </Link>
+                </div>
+                {residentEvents.length > 0 ? (
+                  <EventScroller events={residentEvents} />
+                ) : (
+                  <EmptyNote>{isEn ? "There are no open invitations yet." : "現在募集中の企画はありません"}</EmptyNote>
                 )}
               </section>
             );

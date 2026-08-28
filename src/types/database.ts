@@ -187,6 +187,7 @@ export type HomeLayoutSectionKey =
   | "featured_events"
   | "popular_events"
   | "friends_events"
+  | "resident_events"
   | "tools";
 export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
 

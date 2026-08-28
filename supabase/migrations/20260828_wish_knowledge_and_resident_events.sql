@@ -6,6 +6,25 @@ values
   ('resident_events', 'hidden', true, 9)
 on conflict (key) do nothing;
 
+-- 寮生募集は公式イベントの各セクションへ混ぜず、ホーム上の独立した欄として管理する。
+-- 既に前版を実行済みでも、このファイルを再実行すれば安全に設定が追加される。
+alter table public.home_layout_sections
+  drop constraint if exists home_layout_sections_section_key_check;
+alter table public.home_layout_sections
+  add constraint home_layout_sections_section_key_check
+  check (section_key in (
+    'week_events', 'floor_events', 'announcements',
+    'featured_events', 'popular_events', 'friends_events', 'resident_events', 'tools'
+  ));
+
+update public.home_layout_sections
+set position = 8
+where section_key = 'tools' and position = 7;
+
+insert into public.home_layout_sections (section_key, visible, position)
+values ('resident_events', true, 7)
+on conflict (section_key) do nothing;
+
 -- 既存イベントの申込・トーク・コメント・いいねをそのまま利用しつつ、
 -- RA企画と寮生企画を表示・権限上で区別する。
 alter table public.events
@@ -80,7 +99,7 @@ begin
     target_audience, survey_type, is_pinned, member_ids, all_ra_members,
     created_by, creator_type, moderation_status
   ) values (
-    trim(p_title), 'other', nullif(trim(coalesce(p_description, '')), ''),
+    trim(p_title), 'その他', nullif(trim(coalesce(p_description, '')), ''),
     nullif(p_image_url, ''), nullif(p_image_url, ''), nullif(trim(coalesce(p_location, '')), ''),
     p_event_date, true, p_capacity, null, true,
     'WISH寮生', 'none', false, array[v_uid], false,
