@@ -27,15 +27,50 @@ export function ResidentToolGrid({
   profileRole,
   includedKeys,
   compact = false,
+  density = "minimal",
 }: {
   stateByKey: Partial<Record<FeatureFlagKey, FeatureFlagState>>;
   profileRole: "resident" | "ra";
   includedKeys?: FeatureFlagKey[];
   compact?: boolean;
+  density?: "minimal" | "compact";
 }) {
   const tools = RESIDENT_TOOLS.filter((tool) => !includedKeys || includedKeys.includes(tool.key));
+  if (compact) {
+    return (
+      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 pr-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible sm:pr-0 lg:grid-cols-3">
+        {tools.map((tool) => {
+          const state = stateByKey[tool.key] ?? "hidden";
+          const href = profileRole === "ra" ? tool.createHref : tool.residentHref;
+          return (
+            <Link
+              key={tool.key}
+              href={href}
+              className={cn(
+                "flex shrink-0 snap-start items-center gap-3 rounded-xl border border-border bg-gradient-to-br px-3 shadow-sm transition-transform active:scale-[0.98] sm:w-auto",
+                density === "minimal" ? "h-14 w-44 py-2" : "h-[68px] w-52 py-2.5",
+                tool.accent
+              )}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card/85 shadow-sm">
+                <tool.icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate text-sm font-extrabold text-foreground">{tool.title}</span>
+                  {state === "beta" && <BetaBadge />}
+                </span>
+                {density === "compact" && <span className="block truncate text-[11px] text-muted-foreground">{profileRole === "resident" && tool.residentDescription ? tool.residentDescription : tool.description}</span>}
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2", !compact && "lg:grid-cols-3")}>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {tools.map((tool) => {
         const state = stateByKey[tool.key] ?? "hidden";
         const href = profileRole === "ra" ? tool.createHref : tool.residentHref;

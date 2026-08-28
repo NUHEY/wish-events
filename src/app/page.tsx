@@ -12,6 +12,7 @@ import { HOME_ACCENT_HEX } from "@/lib/constants";
 import type { HomeAccentKeyValue } from "@/lib/constants";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import type { AnnouncementRow, EventCardData, HomeLayoutSectionRow } from "@/types/database";
+import { getSiteSettings } from "@/lib/site-settings";
 
 const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "week_events", section_key: "week_events", visible: true, position: 1, accent: null, title_ja: null, title_en: null, updated_at: "" },
@@ -33,7 +34,7 @@ function EventScroller({
   friendsByEventId?: Map<string, EventCardFriend[]>;
 }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pl-5 pr-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pr-4 pb-1 scroll-pl-1 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:pr-0 lg:grid-cols-4 xl:grid-cols-5">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
           <EventCard event={event} attendingFriends={friendsByEventId?.get(event.id)} />
@@ -74,6 +75,7 @@ export default async function HomePage() {
     { data: popularRowsDataRaw },
     { data: friendsRowsDataRaw },
     { data: homeToolRowsRaw },
+    homeSettings,
   ] = await Promise.all([
     supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
     // EventCard に必要な列だけを取得し、ホーム画面の表示を高速化する。
@@ -114,6 +116,7 @@ export default async function HomePage() {
     // 友達が参加するイベント: 承認済みの友達の申込みだけをfriend_requests経由で解決する。
     supabase.rpc("friends_attending_events"),
     supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)).order("home_position", { ascending: true }),
+    getSiteSettings(),
   ]);
   const layoutRows = layoutRowsRaw as HomeLayoutSectionRow[] | null;
   const weekEvents = weekEventsRaw as EventCardData[] | null;
@@ -301,7 +304,7 @@ export default async function HomePage() {
                   <Link href="/tools" className="text-xs font-semibold text-primary">すべて見る</Link>
                 </div>
                 {visibleHomeToolKeys.length > 0 ? (
-                  <ResidentToolGrid stateByKey={homeToolStates} profileRole={profile.role} includedKeys={visibleHomeToolKeys} compact />
+                  <ResidentToolGrid stateByKey={homeToolStates} profileRole={profile.role} includedKeys={visibleHomeToolKeys} compact density={homeSettings.homeToolDensity} />
                 ) : (
                   <EmptyNote>{isEn ? "No tools are currently available." : "現在ホームに表示中のツールはありません"}</EmptyNote>
                 )}

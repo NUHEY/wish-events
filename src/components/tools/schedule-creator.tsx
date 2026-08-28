@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FLOORS } from "@/lib/constants";
@@ -18,16 +19,16 @@ import { SCHEDULE_COPY, type ScheduleKind } from "@/lib/beta-tools";
 import { cn, formatRoomNumber } from "@/lib/utils";
 import type { DirectoryProfileRow } from "@/types/database";
 
-export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, isRa }: { kind: ScheduleKind; profiles: DirectoryProfileRow[]; currentUserId: string; currentFloor: number | null; isRa: boolean }) {
+export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, isRa, defaults }: { kind: ScheduleKind; profiles: DirectoryProfileRow[]; currentUserId: string; currentFloor: number | null; isRa: boolean; defaults?: { startTime: string; endTime: string; slotMinutes: 15 | 30 | 60; maxDays: number } }) {
   const router = useRouter();
   const copy = SCHEDULE_COPY[kind];
   const [title, setTitle] = useState(kind === "lets_chat" ? "Let's Chat! 予約" : kind === "urs" ? "Unit Room Session" : "");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [dailyStartTime, setDailyStartTime] = useState("09:00");
-  const [dailyEndTime, setDailyEndTime] = useState("21:00");
-  const [slotMinutes, setSlotMinutes] = useState<15 | 30 | 60>(30);
+  const [dailyStartTime, setDailyStartTime] = useState(defaults?.startTime ?? "09:00");
+  const [dailyEndTime, setDailyEndTime] = useState(defaults?.endTime ?? "21:00");
+  const [slotMinutes, setSlotMinutes] = useState<15 | 30 | 60>(defaults?.slotMinutes ?? 30);
   const [floorNumber, setFloorNumber] = useState(currentFloor ?? 3);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [raIds, setRaIds] = useState<string[]>(kind === "lets_chat" && isRa ? [currentUserId] : []);
@@ -78,9 +79,9 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5">
         <div className="flex items-center gap-2 font-bold"><CalendarRange className="h-4 w-4 text-primary" />候補期間</div>
-        <div className="grid gap-4 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="schedule-start-date">開始日</Label><Input id="schedule-start-date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor="schedule-end-date">終了日</Label><Input id="schedule-end-date" type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></div></div>
+        <div className="grid gap-2"><Label>開始日・終了日</Label><DateRangePicker startValue={startDate} endValue={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} maxDays={defaults?.maxDays ?? 31} /></div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3"><div className="grid gap-2"><Label htmlFor="daily-start">開始時刻</Label><Input id="daily-start" type="time" value={dailyStartTime} onChange={(event) => setDailyStartTime(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor="daily-end">終了時刻</Label><Input id="daily-end" type="time" value={dailyEndTime} onChange={(event) => setDailyEndTime(event.target.value)} /></div><div className="col-span-2 grid gap-2 sm:col-span-1"><Label htmlFor="slot-minutes">1枠</Label><Select id="slot-minutes" value={slotMinutes} onChange={(event) => setSlotMinutes(Number(event.target.value) as 15 | 30 | 60)}><option value={15}>15分</option><option value={30}>30分</option><option value={60}>60分</option></Select></div></div>
-        <p className="text-xs text-muted-foreground">期間は最大31日。表示する時間帯を絞ると、スマホでも入力しやすくなります。</p>
+        <p className="text-xs text-muted-foreground">期間は最大{defaults?.maxDays ?? 31}日。表示する時間帯を絞ると、スマホでも入力しやすくなります。</p>
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5">

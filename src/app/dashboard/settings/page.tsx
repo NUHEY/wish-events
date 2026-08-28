@@ -18,6 +18,10 @@ export default async function SiteSettingsPage() {
         initialTitle={settings.ogTitle ?? ""}
         initialDescription={settings.ogDescription ?? ""}
         initialImageUrl={settings.ogImageUrl}
+        initialFaviconUrl={settings.faviconUrl}
+        initialAppleTouchIconUrl={settings.appleTouchIconUrl}
+        initialAppShortName={settings.appShortName}
+        initialThemeColor={settings.themeColor}
         defaultTitle={SITE_DEFAULT_TITLE}
         defaultDescription={SITE_DEFAULT_DESCRIPTION}
         initialAccentColor={settings.accentColor}

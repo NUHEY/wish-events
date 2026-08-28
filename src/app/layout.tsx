@@ -47,6 +47,11 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://wish-events.vercel.app"),
     title,
     description,
+    applicationName: settings.appShortName,
+    icons: {
+      icon: settings.faviconUrl || "/icon",
+      apple: settings.appleTouchIconUrl || settings.faviconUrl || "/icon",
+    },
     openGraph: {
       title,
       description,
@@ -74,6 +79,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={cn(inter.variable, notoSansJP.variable)} suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content={siteSettings.themeColor} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {/* RAダッシュボードのサイト設定で選べるアクセントカラー・状態色の上書き。 */}
         <style dangerouslySetInnerHTML={{ __html: siteThemeStyle }} />

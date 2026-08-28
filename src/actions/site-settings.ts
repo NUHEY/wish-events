@@ -29,9 +29,12 @@ export async function updateSiteSettings(
   const ogTitle = String(formData.get("og_title") ?? "").trim();
   const ogDescription = String(formData.get("og_description") ?? "").trim();
   const accentColorRaw = String(formData.get("accent_color") ?? "").trim();
+  const themeColorRaw = String(formData.get("theme_color") ?? "").trim();
+  const appShortName = String(formData.get("app_short_name") ?? "WISH").trim().slice(0, 20);
   if (accentColorRaw && !HEX_COLOR_PATTERN.test(accentColorRaw)) {
     return { error: "アクセントカラーの形式が正しくありません。" };
   }
+  if (themeColorRaw && !HEX_COLOR_PATTERN.test(themeColorRaw)) return { error: "ブラウザカラーの形式が正しくありません。" };
   const colorfulStatus = formData.get("colorful_status") === "on";
   const motionLevelRaw = String(formData.get("motion_level") ?? "standard");
   const motionLevel = motionLevelRaw === "subtle" || motionLevelRaw === "lively" ? motionLevelRaw : "standard";
@@ -44,6 +47,8 @@ export async function updateSiteSettings(
       og_description: ogDescription || null,
       ...(accentColorRaw ? { accent_color: accentColorRaw } : {}),
       colorful_status: colorfulStatus,
+      app_short_name: appShortName || "WISH",
+      ...(themeColorRaw ? { theme_color: themeColorRaw } : {}),
       navigation_lock_enabled: formData.get("navigation_lock_enabled") === "on",
       navigation_stall_seconds: intFromForm(formData, "navigation_stall_seconds", 3, 30, 8),
       mobile_touch_feedback_enabled: formData.get("mobile_touch_feedback_enabled") === "on",
@@ -156,6 +161,44 @@ export async function removeOgImage(): Promise<{ error?: string }> {
     .eq("id", 1);
   if (error) return { error: error.message };
 
+  revalidatePath("/", "layout");
+  revalidatePath("/dashboard/settings");
+  return {};
+}
+
+export async function uploadBrandIcon(formData: FormData): Promise<{ error?: string; url?: string; kind?: "favicon" | "apple" }> {
+  const profile = await requireRa();
+  const kind = formData.get("asset_kind") === "apple" ? "apple" : "favicon";
+  const file = formData.get("brand_icon");
+  if (!(file instanceof File) || file.size === 0) return { error: "画像を選択してください" };
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) return { error: "png / jpeg / webp形式の画像を選択してください" };
+  if (file.size > MAX_SIZE_BYTES) return { error: "画像サイズは5MB以下にしてください" };
+  const supabase = await createClient();
+  const folder = kind === "apple" ? "apple-touch-icon" : "favicon";
+  await supabase.storage.from("site-assets").remove([`${folder}.png`, `${folder}.jpg`, `${folder}.webp`]);
+  const path = `${folder}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) return { error: uploadError.message };
+  const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+  const column = kind === "apple" ? "apple_touch_icon_url" : "favicon_url";
+  const { error } = await supabase.from("site_settings").update({ [column]: url, updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) return { error: "アイコンを保存できませんでした。最新のSQLを適用してください。" };
+  revalidatePath("/", "layout");
+  revalidatePath("/dashboard/settings");
+  return { url, kind };
+}
+
+export async function removeBrandIcon(kind: "favicon" | "apple"): Promise<{ error?: string }> {
+  const profile = await requireRa();
+  const safeKind = kind === "apple" ? "apple" : "favicon";
+  const folder = safeKind === "apple" ? "apple-touch-icon" : "favicon";
+  const column = safeKind === "apple" ? "apple_touch_icon_url" : "favicon_url";
+  const supabase = await createClient();
+  await supabase.storage.from("site-assets").remove([`${folder}.png`, `${folder}.jpg`, `${folder}.webp`]);
+  const { error } = await supabase.from("site_settings").update({ [column]: null, updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) return { error: error.message };
   revalidatePath("/", "layout");
   revalidatePath("/dashboard/settings");
   return {};

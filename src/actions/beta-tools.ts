@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, requireRa } from "@/lib/auth";
 import { getFeatureFlagState } from "@/lib/feature-flags";
 import { SCHEDULE_COPY, type ScheduleKind } from "@/lib/beta-tools";
+import { getSiteSettings } from "@/lib/site-settings";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,7 +47,8 @@ export async function createScheduleSession(input: CreateScheduleInput) {
   const start = new Date(`${input.startDate}T00:00:00+09:00`);
   const end = new Date(`${input.endDate}T00:00:00+09:00`);
   const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
-  if (!Number.isFinite(days) || days < 0 || days > 31) return { error: "期間は開始日から31日以内で設定してください。" };
+  const scheduleSettings = await getSiteSettings();
+  if (!Number.isFinite(days) || days < 0 || days >= scheduleSettings.scheduleMaxDays) return { error: `期間は開始日から${scheduleSettings.scheduleMaxDays}日以内で設定してください。` };
   if (!TIME_PATTERN.test(input.dailyStartTime) || !TIME_PATTERN.test(input.dailyEndTime) || input.dailyStartTime >= input.dailyEndTime) {
     return { error: "1日の開始・終了時刻を正しく入力してください。" };
   }
@@ -149,6 +151,19 @@ export async function setLetsChatCompleted(bookingId: string, completed: boolean
   if (error) return { error: `実施状況を更新できませんでした: ${error.message}` };
   revalidatePath("/tools/schedule/[token]", "page");
   revalidatePath("/dashboard/schedules");
+  return { success: true };
+}
+
+export async function updateScheduleToolSettings(input: { startTime: string; endTime: string; slotMinutes: number; maxDays: number }) {
+  const profile = await requireRa();
+  if (!TIME_PATTERN.test(input.startTime) || !TIME_PATTERN.test(input.endTime) || input.startTime >= input.endTime) return { error: "標準の時間帯を正しく設定してください。" };
+  if (![15, 30, 60].includes(input.slotMinutes)) return { error: "標準の時間枠を選択してください。" };
+  const maxDays = Math.max(3, Math.min(31, Math.round(input.maxDays)));
+  const supabase = await createClient();
+  const { error } = await supabase.from("site_settings").update({ schedule_default_start_time: input.startTime, schedule_default_end_time: input.endTime, schedule_default_slot_minutes: input.slotMinutes, schedule_max_days: maxDays, updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) return { error: "日程ツールの設定を保存できませんでした。最新のSQLを適用してください。" };
+  revalidatePath("/dashboard/schedules");
+  revalidatePath("/tools/schedule/new");
   return { success: true };
 }
 

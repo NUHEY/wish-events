@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
-import { updateSiteSettings, uploadOgImage, removeOgImage, type SiteSettingsActionResult } from "@/actions/site-settings";
+import { updateSiteSettings, uploadOgImage, removeOgImage, uploadBrandIcon, removeBrandIcon, type SiteSettingsActionResult } from "@/actions/site-settings";
 
 function SaveButton() {
   const { pending } = useFormStatus();
@@ -21,10 +21,28 @@ function SaveButton() {
   );
 }
 
+function BrandIconSetting({ kind, initialUrl, title, note }: { kind: "favicon" | "apple"; initialUrl: string | null; title: string; note: string }) {
+  const [url, setUrl] = useState(initialUrl);
+  const [pending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-secondary/40">
+        {url ? <Image src={url} alt="" fill sizes="56px" className="object-cover" /> : <div className="flex h-full items-center justify-center text-lg font-black text-primary">W</div>}
+      </div>
+      <div className="min-w-0 flex-1"><p className="text-sm font-bold">{title}</p><p className="text-[11px] leading-relaxed text-muted-foreground">{note}</p><div className="mt-2 flex flex-wrap gap-1.5"><input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; startTransition(async () => { const data = new FormData(); data.append("asset_kind", kind); data.append("brand_icon", file); const result = await uploadBrandIcon(data); if (result.error) toast.error(result.error); else { setUrl(result.url ?? null); toast.success("アイコンを更新しました"); } }); }} /><Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => inputRef.current?.click()}><ImagePlus className="h-3.5 w-3.5" />変更</Button>{url && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => startTransition(async () => { const result = await removeBrandIcon(kind); if (result.error) toast.error(result.error); else { setUrl(null); toast.success("既定アイコンに戻しました"); } })}><Trash2 className="h-3.5 w-3.5" />戻す</Button>}</div></div>
+    </div>
+  );
+}
+
 export function SiteSettingsForm({
   initialTitle,
   initialDescription,
   initialImageUrl,
+  initialFaviconUrl,
+  initialAppleTouchIconUrl,
+  initialAppShortName,
+  initialThemeColor,
   defaultTitle,
   defaultDescription,
   initialAccentColor,
@@ -42,6 +60,10 @@ export function SiteSettingsForm({
   initialTitle: string;
   initialDescription: string;
   initialImageUrl: string | null;
+  initialFaviconUrl: string | null;
+  initialAppleTouchIconUrl: string | null;
+  initialAppShortName: string;
+  initialThemeColor: string;
   defaultTitle: string;
   defaultDescription: string;
   initialAccentColor: string;
@@ -97,6 +119,13 @@ export function SiteSettingsForm({
   return (
     <div className="flex flex-col gap-6">
       <PendingFeedback active={pending} label="OGP画像を更新しています…" />
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div><h2 className="font-bold">アプリアイコン</h2><p className="mt-1 text-sm text-muted-foreground">ブラウザのタブとスマホのホーム画面で使う画像です。正方形で、端に十分な余白がある画像が適しています。</p></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <BrandIconSetting kind="favicon" initialUrl={initialFaviconUrl} title="ブラウザアイコン" note="推奨 512×512px。タブやブックマークに表示します。" />
+          <BrandIconSetting kind="apple" initialUrl={initialAppleTouchIconUrl} title="スマホホーム画面" note="推奨 512×512px。未設定時はブラウザアイコンを使います。" />
+        </div>
+      </section>
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div>
           <h2 className="font-bold">共有時のプレビュー画像</h2>
@@ -159,6 +188,10 @@ export function SiteSettingsForm({
         <div className="grid gap-1.5">
           <Label htmlFor="og_title">タイトル</Label>
           <Input id="og_title" name="og_title" defaultValue={initialTitle} placeholder={defaultTitle} maxLength={100} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5"><Label htmlFor="app_short_name">ホーム画面での短い名前</Label><Input id="app_short_name" name="app_short_name" defaultValue={initialAppShortName} maxLength={20} placeholder="WISH" /><p className="text-xs text-muted-foreground">スマホへ追加した時に表示します。</p></div>
+          <div className="grid gap-1.5"><Label htmlFor="theme_color">ブラウザのテーマ色</Label><div className="flex items-center gap-2"><input id="theme_color" type="color" name="theme_color" defaultValue={initialThemeColor} className="h-10 w-16 cursor-pointer rounded-lg border border-border bg-card p-1" /><span className="text-xs text-muted-foreground">ブラウザ上部などに使われます</span></div></div>
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="og_description">説明文</Label>

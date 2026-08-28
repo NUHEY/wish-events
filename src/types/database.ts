@@ -126,6 +126,7 @@ export interface EventRow {
   description: string | null;
   description_en: string | null;
   poster_url: string | null;
+  thumbnail_url: string | null;
   location: string | null;
   location_en: string | null;
   target_audience: string | null;
@@ -168,6 +169,7 @@ export type EventCardData = Pick<
   | "title_en"
   | "category"
   | "poster_url"
+  | "thumbnail_url"
   | "fee_amount"
   | "show_free_tag"
   | "event_date"
@@ -412,6 +414,10 @@ export interface SiteSettingsRow {
   og_title: string | null;
   og_description: string | null;
   og_image_url: string | null;
+  favicon_url: string | null;
+  apple_touch_icon_url: string | null;
+  app_short_name: string;
+  theme_color: string;
   accent_color: string | null;
   colorful_status: boolean;
   event_label_rotation_enabled: boolean;
@@ -437,6 +443,11 @@ export interface SiteSettingsRow {
   cta_blur_px: number;
   cta_fade_height_px: number;
   cta_transition_ms: number;
+  home_tool_density: "minimal" | "compact";
+  schedule_default_start_time: string;
+  schedule_default_end_time: string;
+  schedule_default_slot_minutes: 15 | 30 | 60;
+  schedule_max_days: number;
   updated_by: string | null;
   updated_at: string;
 }

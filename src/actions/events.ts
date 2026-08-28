@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRa } from "@/lib/auth";
 import { eventSchema } from "@/lib/validations/event";
 import { jstWallClockToUtcIso } from "@/lib/utils";
+import { DEFAULT_EVENT_PRESETS } from "@/lib/media-defaults";
 
 export type ActionResult = { error?: string } | void;
 
@@ -25,6 +26,7 @@ function parseEventFormData(formData: FormData) {
     description: formData.get("description") ?? "",
     description_en: formData.get("description_en") ?? "",
     poster_url: formData.get("poster_url") ?? "",
+    thumbnail_url: formData.get("thumbnail_url") ?? "",
     location: formData.get("location") ?? "",
     location_en: formData.get("location_en") ?? "",
     target_audience: formData.get("target_audience") ?? "",
@@ -64,6 +66,8 @@ export async function createEvent(
   }
 
   const supabase = await createClient();
+  const posterUrl = parsed.data.poster_url || parsed.data.thumbnail_url || DEFAULT_EVENT_PRESETS[0].url;
+  const thumbnailUrl = parsed.data.thumbnail_url || parsed.data.poster_url || DEFAULT_EVENT_PRESETS[0].url;
   const { data, error } = await supabase
     .from("events")
     .insert({
@@ -72,7 +76,8 @@ export async function createEvent(
       category: parsed.data.category,
       description: parsed.data.description || null,
       description_en: parsed.data.description_en || null,
-      poster_url: parsed.data.poster_url || null,
+      poster_url: posterUrl,
+      thumbnail_url: thumbnailUrl,
       location: parsed.data.location || null,
       location_en: parsed.data.location_en || null,
       target_audience: parsed.data.target_audience || null,
@@ -132,6 +137,8 @@ export async function updateEvent(
   }
 
   const supabase = await createClient();
+  const posterUrl = parsed.data.poster_url || parsed.data.thumbnail_url || DEFAULT_EVENT_PRESETS[0].url;
+  const thumbnailUrl = parsed.data.thumbnail_url || parsed.data.poster_url || DEFAULT_EVENT_PRESETS[0].url;
   const { error } = await supabase
     .from("events")
     .update({
@@ -140,7 +147,8 @@ export async function updateEvent(
       category: parsed.data.category,
       description: parsed.data.description || null,
       description_en: parsed.data.description_en || null,
-      poster_url: parsed.data.poster_url || null,
+      poster_url: posterUrl,
+      thumbnail_url: thumbnailUrl,
       location: parsed.data.location || null,
       location_en: parsed.data.location_en || null,
       target_audience: parsed.data.target_audience || null,

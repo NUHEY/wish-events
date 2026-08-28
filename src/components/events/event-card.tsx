@@ -84,12 +84,13 @@ export async function EventCard({
       >
         <div className="relative overflow-hidden">
           <EventPoster
-            src={event.poster_url}
+            src={event.thumbnail_url ?? event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
             ratioClassName="aspect-[1.618/1]"
             roundedClassName="rounded-none"
             softenBackdrop={false}
+            fit="cover"
           />
           <EventLabelRotator
             labels={labels}

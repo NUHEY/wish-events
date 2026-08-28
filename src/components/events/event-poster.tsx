@@ -20,6 +20,7 @@ export function EventPoster({
   ratioClassName = "aspect-[3/4]",
   roundedClassName = "rounded-lg",
   softenBackdrop = true,
+  fit = "contain",
 }: {
   src: string | null;
   alt: string;
@@ -37,6 +38,8 @@ export function EventPoster({
   roundedClassName?: string;
   /** 一覧セルではSafariのfilter合成バグを避けるため、ぼかしを無効にする。 */
   softenBackdrop?: boolean;
+  /** 一覧用サムネイルはcover、A4ポスターはcontainで表示する。 */
+  fit?: "cover" | "contain";
 }) {
   // 画像未登録の場合はWaseda WISHをイメージしたデフォルト画像を表示する（「画像なし」の空白を避けるため）。
   const isDefault = !src;
@@ -61,7 +64,7 @@ export function EventPoster({
         alt={isDefault ? emptyLabel : alt}
         fill
         priority={priority}
-        className={cn("relative", softenBackdrop && "drop-shadow-sm", isDefault ? "object-cover" : "object-contain")}
+        className={cn("relative", softenBackdrop && "drop-shadow-sm", isDefault || fit === "cover" ? "object-cover" : "object-contain")}
         sizes="(max-width: 768px) 100vw, 33vw"
       />
     </div>

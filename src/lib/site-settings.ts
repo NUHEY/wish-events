@@ -6,6 +6,10 @@ export type SiteSettings = {
   ogTitle: string | null;
   ogDescription: string | null;
   ogImageUrl: string | null;
+  faviconUrl: string | null;
+  appleTouchIconUrl: string | null;
+  appShortName: string;
+  themeColor: string;
   accentColor: string;
   colorfulStatus: boolean;
   eventLabelRotationEnabled: boolean;
@@ -31,6 +35,11 @@ export type SiteSettings = {
   ctaBlurPx: number;
   ctaFadeHeightPx: number;
   ctaTransitionMs: number;
+  homeToolDensity: "minimal" | "compact";
+  scheduleDefaultStartTime: string;
+  scheduleDefaultEndTime: string;
+  scheduleDefaultSlotMinutes: 15 | 30 | 60;
+  scheduleMaxDays: number;
 };
 
 export const SITE_DEFAULT_TITLE = "WISH Events";
@@ -49,6 +58,10 @@ export const SITE_SETTINGS_DEFAULTS: SiteSettings = {
   ogTitle: null,
   ogDescription: null,
   ogImageUrl: null,
+  faviconUrl: null,
+  appleTouchIconUrl: null,
+  appShortName: "WISH",
+  themeColor: "#8E1728",
   accentColor: SITE_DEFAULT_ACCENT_COLOR,
   colorfulStatus: false,
   eventLabelRotationEnabled: true,
@@ -74,6 +87,11 @@ export const SITE_SETTINGS_DEFAULTS: SiteSettings = {
   ctaBlurPx: 16,
   ctaFadeHeightPx: 64,
   ctaTransitionMs: 200,
+  homeToolDensity: "minimal",
+  scheduleDefaultStartTime: "09:00",
+  scheduleDefaultEndTime: "21:00",
+  scheduleDefaultSlotMinutes: 30,
+  scheduleMaxDays: 31,
 };
 
 function numberSetting(value: unknown, fallback: number, min: number, max: number) {
@@ -108,6 +126,10 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       ogTitle: typeof row.og_title === "string" ? row.og_title.trim() || null : null,
       ogDescription: typeof row.og_description === "string" ? row.og_description.trim() || null : null,
       ogImageUrl: typeof row.og_image_url === "string" ? row.og_image_url : null,
+      faviconUrl: typeof row.favicon_url === "string" ? row.favicon_url : null,
+      appleTouchIconUrl: typeof row.apple_touch_icon_url === "string" ? row.apple_touch_icon_url : null,
+      appShortName: typeof row.app_short_name === "string" && row.app_short_name.trim() ? row.app_short_name.trim().slice(0, 20) : SITE_SETTINGS_DEFAULTS.appShortName,
+      themeColor: typeof row.theme_color === "string" && HEX_PATTERN.test(row.theme_color) ? row.theme_color : SITE_SETTINGS_DEFAULTS.themeColor,
       accentColor,
       colorfulStatus: booleanSetting(row.colorful_status, SITE_SETTINGS_DEFAULTS.colorfulStatus),
       eventLabelRotationEnabled: booleanSetting(row.event_label_rotation_enabled, SITE_SETTINGS_DEFAULTS.eventLabelRotationEnabled),
@@ -133,6 +155,11 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       ctaBlurPx: numberSetting(row.cta_blur_px, SITE_SETTINGS_DEFAULTS.ctaBlurPx, 0, 32),
       ctaFadeHeightPx: numberSetting(row.cta_fade_height_px, SITE_SETTINGS_DEFAULTS.ctaFadeHeightPx, 32, 128),
       ctaTransitionMs: numberSetting(row.cta_transition_ms, SITE_SETTINGS_DEFAULTS.ctaTransitionMs, 100, 600),
+      homeToolDensity: row.home_tool_density === "compact" ? "compact" : "minimal",
+      scheduleDefaultStartTime: typeof row.schedule_default_start_time === "string" ? row.schedule_default_start_time.slice(0, 5) : SITE_SETTINGS_DEFAULTS.scheduleDefaultStartTime,
+      scheduleDefaultEndTime: typeof row.schedule_default_end_time === "string" ? row.schedule_default_end_time.slice(0, 5) : SITE_SETTINGS_DEFAULTS.scheduleDefaultEndTime,
+      scheduleDefaultSlotMinutes: ([15, 30, 60].includes(Number(row.schedule_default_slot_minutes)) ? Number(row.schedule_default_slot_minutes) : SITE_SETTINGS_DEFAULTS.scheduleDefaultSlotMinutes) as 15 | 30 | 60,
+      scheduleMaxDays: numberSetting(row.schedule_max_days, SITE_SETTINGS_DEFAULTS.scheduleMaxDays, 3, 31),
     };
   } catch {
     return SITE_SETTINGS_DEFAULTS;

@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
 
+const eventMediaUrl = z.string().refine(
+  (value) => value === "" || value.startsWith("/images/event-presets/") || z.string().url().safeParse(value).success,
+  "画像URLの形式が正しくありません"
+).default("");
+
 export const eventSchema = z
   .object({
     title: z.string().trim().min(1, "タイトルを入力してください").max(200),
@@ -8,7 +13,8 @@ export const eventSchema = z
     category: z.enum(EVENT_CATEGORIES),
     description: z.string().trim().optional().default(""),
     description_en: z.string().trim().optional().default(""),
-    poster_url: z.string().url().optional().or(z.literal("")).default(""),
+    poster_url: eventMediaUrl,
+    thumbnail_url: eventMediaUrl,
     location: z.string().trim().optional().default(""),
     location_en: z.string().trim().optional().default(""),
     target_audience: z.string().trim().optional().default(""),

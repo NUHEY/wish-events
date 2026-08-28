@@ -8,14 +8,16 @@ import { RESIDENT_TOOLS } from "@/components/tools/resident-tool-grid";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
+import { Select } from "@/components/ui/select";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 type ToolSetting = { key: FeatureFlagKey; showOnHome: boolean; position: number; state: FeatureFlagState };
 
-export function HomeToolEditor({ initialTools }: { initialTools: ToolSetting[] }) {
+export function HomeToolEditor({ initialTools, initialDensity }: { initialTools: ToolSetting[]; initialDensity: "minimal" | "compact" }) {
   const [tools, setTools] = useState(() => [...initialTools].sort((a, b) => a.position - b.position));
   const [pending, startTransition] = useTransition();
+  const [density, setDensity] = useState<"minimal" | "compact">(initialDensity);
   const copyByKey = new Map(RESIDENT_TOOLS.map((tool) => [tool.key, tool]));
 
   function move(index: number, direction: -1 | 1) {
@@ -30,7 +32,7 @@ export function HomeToolEditor({ initialTools }: { initialTools: ToolSetting[] }
 
   function save() {
     startTransition(async () => {
-      const result = await saveHomeToolSettings(tools.map((tool, index) => ({ key: tool.key, showOnHome: tool.showOnHome, position: index + 1 })));
+      const result = await saveHomeToolSettings(tools.map((tool, index) => ({ key: tool.key, showOnHome: tool.showOnHome, position: index + 1 })), density);
       if (result.error) toast.error(result.error);
       else toast.success("ホームのツール表示を保存しました");
     });
@@ -57,6 +59,10 @@ export function HomeToolEditor({ initialTools }: { initialTools: ToolSetting[] }
             </div>
           );
         })}
+      </div>
+      <div className="grid gap-1.5 border-t border-border pt-4 sm:grid-cols-[1fr_12rem] sm:items-center">
+        <div><p className="text-sm font-semibold">ホームでの大きさ</p><p className="text-xs text-muted-foreground">最小はタイトルだけ、コンパクトは短い説明も表示します。</p></div>
+        <Select value={density} onChange={(event) => setDensity(event.target.value as "minimal" | "compact")}><option value="minimal">最小（推奨）</option><option value="compact">コンパクト</option></Select>
       </div>
       <Button type="button" disabled={pending} onClick={save}><Save className="h-4 w-4" />{pending ? "保存中…" : "ツール表示を保存"}</Button>
     </section>

@@ -134,7 +134,7 @@ export default async function EventDetailPage({
       <BackButton fallbackHref="/events" className="-ml-2" />
 
       <EventPoster
-        src={event.poster_url}
+        src={event.poster_url ?? event.thumbnail_url}
         alt={title}
         emptyLabel={dict.event.noImage}
         className="max-h-[70vh] rounded-lg"

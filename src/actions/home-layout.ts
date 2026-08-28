@@ -65,7 +65,7 @@ export async function saveHomeLayout(
   return { success: true };
 }
 
-export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnHome: boolean; position: number }[]) {
+export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnHome: boolean; position: number }[], density: "minimal" | "compact") {
   const profile = await requireRa();
   const allowed = new Set<FeatureFlagKey>([
     "availability_matching",
@@ -88,6 +88,8 @@ export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnH
     updated_at: new Date().toISOString(),
   }).eq("key", item.key)));
   if (results.some((result) => result.error)) return { error: "保存できませんでした。20260828のSQLを適用してください。" };
+  const { error: densityError } = await supabase.from("site_settings").update({ home_tool_density: density === "compact" ? "compact" : "minimal", updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (densityError) return { error: "大きさを保存できませんでした。最新のSQLを適用してください。" };
   revalidatePath("/");
   revalidatePath("/dashboard/home-layout");
   return { success: true };

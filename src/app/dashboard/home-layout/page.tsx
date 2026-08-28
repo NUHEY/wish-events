@@ -5,6 +5,7 @@ import { HomeToolEditor } from "@/components/home/home-tool-editor";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { HOME_SECTION_KEYS } from "@/lib/constants";
 import { RESIDENT_TOOLS } from "@/components/tools/resident-tool-grid";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export default async function HomeLayoutPage() {
   await requireRa();
@@ -12,9 +13,10 @@ export default async function HomeLayoutPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [{ data: sections }, { data: toolRows }] = await Promise.all([
+  const [{ data: sections }, { data: toolRows }, settings] = await Promise.all([
     supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
     supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)),
+    getSiteSettings(),
   ]);
 
   // 万が一シード行が欠けている場合に備えたフォールバック（通常は発生しない）
@@ -43,7 +45,7 @@ export default async function HomeLayoutPage() {
       </div>
 
       <HomeLayoutEditor initialSections={safeSections} />
-      <HomeToolEditor initialTools={homeTools} />
+      <HomeToolEditor initialTools={homeTools} initialDensity={settings.homeToolDensity} />
     </div>
   );
 }

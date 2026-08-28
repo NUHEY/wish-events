@@ -18,7 +18,8 @@ import { TeamPicker } from "@/components/team/team-picker";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
-import { utcIsoToJstWallClockInput } from "@/lib/utils";
+import { cn, utcIsoToJstWallClockInput } from "@/lib/utils";
+import { DEFAULT_EVENT_PRESETS } from "@/lib/media-defaults";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
@@ -69,7 +70,9 @@ export function EventForm({
     },
     undefined
   );
-  const [posterUrl, setPosterUrl] = useState(initialEvent?.poster_url ?? "");
+  const initialFallback = initialEvent ? "" : DEFAULT_EVENT_PRESETS[0].url;
+  const [posterUrl, setPosterUrl] = useState(initialEvent?.poster_url ?? initialEvent?.thumbnail_url ?? initialFallback);
+  const [thumbnailUrl, setThumbnailUrl] = useState(initialEvent?.thumbnail_url ?? initialEvent?.poster_url ?? initialFallback);
   const [title, setTitle] = useState(initialEvent?.title ?? "");
   const [category, setCategory] = useState(initialEvent?.category ?? "");
   const [location, setLocation] = useState(initialEvent?.location ?? "");
@@ -124,13 +127,13 @@ export function EventForm({
     markDirty();
   }
 
-  async function handlePosterFile(file: File) {
+  async function handleMediaFile(file: File, kind: "thumbnail" | "poster") {
     setUploading(true);
     setUploadError(null);
 
     const supabase = createClient();
     const ext = file.name.split(".").pop();
-    const path = `${crypto.randomUUID()}.${ext}`;
+    const path = `${kind}/${crypto.randomUUID()}.${ext}`;
 
     const { error } = await supabase.storage.from("event-posters").upload(path, file, {
       upsert: false,
@@ -143,7 +146,14 @@ export function EventForm({
     }
 
     const { data } = supabase.storage.from("event-posters").getPublicUrl(path);
-    setPosterUrl(data.publicUrl);
+    const isPreset = (value: string) => DEFAULT_EVENT_PRESETS.some((preset) => preset.url === value);
+    if (kind === "thumbnail") {
+      setThumbnailUrl(data.publicUrl);
+      if (!posterUrl || isPreset(posterUrl)) setPosterUrl(data.publicUrl);
+    } else {
+      setPosterUrl(data.publicUrl);
+      if (!thumbnailUrl || isPreset(thumbnailUrl)) setThumbnailUrl(data.publicUrl);
+    }
     setUploading(false);
     markDirty();
   }
@@ -157,6 +167,7 @@ export function EventForm({
       className="flex flex-col gap-6"
     >
       <input type="hidden" name="poster_url" value={posterUrl} />
+      <input type="hidden" name="thumbnail_url" value={thumbnailUrl} />
 
       {!initialEvent && <EventSheetImporter onImported={applyImportedDraft} />}
 
@@ -197,9 +208,36 @@ export function EventForm({
         </Select>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="poster">{dict.eventForm.posterLabel}</Label>
-        <ImageDropzone value={posterUrl} onFile={handlePosterFile} disabled={uploading} label={dict.eventForm.posterLabel} />
+      <div className="grid gap-3">
+        <div>
+          <Label>イベント画像</Label>
+          <p className="mt-1 text-xs text-muted-foreground">一覧セル用と詳細ページ用を分けて登録できます。片方だけの場合は、もう片方にも自動で補完されます。</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold">一覧セル用サムネイル</p>
+            <ImageDropzone value={thumbnailUrl} onFile={(file) => handleMediaFile(file, "thumbnail")} disabled={uploading} label="サムネイルを追加" hint="推奨 16:10・1200×742px／10MB以下" previewClassName="object-cover" className="min-h-40 aspect-[1.618/1]" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold">詳細ページ用 A4ポスター</p>
+            <ImageDropzone value={posterUrl} onFile={(file) => handleMediaFile(file, "poster")} disabled={uploading} label="A4ポスターを追加" hint="推奨 A4縦・1240×1754px／10MB以下" className="min-h-56 aspect-[1/1.414]" />
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">画像がない場合のデザイン</p>
+          <div className="grid grid-cols-4 gap-2">
+            {DEFAULT_EVENT_PRESETS.map((preset) => {
+              const selected = thumbnailUrl === preset.url && posterUrl === preset.url;
+              return (
+                <button key={preset.id} type="button" onClick={() => { setThumbnailUrl(preset.url); setPosterUrl(preset.url); markDirty(); }} className={cn("overflow-hidden rounded-xl border-2 bg-secondary/30 text-left transition-transform active:scale-[0.97]", selected ? "border-primary ring-2 ring-primary/15" : "border-transparent")} aria-pressed={selected}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preset.url} alt="" className="aspect-[1.618/1] w-full object-cover" />
+                  <span className="block truncate px-2 py-1.5 text-[10px] font-semibold">{preset.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         {uploading && <p className="text-sm text-muted-foreground">{dict.eventForm.uploading}</p>}
         {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
       </div>
