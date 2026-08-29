@@ -9,7 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDict } from "@/lib/i18n/locale-provider";
-import { signInInstitutionalAccount, type InstitutionalAccountKind } from "@/actions/institutional-login";
+import type { InstitutionalAccountKind } from "@/lib/institutional-accounts";
+
+type InstitutionalLoginResponse =
+  | { success: true; accessToken: string; refreshToken: string }
+  | { success: false; code: string; error: string };
 
 function GoogleIcon() {
   return (
@@ -73,7 +77,13 @@ function LoginContent() {
     const kind = selectedAccount;
     startInstitutionalTransition(async () => {
       try {
-        const result = await signInInstitutionalAccount(kind, institutionalPassword);
+        const response = await fetch("/api/auth/institutional-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ kind, password: institutionalPassword }),
+        });
+        const result = await response.json() as InstitutionalLoginResponse;
         if (!result.success) {
           setInstitutionalError(result.error);
           return;
@@ -85,6 +95,14 @@ function LoginContent() {
           refresh_token: result.refreshToken,
         });
         if (sessionError) {
+          setInstitutionalError(dict.login.authFailed);
+          return;
+        }
+
+        // Cookieへの保存まで完了したことを確認してから移動する。
+        // ここを待たずに遷移すると、低速回線でmiddlewareが未ログインと判定することがある。
+        const { data: verifiedUser, error: verifyError } = await supabase.auth.getUser();
+        if (verifyError || !verifiedUser.user) {
           setInstitutionalError(dict.login.authFailed);
           return;
         }
