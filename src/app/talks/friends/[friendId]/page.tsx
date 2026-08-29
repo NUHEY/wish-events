@@ -42,14 +42,14 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
 
   return (
     <MobileChatViewport>
-      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
-        <BackButton fallbackHref="/talks?tab=friends" className="-ml-2 !p-2" />
+      <div data-chat-theme="aurora" className="flex shrink-0 items-center gap-3 border-b border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3 py-3 backdrop-blur-xl sm:rounded-t-2xl sm:border-x sm:border-t sm:border-[var(--chat-border)]">
+        <BackButton fallbackHref="/talks?tab=friends" className="-ml-1 !h-9 !w-9 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
         <AvatarRing role={friend.role} size={40}>
           <Image src={friend.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
         </AvatarRing>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">{friend.full_name ?? dict.talks.residentFallback}</h1>
-          <p className="text-xs text-muted-foreground">{dict.talks.friendLabel}</p>
+          <h1 className="truncate text-[15px] font-bold tracking-tight text-[var(--chat-text-primary)]">{friend.full_name ?? dict.talks.residentFallback}</h1>
+          <p className="text-[11px] font-medium text-[var(--chat-text-secondary)]">{dict.talks.friendLabel}</p>
         </div>
       </div>
       <FriendDm

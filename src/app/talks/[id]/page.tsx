@@ -39,21 +39,21 @@ export default async function EventTalkPage({
 
   return (
     <MobileChatViewport>
-      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2.5 sm:rounded-t-2xl">
-        <BackButton fallbackHref="/talks" className="-ml-2 !p-2" />
+      <div data-chat-theme="aurora" className="flex shrink-0 items-center gap-3 border-b border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3 py-3 backdrop-blur-xl sm:rounded-t-2xl sm:border-x sm:border-t sm:border-[var(--chat-border)]">
+        <BackButton fallbackHref="/talks" className="-ml-1 !h-9 !w-9 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
         {event.poster_url && (
-          <Image src={event.poster_url} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+          <Image src={event.poster_url} alt="" width={42} height={42} className="h-[42px] w-[42px] rounded-lg object-cover shadow-[var(--chat-shadow-sm)]" />
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">{event.title}</h1>
-          <Link href={`/events/${id}`} className="text-xs text-primary hover:underline">
+          <h1 className="truncate text-[15px] font-bold tracking-tight text-[var(--chat-text-primary)]">{event.title}</h1>
+          <Link href={`/events/${id}`} className="text-[11px] font-semibold text-primary active:opacity-60">
             {dict.talks.eventDetails}
           </Link>
         </div>
         {participants.length > 0 && <TalkParticipantsButton participants={participants} total={participantTotal} />}
       </div>
       {joined === "1" && (
-        <div className="mx-3 mt-3 shrink-0 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+        <div className="mx-3 mt-3 shrink-0 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary shadow-[var(--chat-shadow-sm)]">
           {dict.talks.joinedMessage}
         </div>
       )}

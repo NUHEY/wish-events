@@ -10,6 +10,7 @@ export interface ChatMessageData {
   senderId: string
   senderName: string
   senderAvatar?: string
+  senderRole?: string
 
   // Content
   text?: string

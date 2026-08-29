@@ -94,7 +94,9 @@ async function updateSessionInner(request: NextRequest) {
   }
 
   if (user) {
-    const institutionalKind = institutionalAccountKindForEmail(user.email);
+    const metadataKind = user.app_metadata?.account_kind;
+    const institutionalKind = institutionalAccountKindForEmail(user.email)
+      ?? (metadataKind === "service_desk" || metadataKind === "university_staff" ? metadataKind : null);
 
     // 通常利用者にはwaseda.jp制限を維持する。関係者共有アカウントは、
     // Vercelのサーバー専用設定と一致したメールだけを明示的に例外とする。

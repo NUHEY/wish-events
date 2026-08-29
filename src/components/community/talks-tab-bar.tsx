@@ -57,9 +57,9 @@ export function TalksTabBar({
       role="tablist"
       aria-label="talks tab"
       className={cn(
-        "grid w-full shrink-0 grid-cols-3 items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity sm:w-[348px]",
-        visibleTabs.length === 2 && "grid-cols-2 sm:w-[252px]",
-        visibleTabs.length === 1 && "grid-cols-1 sm:w-[126px]",
+        "grid w-full shrink-0 grid-cols-3 items-center gap-1 rounded-xl border border-[var(--chat-border)] bg-[var(--chat-bg-sidebar)] p-1 transition-opacity",
+        visibleTabs.length === 2 && "grid-cols-2",
+        visibleTabs.length === 1 && "grid-cols-1",
         pending && "opacity-60"
       )}
     >
@@ -72,10 +72,10 @@ export function TalksTabBar({
           disabled={pending}
           onClick={() => setTab(tab)}
           className={cn(
-            "relative min-w-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-wait",
+            "relative min-w-0 rounded-lg px-3 py-2 text-[13px] font-semibold transition-all disabled:cursor-wait",
             active === tab
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-[var(--chat-shadow-sm)]"
+              : "text-[var(--chat-text-secondary)] active:bg-[var(--chat-accent-soft)] sm:hover:bg-[var(--chat-bg-main)] sm:hover:text-[var(--chat-text-primary)]"
           )}
         >
           <span className="inline-flex items-center gap-1">{dict.talks.tabs[tab]}{((tab === "floor" && floorGroupState === "beta") || (tab === "friends" && friendDmState === "beta")) && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>

@@ -79,6 +79,16 @@ function LoginContent() {
           return;
         }
 
+        // 検証済みセッションをブラウザへ保存し終えてからホームへ移動する。
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.accessToken,
+          refresh_token: result.refreshToken,
+        });
+        if (sessionError) {
+          setInstitutionalError(dict.login.authFailed);
+          return;
+        }
+
         setInstitutionalPassword("");
         // Server ActionのSet-Cookieを受け取った後に文書単位で遷移する。
         // router.replace()とrouter.refresh()を同時に走らせると、低速回線では

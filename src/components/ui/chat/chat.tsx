@@ -302,7 +302,29 @@ interface ChatMessageProps {
   position: "solo" | "first" | "middle" | "last"
   showSender?: boolean
   showAvatar?: boolean
+  disableActions?: boolean
+  children?: React.ReactNode
   className?: string
+}
+
+const CHAT_URL_PATTERN = /(https?:\/\/[^\s]+)/g
+
+function ChatMessageText({ text }: { text: string }) {
+  return text.split(CHAT_URL_PATTERN).map((part, index) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={`${part}-${index}`}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-all underline decoration-current/50 underline-offset-2"
+      >
+        {part}
+      </a>
+    ) : (
+      <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
+    )
+  )
 }
 
 // ─── Voice Message ─────────────────────────────────────────────────────────
@@ -391,12 +413,15 @@ function ChatMessage({
   position,
   showSender = false,
   showAvatar = false,
+  disableActions = false,
+  children,
   className,
 }: ChatMessageProps) {
   const timestamp = new Date(message.timestamp)
-  const { currentUser } = useChatContext()
+  const { currentUser, onReply, onReactionAdd, onEdit, onDelete, onPin } = useChatContext()
   const radiusClass = getBubbleRadius(isOutgoing, position)
   const [lightboxImage, setLightboxImage] = React.useState<string | null>(null)
+  const hasActions = !disableActions && !!(onReply || onReactionAdd || onEdit || onDelete || onPin)
 
   return (
     <div
@@ -414,7 +439,10 @@ function ChatMessage({
             <img
               src={message.senderAvatar}
               alt={message.senderName}
-              className="size-8 rounded-full object-cover"
+              className={cn(
+                "size-8 rounded-full object-cover",
+                message.senderRole === "ra" && "ring-2 ring-[var(--chat-accent)] ring-offset-2 ring-offset-[var(--chat-bg-main)]"
+              )}
             />
           ) : showAvatar ? (
             <div className="flex size-8 items-center justify-center rounded-full bg-[var(--chat-bubble-incoming)] text-[11px] font-semibold text-[var(--chat-text-secondary)]">
@@ -436,7 +464,7 @@ function ChatMessage({
         {/* Bubble — relative for hover toolbar positioning */}
         <div className="relative">
           {/* Hover actions toolbar */}
-          <ChatMessageActions message={message} isOutgoing={isOutgoing} />
+          {hasActions && <ChatMessageActions message={message} isOutgoing={isOutgoing} />}
 
           <div
             className={cn(
@@ -458,9 +486,11 @@ function ChatMessage({
             {/* Text content */}
             {message.text && (
               <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.35] tracking-[-0.01em]">
-                {message.text}
+                <ChatMessageText text={message.text} />
               </p>
             )}
+
+            {children}
 
             {/* Images */}
             {message.images && message.images.length > 0 && (

@@ -3,7 +3,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
-import Image from "next/image";
 import {
   getDirectMessagesByIds,
   getOlderDirectMessages,
@@ -12,17 +11,16 @@ import {
 } from "@/actions/direct-messages";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
-import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { dmPairFolder } from "@/lib/utils";
 import { compressImageFile } from "@/lib/image-compress";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
-import { useDict, useLocale } from "@/lib/i18n/locale-provider";
-import { ChatProvider } from "@/components/ui/chat/chat";
+import { useDict } from "@/lib/i18n/locale-provider";
+import { ChatMessage, ChatProvider } from "@/components/ui/chat/chat";
+import type { ChatMessageData } from "@/components/ui/chat/types";
 
 type DirectMessage = {
   id: string;
@@ -34,8 +32,6 @@ type DirectMessage = {
 };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
-const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
-
 function normalizeBody(text: string) {
   return text.replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -44,25 +40,6 @@ function isSameGroup(a: DirectMessage | undefined, b: DirectMessage | undefined)
   if (!a || !b) return false;
   if (a.sender_id !== b.sender_id) return false;
   return Math.abs(new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) < GROUP_WINDOW_MS;
-}
-
-function linkifyText(text: string, keyPrefix: string) {
-  return text.split(URL_PATTERN).map((part, index) =>
-    /^https?:\/\//.test(part) ? (
-      <a
-        key={`${keyPrefix}-${index}`}
-        href={part}
-        target="_blank"
-        rel="noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="break-all underline underline-offset-2"
-      >
-        {part}
-      </a>
-    ) : (
-      <span key={`${keyPrefix}-${index}`}>{part}</span>
-    )
-  );
 }
 
 /**
@@ -90,12 +67,10 @@ export function FriendDm({
   initialLastReadAt?: string | null;
 }) {
   const dict = useDict();
-  const locale = useLocale();
   const [liveMessages, setLiveMessages] = useState<DirectMessage[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<DirectMessage[]>([]);
   const [hasMoreOlderState, setHasMoreOlderState] = useState(hasMoreOlder);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -326,29 +301,26 @@ export function FriendDm({
     })();
   }
 
-  const time = (createdAt: string) =>
-    new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
-
   return (
     <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : uploading ? dict.talks.sendingImage : dict.talks.sendingMessage} />
       <div
         ref={setMessagesScrollRef}
-        className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,var(--chat-bg-sidebar)_0%,var(--chat-bg-main)_72%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
+        className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[linear-gradient(180deg,var(--chat-bg-sidebar),var(--chat-bg-main)_10rem)] px-3.5 py-5 sm:min-h-[20rem] sm:px-5"
       >
         {hasMoreOlderState && (
           <button
             type="button"
             onClick={loadOlder}
             disabled={loadingOlder}
-            className="mb-2 inline-flex items-center gap-1.5 self-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
+            className="mb-3 inline-flex items-center gap-1.5 self-center rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg-main)] px-3 py-1.5 text-[11px] font-semibold text-[var(--chat-text-secondary)] shadow-[var(--chat-shadow-sm)] disabled:opacity-60"
           >
             {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}
             {dict.talks.loadOlder}
           </button>
         )}
         {displayedMessages.length === 0 && (
-          <div className="mb-2 self-center rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+          <div className="mb-3 self-center rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3.5 py-1.5 text-[11px] font-semibold text-[var(--chat-text-secondary)] shadow-[var(--chat-shadow-sm)] backdrop-blur">
             {dict.talks.directEmpty.replace("{name}", friendName)}
           </div>
         )}
@@ -358,19 +330,18 @@ export function FriendDm({
           const next = displayedMessages[index + 1];
           const isGroupStart = !isSameGroup(prev, message);
           const isGroupEnd = !isSameGroup(message, next);
-          const hasCaption = !!message.body;
-          const bubbleTail = mine
-            ? isGroupEnd
-              ? "rounded-br-md"
-              : "rounded-br-2xl"
-            : isGroupEnd
-              ? "rounded-bl-md"
-              : "rounded-bl-2xl";
-          const bubbleBase = `chat-bubble rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[var(--chat-shadow-sm)] ${
-            mine
-              ? "bg-[var(--chat-bubble-outgoing)] text-[var(--chat-bubble-outgoing-text)]"
-              : "border border-[var(--chat-border)] bg-[var(--chat-bubble-incoming)] text-[var(--chat-bubble-incoming-text)]"
-          }`;
+          const position = isGroupStart ? (isGroupEnd ? "solo" : "first") : (isGroupEnd ? "last" : "middle");
+          const chatMessage: ChatMessageData = {
+            id: message.id,
+            senderId: message.sender_id,
+            senderName: mine ? "You" : friendName,
+            senderAvatar: mine ? undefined : friendAvatarUrl || DEFAULT_AVATAR_IMAGE_URL,
+            senderRole: mine ? undefined : friendRole,
+            text: normalizeBody(message.body) || undefined,
+            images: message.mediaUrl ? [{ url: message.mediaUrl, width: 1200, height: 900, alt: dict.talks.directImageAlt }] : undefined,
+            timestamp: new Date(message.created_at),
+            status: message.id.startsWith("pending-") ? "sending" : "sent",
+          };
 
           return (
             <Fragment key={message.id}>
@@ -381,66 +352,20 @@ export function FriendDm({
                   <span className="h-px flex-1 bg-destructive/35" />
                 </div>
               )}
-              <div
-                className={`group flex max-w-[85%] gap-2 ${mine ? "self-end" : "self-start"} ${
-                  isGroupStart && index !== 0 ? "mt-3" : ""
-                }`}
-              >
-              {!mine &&
-                (isGroupEnd ? (
-                  <span className="mt-1 self-end shrink-0">
-                    <AvatarRing role={friendRole} size={28}>
-                      <Image
-                        src={friendAvatarUrl || DEFAULT_AVATAR_IMAGE_URL}
-                        alt=""
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-full object-cover shadow-sm"
-                      />
-                    </AvatarRing>
-                  </span>
-                ) : (
-                  <span className="w-7 shrink-0" />
-                ))}
-              <div className="relative min-w-0">
-                {message.mediaUrl ? (
-                  <div
-                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-xl shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
-                    onClick={() => setLightboxUrl(message.mediaUrl!)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={message.mediaUrl}
-                      alt={dict.talks.directImageAlt}
-                      loading="lazy"
-                      decoding="async"
-                      className="block max-h-80 min-w-40 rounded-xl object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className={bubbleBase}>
-                    <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                      {linkifyText(normalizeBody(message.body), `${message.id}-body`)}
-                    </p>
-                  </div>
-                )}
-
-                {message.mediaUrl && hasCaption && (
-                  <p className="mt-1 whitespace-pre-wrap break-words px-0.5 text-[13px] leading-snug text-foreground/80">
-                    {linkifyText(normalizeBody(message.body), `${message.id}-caption`)}
-                  </p>
-                )}
-
-                {isGroupEnd && <div className={`mt-1 flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}><span className="text-[10px] font-medium text-muted-foreground/70">{time(message.created_at)}</span></div>}
-              </div>
-              </div>
+              <ChatMessage
+                message={chatMessage}
+                isOutgoing={mine}
+                position={position}
+                showAvatar={!mine && isGroupEnd}
+                disableActions
+              />
             </Fragment>
           );
         })}
         <div ref={endRef} />
       </div>
 
-      <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
+      <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
         {stagedImages.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {stagedImages.map((item) => (
@@ -459,7 +384,7 @@ export function FriendDm({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-1.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-inner">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
           <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
             <ImagePlus className="h-5 w-5" />
             <input
@@ -508,7 +433,6 @@ export function FriendDm({
         </div>
         {error && <p className="mt-1.5 px-1 text-xs text-destructive">{error}</p>}
       </div>
-      {lightboxUrl && <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </ChatProvider>
   );
 }

@@ -413,20 +413,20 @@ export function EventTalk({
     <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
       <div
         ref={setMessagesScrollRef}
-        className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,var(--chat-bg-sidebar)_0%,var(--chat-bg-main)_72%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
+        className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[linear-gradient(180deg,var(--chat-bg-sidebar),var(--chat-bg-main)_10rem)] px-3.5 py-5 sm:min-h-[20rem] sm:px-5"
       >
         {hasMoreOlderState && (
           <button
             type="button"
             onClick={loadOlder}
             disabled={loadingOlder}
-            className="mb-2 inline-flex items-center gap-1.5 self-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
+            className="mb-3 inline-flex items-center gap-1.5 self-center rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg-main)] px-3 py-1.5 text-[11px] font-semibold text-[var(--chat-text-secondary)] shadow-[var(--chat-shadow-sm)] disabled:opacity-60"
           >
             {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}
             {dict.talks.loadOlder}
           </button>
         )}
-        <div className="mb-2 self-center rounded-full border border-border/70 bg-card/85 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+        <div className="mb-3 self-center rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3 py-1 text-[10px] font-semibold text-[var(--chat-text-secondary)] shadow-[var(--chat-shadow-sm)] backdrop-blur">
           {dict.talks.eventConversation}
         </div>
         {displayedMessages.map((message, index) => {
@@ -450,7 +450,7 @@ export function EventTalk({
             : isGroupEnd
               ? "rounded-bl-md"
               : "rounded-bl-2xl";
-          const bubbleBase = `chat-bubble rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[var(--chat-shadow-sm)] ${
+          const bubbleBase = `chat-bubble rounded-2xl ${bubbleTail} px-3.5 py-2.5 shadow-[var(--chat-shadow-sm)] ${
             mine
               ? "bg-[var(--chat-bubble-outgoing)] text-[var(--chat-bubble-outgoing-text)]"
               : "border border-[var(--chat-border)] bg-[var(--chat-bubble-incoming)] text-[var(--chat-bubble-incoming-text)]"
@@ -466,7 +466,7 @@ export function EventTalk({
                 </div>
               )}
               <div
-                className={`group flex max-w-[91%] gap-2 ${mine ? "self-end" : "self-start"} ${
+                className={`chat-message group flex max-w-[88%] gap-2 ${mine ? "self-end" : "self-start"} ${
                   isGroupStart && index !== 0 ? "mt-3" : ""
                 }`}
               >
@@ -490,7 +490,7 @@ export function EventTalk({
                 {!mine && isGroupStart && (
                   <Link
                     href={`/directory/${message.sender_id}`}
-                    className="mb-1 flex w-fit items-center pl-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                      className="mb-1 flex w-fit items-center pl-1 text-[11px] font-semibold text-[var(--chat-text-secondary)]"
                   >
                     {message.sender?.full_name ?? "RA"}
                     {message.sender?.role === "ra" && (
@@ -502,7 +502,7 @@ export function EventTalk({
                 {message.mediaUrl ? (
                   // 写真メッセージは吹き出しの背景色を持たず、画像そのものを浮かせて表示する（Instagram DM風）。
                   <div
-                    className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-xl shadow-[0_2px_12px_rgba(44,24,34,0.14)]"
+                      className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-2xl border border-[var(--chat-border)] shadow-[var(--chat-shadow-md)]"
                     onClick={() => handleBubbleTap(message, "image")}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -511,7 +511,7 @@ export function EventTalk({
                       alt={dict.talks.eventImageAlt}
                       loading="lazy"
                       decoding="async"
-                      className="block max-h-80 min-w-40 rounded-xl object-cover"
+                      className="block max-h-80 min-w-40 rounded-2xl object-cover"
                     />
                     {heartPulseId === message.id && (
                       <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -586,7 +586,7 @@ export function EventTalk({
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
                     <div
-                      className={`absolute bottom-full z-50 mb-1 flex items-center gap-0.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-elevated motion-safe:animate-pop-in ${
+                      className={`absolute bottom-full z-50 mb-2 flex items-center gap-0.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] px-2 py-1.5 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
                         mine ? "right-0" : "left-0"
                       }`}
                     >
@@ -834,7 +834,7 @@ function Composer({
   }
 
   return (
-    <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
+    <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
       {isRa && (
         <div className="mb-2">
           <button
@@ -932,7 +932,7 @@ function Composer({
         </div>
       )}
 
-      <div className="flex items-end gap-1.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-inner">
+      <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
         <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
           <ImagePlus className="h-5 w-5" />
           <input
@@ -993,9 +993,9 @@ function ToolButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-16 shrink-0 flex-col items-center gap-1 rounded-xl p-1.5 text-center transition-colors hover:bg-secondary"
+      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-transparent p-2 text-center transition-colors active:bg-[var(--chat-accent-soft)] sm:hover:border-[var(--chat-border)] sm:hover:bg-[var(--chat-bg-main)]"
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <Icon className="h-[18px] w-[18px]" />
       </span>
       <span className="text-[10px] font-semibold leading-tight">{label}</span>
@@ -1019,7 +1019,7 @@ function PollCard({
   const total = votes.length;
 
   return (
-    <div className="mt-2 min-w-60 rounded-2xl bg-foreground/5 p-2.5 text-foreground">
+    <div className="chat-content-card mt-2 min-w-60 rounded-xl bg-[var(--chat-bg-content-card)] p-3 text-[var(--chat-text-primary)] shadow-[var(--chat-shadow-sm)]">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-bold">
         <BarChart3 className="h-4 w-4 text-primary" />
         {dict.talks.pollTool}
@@ -1034,8 +1034,8 @@ function PollCard({
               key={index}
               type="button"
               onClick={() => onVote(poll.id, index)}
-              className={`relative flex w-full overflow-hidden rounded-xl border px-3 py-2 text-left text-xs font-medium transition-transform active:scale-[0.98] ${
-                selected === index ? "border-primary/50" : "border-border/70 bg-card/80"
+              className={`relative flex w-full overflow-hidden rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-transform active:scale-[0.98] ${
+                selected === index ? "border-primary/50 bg-primary/5" : "border-[var(--chat-border)] bg-[var(--chat-bg-main)]"
               }`}
             >
               <span className="absolute inset-y-0 left-0 bg-primary/12 transition-[width] duration-300" style={{ width: `${percentage}%` }} />

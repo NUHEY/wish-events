@@ -12,10 +12,16 @@ const AVATAR_URLS: Record<InstitutionalAccountKind, string> = {
   university_staff: "/images/institutional/university-staff.svg",
 };
 
+const DEFAULT_AUTH_EMAILS: Record<InstitutionalAccountKind, string> = {
+  service_desk: "service-desk@wish-events.local",
+  university_staff: "university-staff@wish-events.local",
+};
+
 export function institutionalAccountEmail(kind: InstitutionalAccountKind) {
-  return kind === "service_desk"
+  const configured = kind === "service_desk"
     ? process.env.INSTITUTIONAL_SERVICE_DESK_EMAIL?.trim()
     : process.env.INSTITUTIONAL_UNIVERSITY_STAFF_EMAIL?.trim();
+  return configured || DEFAULT_AUTH_EMAILS[kind];
 }
 
 export function institutionalDisplayName(kind: InstitutionalAccountKind) {
