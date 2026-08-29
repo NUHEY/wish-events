@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useTransition, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,6 @@ function GoogleIcon() {
 }
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const supabase = createClient();
@@ -80,20 +79,11 @@ function LoginContent() {
           return;
         }
 
-        // Server Action側で発行されたセッションをブラウザにも明示的に反映してから
-        // 遷移する。Cookieの反映より先に画面遷移が走り、ログイン画面へ戻る競合を防ぐ。
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: result.accessToken,
-          refresh_token: result.refreshToken,
-        });
-        if (sessionError) {
-          setInstitutionalError(dict.login.authFailed);
-          return;
-        }
-
         setInstitutionalPassword("");
-        router.replace("/");
-        router.refresh();
+        // Server ActionのSet-Cookieを受け取った後に文書単位で遷移する。
+        // router.replace()とrouter.refresh()を同時に走らせると、低速回線では
+        // 未認証のRSC取得と認証済み取得が競合してログイン画面へ戻ることがある。
+        window.location.replace("/");
       } catch (error) {
         console.error("Institutional sign-in failed", error);
         setInstitutionalError(dict.login.authFailed);

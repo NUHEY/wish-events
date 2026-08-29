@@ -22,6 +22,7 @@ import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import { ChatProvider } from "@/components/ui/chat/chat";
 
 type DirectMessage = {
   id: string;
@@ -122,6 +123,7 @@ export function FriendDm({
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
     [liveMessages, optimisticMessages]
   );
+  const chatCurrentUser = useMemo(() => ({ id: currentUserId, name: "You" }), [currentUserId]);
   const { firstUnreadId, unreadMarkerRef } = useInitialChatPosition(
     messages,
     currentUserId,
@@ -328,11 +330,11 @@ export function FriendDm({
     new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-border sm:bg-card sm:shadow-sm">
+    <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : uploading ? dict.talks.sendingImage : dict.talks.sendingMessage} />
       <div
         ref={setMessagesScrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
+        className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,var(--chat-bg-sidebar)_0%,var(--chat-bg-main)_72%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
       >
         {hasMoreOlderState && (
           <button
@@ -364,10 +366,10 @@ export function FriendDm({
             : isGroupEnd
               ? "rounded-bl-md"
               : "rounded-bl-2xl";
-          const bubbleBase = `rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${
+          const bubbleBase = `chat-bubble rounded-xl ${bubbleTail} px-3.5 py-2.5 shadow-[var(--chat-shadow-sm)] ${
             mine
-              ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground"
-              : "border border-border/80 bg-[linear-gradient(145deg,hsl(var(--message-surface)),hsl(var(--secondary)))] text-foreground"
+              ? "bg-[var(--chat-bubble-outgoing)] text-[var(--chat-bubble-outgoing-text)]"
+              : "border border-[var(--chat-border)] bg-[var(--chat-bubble-incoming)] text-[var(--chat-bubble-incoming-text)]"
           }`;
 
           return (
@@ -438,7 +440,7 @@ export function FriendDm({
         <div ref={endRef} />
       </div>
 
-      <div className="max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:max-h-none sm:overflow-visible">
+      <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
         {stagedImages.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {stagedImages.map((item) => (
@@ -457,7 +459,7 @@ export function FriendDm({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
+        <div className="flex items-end gap-1.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-inner">
           <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
             <ImagePlus className="h-5 w-5" />
             <input
@@ -507,6 +509,6 @@ export function FriendDm({
         {error && <p className="mt-1.5 px-1 text-xs text-destructive">{error}</p>}
       </div>
       {lightboxUrl && <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
-    </div>
+    </ChatProvider>
   );
 }

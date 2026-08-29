@@ -12,10 +12,10 @@ import {
 
 export type { InstitutionalAccountKind } from "@/lib/institutional-accounts";
 export type InstitutionalLoginResult =
-  | { success: true; accessToken: string; refreshToken: string }
+  | { success: true }
   | { success: false; error: string };
 
-const WASEDA_EMAIL_REGEX = /^[^@]+@([a-zA-Z0-9-]+\.)*waseda\.jp$/i;
+const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function credentialsFor(kind: InstitutionalAccountKind) {
   if (kind === "service_desk") {
@@ -48,7 +48,7 @@ export async function signInInstitutionalAccount(kind: string, password: string)
   }
 
   const credentials = credentialsFor(kind);
-  if (!credentials.email || !credentials.expectedPassword || !WASEDA_EMAIL_REGEX.test(credentials.email)) {
+  if (!credentials.email || !credentials.expectedPassword || !EMAIL_REGEX.test(credentials.email)) {
     return {
       success: false,
       error: locale === "en"
@@ -91,18 +91,20 @@ export async function signInInstitutionalAccount(kind: string, password: string)
   }
 
   // コメント等でも正式な名称と画像が表示されるよう、プロフィールを同期する。
+  // ここに失敗しても認証済みセッションは有効なのでログイン自体は止めず、
+  // 画面側のinstitutionalAccountKindForEmail()による表示補正をフォールバックにする。
   const displayName = institutionalDisplayName(kind);
   const avatarUrl = institutionalAvatarUrl(kind);
   const { data: profile } = await supabase.from("users").select("id").eq("id", data.user.id).maybeSingle();
   if (profile) {
-    await supabase.from("users").update({ full_name: displayName, avatar_url: avatarUrl }).eq("id", data.user.id);
+    const { error: updateError } = await supabase.from("users").update({ full_name: displayName, avatar_url: avatarUrl }).eq("id", data.user.id);
+    if (updateError) console.error("Failed to sync institutional profile", { kind, code: updateError.code });
   } else {
-    await supabase.from("users").insert({ id: data.user.id, email: credentials.email, full_name: displayName, avatar_url: avatarUrl });
+    const { error: insertError } = await supabase.from("users").insert({ id: data.user.id, email: credentials.email, full_name: displayName, avatar_url: avatarUrl });
+    if (insertError) console.error("Failed to create institutional profile", { kind, code: insertError.code });
   }
 
-  return {
-    success: true,
-    accessToken: data.session.access_token,
-    refreshToken: data.session.refresh_token,
-  };
+  // createServerClient がServer ActionのレスポンスCookieへセッションを書き込む。
+  // トークンをクライアントへ返さないことで、二重のsetSessionと遷移競合も避ける。
+  return { success: true };
 }

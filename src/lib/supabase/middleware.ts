@@ -94,8 +94,13 @@ async function updateSessionInner(request: NextRequest) {
   }
 
   if (user) {
-    // ドメイン制限（多層防御。本来はDBトリガーで弾かれるが念のため）
-    if (!WASEDA_EMAIL_REGEX.test(user.email ?? "")) {
+    const institutionalKind = institutionalAccountKindForEmail(user.email);
+
+    // 通常利用者にはwaseda.jp制限を維持する。関係者共有アカウントは、
+    // Vercelのサーバー専用設定と一致したメールだけを明示的に例外とする。
+    // これにより内部用メールで作られたSupabase Authアカウントが、ログイン直後に
+    // middlewareから強制サインアウトされる問題を防ぐ。
+    if (!institutionalKind && !WASEDA_EMAIL_REGEX.test(user.email ?? "")) {
       await supabase.auth.signOut();
       return redirectTo("/login", { error: "invalid_domain" });
     }
@@ -112,7 +117,7 @@ async function updateSessionInner(request: NextRequest) {
         .eq("id", user.id)
         .maybeSingle();
 
-      const isInstitutional = institutionalAccountKindForEmail(user.email) !== null
+      const isInstitutional = institutionalKind !== null
         || (!!profile && profile.account_kind !== "resident");
 
       // 退寮設定済みのユーザーは、退寮ページ以外どこにアクセスしても

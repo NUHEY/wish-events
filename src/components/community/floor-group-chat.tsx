@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import type { FloorMessageRow } from "@/types/database";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
+import { ChatProvider } from "@/components/ui/chat/chat";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
@@ -71,6 +72,7 @@ export function FloorGroupChat({
     () => [...liveMessages, ...optimisticMessages.filter((item) => !liveMessages.some((saved) => saved.id === item.id))],
     [liveMessages, optimisticMessages]
   );
+  const chatCurrentUser = useMemo(() => ({ id: currentUserId, name: "You" }), [currentUserId]);
   const { firstUnreadId, unreadMarkerRef } = useInitialChatPosition(
     messages,
     currentUserId,
@@ -187,9 +189,9 @@ export function FloorGroupChat({
   const formatTime = (value: string) => new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-border sm:bg-card sm:shadow-sm">
+    <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
       <PendingFeedback active={pending || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : dict.talks.sendingMessage} />
-      <div ref={setScrollRef} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4">
+      <div ref={setScrollRef} className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,var(--chat-bg-sidebar)_0%,var(--chat-bg-main)_72%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4">
         {hasMore && <button type="button" onClick={loadOlder} disabled={loadingOlder} className="mb-2 inline-flex items-center gap-1.5 self-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm disabled:opacity-60">{loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}{dict.talks.loadOlder}</button>}
         {displayedMessages.length === 0 && <div className="self-center rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">{dict.talks.floorEmpty.replace("{floor}", String(floorNumber))}</div>}
         {displayedMessages.map((message, index) => {
@@ -205,7 +207,7 @@ export function FloorGroupChat({
               {!mine && (groupEnd ? <span className="mt-1 self-end shrink-0"><AvatarRing role={member?.role ?? "resident"} size={28}><Image src={member?.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" /></AvatarRing></span> : <span className="w-7 shrink-0" />)}
               <div className="min-w-0">
                 {!mine && groupStart && <p className="mb-1 px-1 text-[10px] font-semibold text-muted-foreground">{member?.full_name ?? dict.talks.residentFallback}{member?.room_number ? ` · ${member.room_number}` : ""}</p>}
-                <div className={`rounded-xl px-3.5 py-2.5 shadow-[0_2px_10px_rgba(44,24,34,0.08)] ${groupEnd ? mine ? "rounded-br-md" : "rounded-bl-md" : ""} ${mine ? "bg-[linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/0.82))] text-primary-foreground" : "border border-border/80 bg-[linear-gradient(145deg,hsl(var(--message-surface)),hsl(var(--secondary)))] text-foreground"}`}><p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{linkifyText(message.body, message.id)}</p></div>
+                <div className={`chat-bubble rounded-xl px-3.5 py-2.5 shadow-[var(--chat-shadow-sm)] ${groupEnd ? mine ? "rounded-br-md" : "rounded-bl-md" : ""} ${mine ? "bg-[var(--chat-bubble-outgoing)] text-[var(--chat-bubble-outgoing-text)]" : "border border-[var(--chat-border)] bg-[var(--chat-bubble-incoming)] text-[var(--chat-bubble-incoming-text)]"}`}><p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{linkifyText(message.body, message.id)}</p></div>
                 {groupEnd && <p className={`mt-1 text-[10px] font-medium text-muted-foreground/70 ${mine ? "text-right" : "text-left"}`}>{formatTime(message.created_at)}</p>}
               </div>
             </div>
@@ -213,13 +215,13 @@ export function FloorGroupChat({
         })}
         <div ref={endRef} />
       </div>
-      <div className="shrink-0 border-t border-border/80 bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="flex items-end gap-1.5 rounded-xl border border-border bg-secondary/45 px-2 py-1.5 shadow-inner">
+      <div className="chat-composer shrink-0 border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="flex items-end gap-1.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-inner">
           <Textarea value={body} onChange={(event) => setBody(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); handleSend(); } }} rows={1} maxLength={2000} placeholder={dict.talks.floorPlaceholder.replace("{floor}", String(floorNumber))} onFocus={() => scrollToBottom(false)} className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0" />
           <Button size="icon" className="h-9 w-9 shrink-0 rounded-full shadow-sm active:scale-90" disabled={pending || !body.trim()} onClick={handleSend}><Send className="h-4 w-4" /></Button>
         </div>
         {error && <p className="mt-1.5 px-1 text-xs text-destructive">{error}</p>}
       </div>
-    </div>
+    </ChatProvider>
   );
 }

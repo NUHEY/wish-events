@@ -2,6 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * chatcn の既製チャット部品が参照する共通トークン。
+ * Supabase側のメッセージ処理は変えず、まず安全に共有できる色・余白・面の
+ * デザインだけを全トーク画面へ取り込む。Auroraテーマをサイトの既存色へ
+ * 馴染ませ、今後 chatcn の返信・添付部品を段階的に使っても見た目が崩れない
+ * ようにする。
+ */
+:root {
+  --chat-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --chat-font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+}
+
+[data-chat-theme="aurora"] {
+  --chat-bg-app: #fafafa;
+  --chat-bg-sidebar: #f6f5f5;
+  --chat-bg-main: #ffffff;
+  --chat-bg-header: rgb(255 255 255 / 0.82);
+  --chat-bg-composer: rgb(255 255 255 / 0.9);
+  --chat-bg-hover: rgb(128 28 54 / 0.06);
+  --chat-bg-content-card: #ffffff;
+  --chat-bg-code: #f6f5f5;
+  --chat-bubble-outgoing: hsl(var(--primary));
+  --chat-bubble-outgoing-text: hsl(var(--primary-foreground));
+  --chat-bubble-incoming: #f1f0f0;
+  --chat-bubble-incoming-text: #262323;
+  --chat-accent: hsl(var(--primary));
+  --chat-accent-soft: hsl(var(--primary) / 0.08);
+  --chat-green: #16a34a;
+  --chat-orange: #ea580c;
+  --chat-red: #dc2626;
+  --chat-text-primary: #262323;
+  --chat-text-secondary: #71696b;
+  --chat-text-tertiary: #a39b9d;
+  --chat-border: rgb(92 74 79 / 0.1);
+  --chat-border-strong: rgb(92 74 79 / 0.17);
+  --chat-shadow-sm: 0 1px 2px rgb(56 39 44 / 0.05);
+  --chat-shadow-md: 0 4px 20px rgb(56 39 44 / 0.08);
+  --chat-shadow-lg: 0 12px 40px rgb(56 39 44 / 0.1);
+  --chat-shadow-toolbar: 0 4px 20px rgb(56 39 44 / 0.13);
+  --chat-bubble-radius: 18px;
+  --chat-bubble-radius-grouped: 6px;
+  --chat-input-radius: 24px;
+  --chat-spacing-messages: 16px;
+  --chat-spacing-grouped: 3px;
+  --chat-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --chat-duration-fast: 180ms;
+  --chat-duration-normal: 280ms;
+}
+
+.dark [data-chat-theme="aurora"],
+[data-chat-theme="aurora"].dark {
+  --chat-bg-app: #161314;
+  --chat-bg-sidebar: #211d1e;
+  --chat-bg-main: #191617;
+  --chat-bg-header: rgb(33 29 30 / 0.84);
+  --chat-bg-composer: rgb(33 29 30 / 0.9);
+  --chat-bg-hover: hsl(var(--primary) / 0.11);
+  --chat-bg-content-card: #211d1e;
+  --chat-bg-code: #211d1e;
+  --chat-bubble-incoming: #292526;
+  --chat-bubble-incoming-text: #f4f1f2;
+  --chat-text-primary: #f4f1f2;
+  --chat-text-secondary: #b4aaad;
+  --chat-text-tertiary: #736a6c;
+  --chat-border: rgb(255 255 255 / 0.07);
+  --chat-border-strong: rgb(255 255 255 / 0.12);
+  --chat-shadow-sm: 0 1px 3px rgb(0 0 0 / 0.2);
+  --chat-shadow-md: 0 4px 18px rgb(0 0 0 / 0.28);
+  --chat-shadow-lg: 0 10px 42px rgb(0 0 0 / 0.38);
+  --chat-shadow-toolbar: 0 3px 22px rgb(0 0 0 / 0.42);
+}
+
+.chat-content-card {
+  overflow: hidden;
+  border: 1px solid var(--chat-border-strong);
+  border-radius: 12px;
+  background: var(--chat-bg-content-card);
+}
+
+.chat-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--chat-accent);
+  border-radius: 12px;
+  background: var(--chat-accent-soft);
+  backdrop-filter: blur(4px);
+}
+
 @layer base {
   :root {
     /* 背景・カード・境界線・チャット面などの「土台」はモノクロ（無彩色）に統一する。
