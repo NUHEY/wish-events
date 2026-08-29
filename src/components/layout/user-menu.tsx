@@ -91,7 +91,7 @@ export function UserMenu({
             <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
               {fullName ?? dict.common.notRegistered}
               {role === "ra" && <Badge variant="default">RA</Badge>}
-              {accountKind !== "resident" && <Badge variant="secondary">関係者</Badge>}
+              {accountKind !== "resident" && <Badge variant="secondary">{dict.common.institutionalAccount}</Badge>}
             </span>
             <span className="text-xs text-muted-foreground">
               {formatRoomNumber(floorNumber, roomNumber)}
@@ -122,7 +122,7 @@ export function UserMenu({
         <DropdownMenuItem asChild>
           <Link href="/tools" className="cursor-pointer">
             <Sparkles className="h-4 w-4" />
-            便利ツール
+            {dict.nav.tools}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

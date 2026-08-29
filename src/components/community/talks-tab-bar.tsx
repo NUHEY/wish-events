@@ -5,11 +5,10 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FeatureFlagState } from "@/lib/feature-flags";
 import { signalNavigation } from "@/lib/navigation-signal";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 const TABS = ["events", "floor", "friends"] as const;
 export type TalksTab = (typeof TABS)[number];
-
-const LABELS: Record<TalksTab, string> = { events: "イベント", floor: "フロア", friends: "友達" };
 
 /**
  * 「イベント」「同じ階のグループ」「友達」の3種類を、隣のラベル幅に
@@ -27,6 +26,7 @@ export function TalksTabBar({
   friendDmState?: FeatureFlagState;
 }) {
   const router = useRouter();
+  const dict = useDict();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const active = (searchParams.get("tab") as TalksTab | null) ?? "events";
@@ -78,7 +78,7 @@ export function TalksTabBar({
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
-          <span className="inline-flex items-center gap-1">{LABELS[tab]}{((tab === "floor" && floorGroupState === "beta") || (tab === "friends" && friendDmState === "beta")) && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>
+          <span className="inline-flex items-center gap-1">{dict.talks.tabs[tab]}{((tab === "floor" && floorGroupState === "beta") || (tab === "friends" && friendDmState === "beta")) && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>
           {tab === "floor" && hasUnreadFloor && active !== tab && (
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive" />
           )}

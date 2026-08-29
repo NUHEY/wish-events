@@ -6,11 +6,14 @@ import { getInitialFloorMessages } from "@/actions/floor-messages";
 import { BackButton } from "@/components/layout/back-button";
 import { MobileChatViewport } from "@/components/community/mobile-chat-viewport";
 import { FloorGroupChat } from "@/components/community/floor-group-chat";
+import { getDictionary, getLocale } from "@/lib/i18n";
 
 export default async function FloorGroupPage() {
   const state = await getFeatureFlagState("floor_group_chat");
   if (state === "hidden") redirect("/talks");
   const profile = await getCurrentProfile();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   if (!profile.floor_number || profile.moved_out_at) redirect("/talks?tab=floor");
   const initial = await getInitialFloorMessages();
   if (initial.error || !initial.floorNumber) redirect("/talks?tab=floor");
@@ -23,8 +26,8 @@ export default async function FloorGroupPage() {
           <Building2 className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">{initial.floorNumber}F フロアグループ</h1>
-          <p className="flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-3 w-3" />同じ階の寮生・RA {initial.members.length}人</p>
+          <h1 className="truncate text-base font-bold">{dict.talks.floorGroup.replace("{floor}", String(initial.floorNumber))}</h1>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-3 w-3" />{dict.talks.floorMembers.replace("{count}", String(initial.members.length))}</p>
         </div>
         {state === "beta" && <span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-bold text-primary">BETA</span>}
       </div>

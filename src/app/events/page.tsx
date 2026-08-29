@@ -126,7 +126,7 @@ export default async function EventsPage({
       <div className="flex flex-col gap-3.5 border-b border-border pb-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1.5"><h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1><p className="text-sm text-muted-foreground">{dict.home.subtitle}</p></div>
-          {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">イベントを募集</span><span className="sm:hidden">募集</span></Link>}
+          {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">{dict.home.createCommunityEvent}</span><span className="sm:hidden">{dict.home.createCommunityEventShort}</span></Link>}
         </div>
         <form className="relative max-w-md">
           {category && <input type="hidden" name="category" value={category} />}

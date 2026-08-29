@@ -20,6 +20,8 @@ import { dmPairFolder } from "@/lib/utils";
 import { compressImageFile } from "@/lib/image-compress";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
+import { useChatRecovery } from "@/components/community/use-chat-recovery";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 
 type DirectMessage = {
   id: string;
@@ -86,6 +88,8 @@ export function FriendDm({
   hasMoreOlder?: boolean;
   initialLastReadAt?: string | null;
 }) {
+  const dict = useDict();
+  const locale = useLocale();
   const [liveMessages, setLiveMessages] = useState<DirectMessage[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<DirectMessage[]>([]);
   const [hasMoreOlderState, setHasMoreOlderState] = useState(hasMoreOlder);
@@ -98,6 +102,7 @@ export function FriendDm({
   const [stagedImages, setStagedImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const latestMessageAtRef = useRef(messages.at(-1)?.created_at ?? "1970-01-01T00:00:00.000Z");
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
   // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
   // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
@@ -160,6 +165,37 @@ export function FriendDm({
     markDirectMessageRead(friendId);
   }, [friendId, liveMessages.length]);
 
+  useEffect(() => {
+    const latest = displayedMessages.reduce(
+      (current, message) => message.created_at > current ? message.created_at : current,
+      latestMessageAtRef.current
+    );
+    latestMessageAtRef.current = latest;
+  }, [displayedMessages]);
+
+  const syncMissingMessages = useCallback(async () => {
+    const supabase = createClient();
+    const { data, error: recoveryError } = await supabase
+      .from("direct_messages")
+      .select("id,created_at")
+      .or(`and(sender_id.eq.${friendId},recipient_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},recipient_id.eq.${friendId})`)
+      .gt("created_at", latestMessageAtRef.current)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (recoveryError) throw recoveryError;
+    const ids = (data ?? []).map((row) => row.id);
+    if (ids.length === 0) return;
+    const result = await getDirectMessagesByIds(friendId, ids);
+    setLiveMessages((current) => [
+      ...current,
+      ...(result.messages as DirectMessage[]).filter((message) => !current.some((saved) => saved.id === message.id)),
+    ]);
+    const latest = data?.at(-1)?.created_at;
+    if (latest) latestMessageAtRef.current = latest;
+  }, [currentUserId, friendId]);
+
+  useChatRecovery(`friend-${currentUserId}-${friendId}`, syncMissingMessages);
+
   async function loadOlder() {
     if (!hasMoreOlderState || loadingOlder || liveMessages.length === 0) return;
     const container = scrollRef.current;
@@ -179,7 +215,7 @@ export function FriendDm({
     setError(null);
     const room = Math.max(0, 6 - stagedImages.length);
     const oversized = files.some((f) => f.size > 8 * 1024 * 1024);
-    if (oversized) setError("8MBを超える画像は追加できません");
+    if (oversized) setError(dict.talks.imageTooLarge);
     const accepted = files.filter((f) => f.size <= 8 * 1024 * 1024).slice(0, room);
     // ストレージ・通信量の節約のため、送信前にブラウザ側で縮小・再圧縮する
     // （寮生800人超が使う無料枠を長持ちさせるための対策。詳細はcompressImageFile参照）。
@@ -252,7 +288,7 @@ export function FriendDm({
         .map((path, index) => ({ path, index }))
         .filter((entry): entry is { path: string; index: number } => !!entry.path);
       if (okIndexes.length === 0) {
-        setError("画像の送信に失敗しました");
+        setError(dict.talks.imageSendFailed);
         return;
       }
       const okPaths = okIndexes.map((entry) => entry.path);
@@ -289,11 +325,11 @@ export function FriendDm({
   }
 
   const time = (createdAt: string) =>
-    new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
+    new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-border sm:bg-card sm:shadow-sm">
-      <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? "過去のメッセージを読み込んでいます…" : uploading ? "画像を送信しています…" : "メッセージを送信しています…"} />
+      <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : uploading ? dict.talks.sendingImage : dict.talks.sendingMessage} />
       <div
         ref={setMessagesScrollRef}
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[radial-gradient(ellipse_at_top,hsl(var(--chat-gradient-start))_0%,hsl(var(--chat-gradient-middle))_42%,hsl(var(--chat-surface))_100%)] px-3.5 py-5 sm:min-h-[20rem] sm:px-4"
@@ -306,12 +342,12 @@ export function FriendDm({
             className="mb-2 inline-flex items-center gap-1.5 self-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
           >
             {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}
-            過去のメッセージを読み込む
+            {dict.talks.loadOlder}
           </button>
         )}
         {displayedMessages.length === 0 && (
           <div className="mb-2 self-center rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
-            {friendName}さんとのメッセージはまだありません
+            {dict.talks.directEmpty.replace("{name}", friendName)}
           </div>
         )}
         {displayedMessages.map((message, index) => {
@@ -337,9 +373,9 @@ export function FriendDm({
           return (
             <Fragment key={message.id}>
               {message.id === firstUnreadId && (
-                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label="ここから未読">
+                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label={dict.talks.unreadFromHere}>
                   <span className="h-px flex-1 bg-destructive/35" />
-                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">ここから未読</span>
+                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">{dict.talks.unreadFromHere}</span>
                   <span className="h-px flex-1 bg-destructive/35" />
                 </div>
               )}
@@ -373,7 +409,7 @@ export function FriendDm({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={message.mediaUrl}
-                      alt="DMに送信された画像"
+                      alt={dict.talks.directImageAlt}
                       loading="lazy"
                       decoding="async"
                       className="block max-h-80 min-w-40 rounded-xl object-cover"
@@ -412,7 +448,7 @@ export function FriendDm({
                 <button
                   type="button"
                   onClick={() => removeStagedImage(item.id)}
-                  aria-label="削除"
+                  aria-label={dict.talks.remove}
                   className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
                 >
                   <X className="h-3 w-3" />
@@ -448,7 +484,7 @@ export function FriendDm({
             }}
             rows={1}
             maxLength={2000}
-            placeholder={uploading ? "画像を送信中…" : "メッセージ..."}
+            placeholder={uploading ? dict.talks.uploadingImage : dict.talks.composerPlaceholder}
             onFocus={() => {
               scrollToBottom(false);
               window.visualViewport?.addEventListener(

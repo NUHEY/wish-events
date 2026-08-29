@@ -3,11 +3,13 @@
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/theme-provider";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme, mounted } = useTheme();
+  const dict = useDict();
   const isDark = mounted && theme === "dark";
-  const nextLabel = isDark ? "ライトモードに切り替える" : "ダークモードに切り替える";
+  const nextLabel = isDark ? dict.common.switchToLight : dict.common.switchToDark;
 
   return (
     <button

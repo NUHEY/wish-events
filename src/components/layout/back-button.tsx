@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signalNavigation } from "@/lib/navigation-signal";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 /**
  * サブページ上部に置く共通の「戻る」ボタン。
@@ -20,6 +21,7 @@ export function BackButton({
   className?: string;
 }) {
   const router = useRouter();
+  const dict = useDict();
 
   function handleClick() {
     // 戻り先の実URLは戻る直前にはわからないため、fallbackHref（論理的な親ページ）を
@@ -44,7 +46,7 @@ export function BackButton({
       )}
     >
       <ArrowLeft className="h-5 w-5" />
-      <span className="sr-only">戻る</span>
+      <span className="sr-only">{dict.common.back}</span>
     </button>
   );
 }

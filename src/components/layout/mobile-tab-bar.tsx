@@ -81,7 +81,7 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
       <div className="flex h-[var(--mobile-tab-bar-height)] items-stretch">
         <TabLink href="/" icon={Home} label={dict.nav.home} active={pathname === "/"} onNavigate={navigate} />
         <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} active={pathname.startsWith("/events")} onNavigate={navigate} />
-        <TabLink href="/talks" icon={MessageCircle} label="トーク" badge={hasUnreadTalk} active={pathname.startsWith("/talks")} onNavigate={navigate} />
+        <TabLink href="/talks" icon={MessageCircle} label={dict.nav.talks} badge={hasUnreadTalk} active={pathname.startsWith("/talks")} onNavigate={navigate} />
       </div>
     </nav>
   );

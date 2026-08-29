@@ -42,6 +42,8 @@ import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
+import { useChatRecovery } from "@/components/community/use-chat-recovery";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 
 type Message = {
   id: string;
@@ -72,14 +74,14 @@ function internalPath(url: string, appOrigin: string): string | null {
   return null;
 }
 
-function internalLinkLabel(path: string): string {
-  if (path.includes("/survey")) return "アンケートに回答する";
-  if (path.startsWith("/events/")) return "イベント詳細を見る";
-  return "サイト内で開く";
+function internalLinkLabel(path: string, labels: { survey: string; event: string; open: string }): string {
+  if (path.includes("/survey")) return labels.survey;
+  if (path.startsWith("/events/")) return labels.event;
+  return labels.open;
 }
 
 /** メッセージ本文中のURLを、自サイト内なら綺麗なボタンに、それ以外は通常のリンクに変換する。 */
-function linkifyText(text: string, keyPrefix: string, appOrigin: string) {
+function linkifyText(text: string, keyPrefix: string, appOrigin: string, labels: { survey: string; event: string; open: string }) {
   return text.split(URL_PATTERN).map((part, index) => {
     if (!/^https?:\/\//.test(part)) return <span key={`${keyPrefix}-${index}`}>{part}</span>;
     const path = internalPath(part, appOrigin);
@@ -91,7 +93,7 @@ function linkifyText(text: string, keyPrefix: string, appOrigin: string) {
           onClick={(e) => e.stopPropagation()}
           className="mt-1 inline-flex items-center gap-1 rounded-xl bg-primary/12 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
         >
-          {internalLinkLabel(path)}
+          {internalLinkLabel(path, labels)}
         </Link>
       );
     }
@@ -145,6 +147,8 @@ export function EventTalk({
   appOrigin?: string;
   initialLastReadAt?: string | null;
 }) {
+  const dict = useDict();
+  const locale = useLocale();
   const [liveMessages, setLiveMessages] = useState<Message[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [reactionState, setReactionState] = useState(reactions);
@@ -159,6 +163,7 @@ export function EventTalk({
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const latestMessageAtRef = useRef(messages.at(-1)?.created_at ?? "1970-01-01T00:00:00.000Z");
   const tapTimerRef = useRef<Map<string, number>>(new Map());
   const heartTimerRef = useRef<number | null>(null);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
@@ -189,6 +194,11 @@ export function EventTalk({
     endRef
   );
   const pollsById = useMemo(() => new Map(pollsState.map((poll) => [poll.id, poll])), [pollsState]);
+  const internalLabels = useMemo(() => ({
+    survey: dict.talks.internalSurvey,
+    event: dict.talks.internalEvent,
+    open: dict.talks.internalOpen,
+  }), [dict]);
 
   function scrollToBottom(smooth = true) {
     endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
@@ -229,6 +239,53 @@ export function EventTalk({
   useEffect(() => {
     markEventTalkRead(eventId);
   }, [eventId, liveMessages.length]);
+
+  useEffect(() => {
+    const latest = displayedMessages.reduce(
+      (current, message) => message.created_at > current ? message.created_at : current,
+      latestMessageAtRef.current
+    );
+    latestMessageAtRef.current = latest;
+  }, [displayedMessages]);
+
+  const syncMissingMessages = useCallback(async () => {
+    const supabase = createClient();
+    const { data, error: recoveryError } = await supabase
+      .from("event_messages")
+      .select("id,created_at")
+      .eq("event_id", eventId)
+      .gt("created_at", latestMessageAtRef.current)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (recoveryError) throw recoveryError;
+    const ids = (data ?? []).map((row) => row.id);
+    if (ids.length === 0) return;
+    const { messages: fetched } = await getEventMessagesByIds(eventId, ids);
+    const recoveredMessages = fetched as Message[];
+    setLiveMessages((current) => [
+      ...current,
+      ...recoveredMessages.filter((message) => !current.some((saved) => saved.id === message.id)),
+    ]);
+    const pollIds = [...new Set(recoveredMessages.map((message) => message.poll_id).filter((id): id is string => !!id))];
+    if (pollIds.length > 0) {
+      const [{ data: recoveredPolls }, { data: recoveredVotes }] = await Promise.all([
+        supabase.from("event_polls").select("*").in("id", pollIds),
+        supabase.from("event_poll_votes").select("*").in("poll_id", pollIds),
+      ]);
+      setPollsState((current) => [
+        ...current,
+        ...((recoveredPolls ?? []) as Poll[]).filter((poll) => !current.some((saved) => saved.id === poll.id)),
+      ]);
+      setVoteState((current) => [
+        ...current,
+        ...((recoveredVotes ?? []) as Vote[]).filter((vote) => !current.some((saved) => saved.poll_id === vote.poll_id && saved.user_id === vote.user_id)),
+      ]);
+    }
+    const latest = data?.at(-1)?.created_at;
+    if (latest) latestMessageAtRef.current = latest;
+  }, [eventId]);
+
+  useChatRecovery(`event-${eventId}`, syncMissingMessages);
 
   useEffect(() => {
     return () => {
@@ -348,7 +405,7 @@ export function EventTalk({
   }
 
   const time = (createdAt: string) =>
-    new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
+    new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--chat-surface))] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-border sm:bg-card sm:shadow-sm">
@@ -364,11 +421,11 @@ export function EventTalk({
             className="mb-2 inline-flex items-center gap-1.5 self-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
           >
             {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}
-            過去のメッセージを読み込む
+            {dict.talks.loadOlder}
           </button>
         )}
         <div className="mb-2 self-center rounded-full border border-border/70 bg-card/85 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
-          イベントに関するお知らせと会話
+          {dict.talks.eventConversation}
         </div>
         {displayedMessages.map((message, index) => {
           const mine = message.sender_id === currentUserId;
@@ -400,9 +457,9 @@ export function EventTalk({
           return (
             <Fragment key={message.id}>
               {message.id === firstUnreadId && (
-                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label="ここから未読">
+                <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label={dict.talks.unreadFromHere}>
                   <span className="h-px flex-1 bg-destructive/35" />
-                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">ここから未読</span>
+                  <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive">{dict.talks.unreadFromHere}</span>
                   <span className="h-px flex-1 bg-destructive/35" />
                 </div>
               )}
@@ -449,7 +506,7 @@ export function EventTalk({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={message.mediaUrl}
-                      alt="トークに送信された画像"
+                      alt={dict.talks.eventImageAlt}
                       loading="lazy"
                       decoding="async"
                       className="block max-h-80 min-w-40 rounded-xl object-cover"
@@ -464,7 +521,7 @@ export function EventTalk({
                   <div className={bubbleBase}>
                     {hasCaption && (
                       <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin)}
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin, internalLabels)}
                       </p>
                     )}
                     <a
@@ -473,14 +530,14 @@ export function EventTalk({
                       rel="noreferrer"
                       className="mt-2 inline-flex rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95"
                     >
-                      {message.action_label ?? "開く"}
+                      {message.action_label ?? dict.talks.open}
                     </a>
                   </div>
                 ) : poll ? (
                   <div className={bubbleBase}>
                     {hasCaption && (
                       <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin)}
+                        {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin, internalLabels)}
                       </p>
                     )}
                     <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
@@ -488,14 +545,14 @@ export function EventTalk({
                 ) : (
                   <div className={`relative ${bubbleBase}`} onClick={() => handleBubbleTap(message, "text")}>
                     <p className="cursor-pointer select-none whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                      {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin)}
+                      {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin, internalLabels)}
                     </p>
                   </div>
                 )}
 
                 {message.mediaUrl && hasCaption && (
                   <p className="mt-1 whitespace-pre-wrap break-words px-0.5 text-[13px] leading-snug text-foreground/80">
-                    {linkifyText(normalizeBody(message.body), `${message.id}-caption`, appOrigin)}
+                    {linkifyText(normalizeBody(message.body), `${message.id}-caption`, appOrigin, internalLabels)}
                   </p>
                 )}
 
@@ -535,7 +592,7 @@ export function EventTalk({
                         <>
                           <button
                             type="button"
-                            aria-label="コピー"
+                            aria-label={dict.talks.copy}
                             onClick={() => {
                               void copyMessageText(message);
                             }}
@@ -550,7 +607,7 @@ export function EventTalk({
                         <button
                           key={emoji}
                           type="button"
-                          aria-label={`${emoji}でリアクション`}
+                          aria-label={dict.talks.reactWith.replace("{emoji}", emoji)}
                           onClick={() => {
                             react(message.id, emoji);
                             setOpenMenuId(null);
@@ -614,6 +671,7 @@ function Composer({
   onDismissExternalError: () => void;
   onFocus: () => void;
 }) {
+  const dict = useDict();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -630,7 +688,7 @@ function Composer({
     setError(null);
     const room = Math.max(0, 6 - stagedImages.length);
     const oversized = files.some((f) => f.size > 8 * 1024 * 1024);
-    if (oversized) setError("8MBを超える画像は追加できません");
+    if (oversized) setError(dict.talks.imageTooLarge);
     const accepted = files.filter((f) => f.size <= 8 * 1024 * 1024).slice(0, room);
     // ストレージ・通信量の節約のため、送信前にブラウザ側で縮小・再圧縮する
     // （寮生800人超が使う無料枠を長持ちさせるための対策。詳細はcompressImageFile参照）。
@@ -707,7 +765,7 @@ function Composer({
         .map((path, index) => ({ path, index }))
         .filter((entry): entry is { path: string; index: number } => !!entry.path);
       if (okIndexes.length === 0) {
-        setError("画像の送信に失敗しました");
+        setError(dict.talks.imageSendFailed);
         return;
       }
       const okPaths = okIndexes.map((entry) => entry.path);
@@ -783,7 +841,7 @@ function Composer({
             className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            ツール
+            {dict.talks.raTools}
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${toolOpen ? "rotate-180" : ""}`} />
           </button>
           {toolOpen && (
@@ -793,23 +851,23 @@ function Composer({
             <div className="mt-2 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background p-2 shadow-lg [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <ToolButton
                 icon={Smile}
-                label="アンケート"
+                label={dict.talks.surveyTool}
                 onClick={() => fillToolDraft(() => prepareEventSurveyToolDraft(eventId))}
               />
-              <ToolButton icon={BarChart3} label="投票" onClick={() => setPollOpen((open) => !open)} />
+              <ToolButton icon={BarChart3} label={dict.talks.pollTool} onClick={() => setPollOpen((open) => !open)} />
               <ToolButton
                 icon={Info}
-                label="詳細案内"
+                label={dict.talks.detailsTool}
                 onClick={() => fillToolDraft(() => prepareEventDetailsToolDraft(eventId))}
               />
               <ToolButton
                 icon={MapPin}
-                label="会場案内"
+                label={dict.talks.locationTool}
                 onClick={() => fillToolDraft(() => prepareEventLocationToolDraft(eventId))}
               />
               <ToolButton
                 icon={Wallet}
-                label="集金案内"
+                label={dict.talks.paymentTool}
                 onClick={() => fillToolDraft(() => prepareEventPaymentToolDraft(eventId))}
               />
             </div>
@@ -819,7 +877,7 @@ function Composer({
               <input
                 value={pollQuestion}
                 onChange={(e) => setPollQuestion(e.target.value)}
-                placeholder="投票の質問"
+                placeholder={dict.talks.pollQuestion}
                 maxLength={300}
                 className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary"
               />
@@ -830,7 +888,7 @@ function Composer({
                   onChange={(e) =>
                     setPollOptions((current) => current.map((item, itemIndex) => (itemIndex === index ? e.target.value : item)))
                   }
-                  placeholder={`選択肢 ${index + 1}`}
+                  placeholder={dict.talks.pollOption.replace("{number}", String(index + 1))}
                   maxLength={120}
                   className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary"
                 />
@@ -842,10 +900,10 @@ function Composer({
                   onClick={() => setPollOptions((current) => [...current, ""])}
                   className="text-xs font-semibold text-primary disabled:opacity-40"
                 >
-                  ＋ 選択肢を追加
+                  {dict.talks.addPollOption}
                 </button>
                 <Button size="sm" disabled={pending} onClick={createPoll}>
-                  投票を送る
+                  {dict.talks.sendPoll}
                 </Button>
               </div>
             </div>
@@ -862,7 +920,7 @@ function Composer({
               <button
                 type="button"
                 onClick={() => removeStagedImage(item.id)}
-                aria-label="削除"
+                aria-label={dict.talks.remove}
                 className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
               >
                 <X className="h-3 w-3" />
@@ -901,7 +959,7 @@ function Composer({
           }}
           rows={1}
           maxLength={2000}
-          placeholder={uploading ? "画像を送信中…" : "メッセージ..."}
+          placeholder={uploading ? dict.talks.uploadingImage : dict.talks.composerPlaceholder}
           onFocus={onFocus}
           className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
         />
@@ -954,6 +1012,7 @@ function PollCard({
   currentUserId: string;
   onVote: (pollId: string, optionIndex: number) => void;
 }) {
+  const dict = useDict();
   const selected = votes.find((vote) => vote.user_id === currentUserId)?.option_index;
   const total = votes.length;
 
@@ -961,7 +1020,7 @@ function PollCard({
     <div className="mt-2 min-w-60 rounded-2xl bg-foreground/5 p-2.5 text-foreground">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-bold">
         <BarChart3 className="h-4 w-4 text-primary" />
-        投票
+        {dict.talks.pollTool}
       </div>
       <p className="mb-2 text-sm font-semibold">{poll.question}</p>
       <div className="space-y-1.5">
@@ -979,12 +1038,12 @@ function PollCard({
             >
               <span className="absolute inset-y-0 left-0 bg-primary/12 transition-[width] duration-300" style={{ width: `${percentage}%` }} />
               <span className="relative flex-1">{option}</span>
-              <span className="relative text-muted-foreground">{selected !== undefined ? `${percentage}%` : "投票"}</span>
+              <span className="relative text-muted-foreground">{selected !== undefined ? `${percentage}%` : dict.talks.vote}</span>
             </button>
           );
         })}
       </div>
-      {selected !== undefined && <p className="mt-2 text-[10px] text-muted-foreground">{total}票 · 選択を変更できます</p>}
+      {selected !== undefined && <p className="mt-2 text-[10px] text-muted-foreground">{dict.talks.voteSummary.replace("{count}", String(total))}</p>}
     </div>
   );
 }

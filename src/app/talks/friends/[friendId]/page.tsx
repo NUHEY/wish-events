@@ -10,6 +10,7 @@ import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { BackButton } from "@/components/layout/back-button";
 import { getFeatureFlagState } from "@/lib/feature-flags";
 import { MobileChatViewport } from "@/components/community/mobile-chat-viewport";
+import { getDictionary, getLocale } from "@/lib/i18n";
 
 const INITIAL_MESSAGE_LIMIT = 50;
 
@@ -20,6 +21,8 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
   if (friendDmState === "hidden") redirect("/talks");
   const { friendId } = await params;
   const profile = await getCurrentProfile();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   if (friendId === profile.id) notFound();
 
   const supabase = await createClient();
@@ -45,14 +48,14 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
           <Image src={friend.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
         </AvatarRing>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">{friend.full_name ?? "寮生"}</h1>
-          <p className="text-xs text-muted-foreground">友達</p>
+          <h1 className="truncate text-base font-bold">{friend.full_name ?? dict.talks.residentFallback}</h1>
+          <p className="text-xs text-muted-foreground">{dict.talks.friendLabel}</p>
         </div>
       </div>
       <FriendDm
         friendId={friendId}
         currentUserId={profile.id}
-        friendName={friend.full_name ?? "寮生"}
+        friendName={friend.full_name ?? dict.talks.residentFallback}
         friendAvatarUrl={friend.avatar_url}
         friendRole={friend.role}
         messages={initial.messages}

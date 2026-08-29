@@ -8,6 +8,7 @@ import { TalkParticipantsButton } from "@/components/community/talk-participants
 import { BackButton } from "@/components/layout/back-button";
 import { getInitialEventMessages, getEventTalkParticipants, getRequestOrigin } from "@/actions/event-community";
 import { MobileChatViewport } from "@/components/community/mobile-chat-viewport";
+import { getDictionary, getLocale } from "@/lib/i18n";
 
 const INITIAL_MESSAGE_LIMIT = 50;
 
@@ -21,6 +22,8 @@ export default async function EventTalkPage({
   const { id } = await params;
   const { joined } = await searchParams;
   const profile = await getCurrentProfile();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   const supabase = await createClient();
 
   const [{ data: event }, { data: registration }, initial, { participants, total: participantTotal }, appOrigin] =
@@ -44,14 +47,14 @@ export default async function EventTalkPage({
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-bold">{event.title}</h1>
           <Link href={`/events/${id}`} className="text-xs text-primary hover:underline">
-            イベント詳細
+            {dict.talks.eventDetails}
           </Link>
         </div>
         {participants.length > 0 && <TalkParticipantsButton participants={participants} total={participantTotal} />}
       </div>
       {joined === "1" && (
         <div className="mx-3 mt-3 shrink-0 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
-          イベントへの参加ありがとうございます。最新情報はこのトークでお知らせします。
+          {dict.talks.joinedMessage}
         </div>
       )}
       <EventTalk

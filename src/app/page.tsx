@@ -336,13 +336,13 @@ export default async function HomePage() {
             return (
               <section key={s.id} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <SectionHeading s={s} title={sectionTitle(s, isEn ? "Resident tools" : "寮生活の便利ツール")} />
-                  <Link href="/tools" className="text-xs font-semibold text-primary">すべて見る</Link>
+                  <SectionHeading s={s} title={sectionTitle(s, dict.residentTools.homeTitle)} />
+                  <Link href="/tools" className="text-xs font-semibold text-primary">{dict.residentTools.viewAll}</Link>
                 </div>
                 {visibleHomeToolKeys.length > 0 ? (
-                  <ResidentToolGrid stateByKey={homeToolStates} profileRole={profile.role} includedKeys={visibleHomeToolKeys} compact density={homeSettings.homeToolDensity} />
+                  <ResidentToolGrid stateByKey={homeToolStates} profileRole={profile.role} includedKeys={visibleHomeToolKeys} compact density={homeSettings.homeToolDensity} locale={locale} />
                 ) : (
-                  <EmptyNote>{isEn ? "No tools are currently available." : "現在ホームに表示中のツールはありません"}</EmptyNote>
+                  <EmptyNote>{dict.residentTools.homeEmpty}</EmptyNote>
                 )}
               </section>
             );
