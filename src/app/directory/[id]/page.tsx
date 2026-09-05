@@ -7,7 +7,8 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
-import { AtSign, Award, CalendarDays, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, Sparkles, SquarePen, UsersRound } from "lucide-react";
+import { Award, CalendarDays, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, QrCode, Sparkles, SquarePen, UsersRound } from "lucide-react";
+import { EventPoster } from "@/components/events/event-poster";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,7 +43,7 @@ function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType
   }
 }
 
-type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
+type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null; thumbnail_url: string | null };
 
 function countryFlag(code: string) {
   const normalized = code.toUpperCase();
@@ -131,7 +132,7 @@ export default async function DirectoryProfilePage({
   if (isSelf) {
     const { data: pastRegs } = await supabase
       .from("registrations")
-      .select("event_id, events(id, title, title_en, event_date, poster_url)")
+      .select("event_id, events(id, title, title_en, event_date, poster_url, thumbnail_url)")
       .eq("user_id", target.id)
       .order("registered_at", { ascending: false })
       .limit(12)
@@ -284,13 +285,14 @@ export default async function DirectoryProfilePage({
               {target.x_handle && (
                 <a
                   href={`https://x.com/${target.x_handle}`}
+                  aria-label={`X: @${target.x_handle}`}
                   target="_blank"
                   rel="noreferrer"
                   title={`@${target.x_handle}`}
                   className="flex min-h-11 max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-                    <AtSign className="h-3.5 w-3.5" />
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-3.5 w-3.5"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.64 7.584H.47l8.6-9.835L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" /></svg>
                   </span>
                   <span className="max-w-[8rem] truncate">@{target.x_handle}</span>
                 </a>
@@ -309,16 +311,14 @@ export default async function DirectoryProfilePage({
             </div>
           )}
 
-          {canViewFull && (
-            <div className="grid gap-3 rounded-xl border border-border p-4">
-              <p className="text-xs text-muted-foreground">{dict.profile.lineLabel}</p>
-              {lineQrSignedUrl ? (
-                <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
-              ) : (
-                <p className="text-sm text-muted-foreground">{dict.profile.lineNotUploaded}</p>
-              )}
+          {canViewFull && (lineQrSignedUrl ? (
+            <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
+          ) : isSelf ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><QrCode aria-hidden="true" className="h-4 w-4" />{dict.profile.lineLabel}</span>
+              <span>{dict.profile.lineNotUploaded}</span>
             </div>
-          )}
+          ) : null)}
 
           {!canViewFull && (
             <p className="text-xs text-muted-foreground">{dict.directory.hiddenFieldsNote}</p>
@@ -327,28 +327,25 @@ export default async function DirectoryProfilePage({
           {isSelf && pastEvents.length > 0 && (
             <div className="grid gap-3 border-t border-border pt-5">
               <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarDays aria-hidden="true" className="h-4 w-4 text-rose-600 dark:text-rose-300" />{dict.directory.pastEventsTitle}</h3>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div role="region" aria-label={dict.directory.pastEventsTitle} tabIndex={0} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain p-1 pb-2 scroll-px-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {pastEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`} className="group min-w-0 space-y-1.5 rounded-xl border border-border bg-card p-2 transition-colors hover:bg-secondary/40">
-                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted">
-                      {event.poster_url ? (
-                        <Image
-                          src={event.poster_url}
-                          alt=""
-                          fill
-                          sizes="(max-width: 640px) 40vw, 180px"
-                          className="object-cover transition-transform duration-200 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-primary/5 p-3 text-primary/50">
-                          <CalendarDays aria-hidden="true" className="h-7 w-7" />
-                        </div>
-                      )}
+                  <Link key={event.id} href={`/events/${event.id}`} prefetch={false} className="group flex w-40 shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-colors hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-48">
+                    <EventPoster
+                      src={event.thumbnail_url ?? event.poster_url}
+                      alt={(locale === "en" && event.title_en) || event.title}
+                      emptyLabel={dict.event.noImage}
+                      ratioClassName="aspect-square"
+                      roundedClassName="rounded-none"
+                      softenBackdrop={false}
+                      fit="cover"
+                      className="shrink-0"
+                    />
+                    <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
+                      <h4 className="line-clamp-2 break-words text-sm font-semibold leading-snug sm:text-base">{(locale === "en" && event.title_en) || event.title}</h4>
+                      <time dateTime={event.event_date} className="mt-auto text-xs leading-4 text-muted-foreground sm:text-sm sm:leading-5">
+                        {formatEventDateTime(event.event_date, locale, true, false)}
+                      </time>
                     </div>
-                    <p className="line-clamp-2 break-words text-xs font-medium leading-relaxed">{(locale === "en" && event.title_en) || event.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatEventDateTime(event.event_date, locale, true, false)}
-                    </p>
                   </Link>
                 ))}
               </div>
