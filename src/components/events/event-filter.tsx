@@ -40,9 +40,10 @@ export function EventFilter() {
       <button
         type="button"
         disabled={pending}
+        aria-pressed={!active}
         onClick={() => setCategory(null)}
         className={cn(
-          "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+          "min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
           !active
             ? "bg-primary text-primary-foreground shadow-sm"
             : "bg-secondary text-secondary-foreground hover:bg-accent"
@@ -55,9 +56,10 @@ export function EventFilter() {
           key={c}
           type="button"
           disabled={pending}
+          aria-pressed={active === c}
           onClick={() => setCategory(c)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+            "min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
             active === c
               ? "bg-primary text-primary-foreground shadow-sm"
               : "bg-secondary text-secondary-foreground hover:bg-accent"

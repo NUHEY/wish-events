@@ -12,7 +12,7 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { EVENT_CARD_COLUMNS } from "@/lib/utils";
 import type { EventCategory, EventCardData } from "@/types/database";
 import { getFeatureFlagState } from "@/lib/feature-flags";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default async function EventsPage({
   searchParams,
@@ -118,6 +118,7 @@ export default async function EventsPage({
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
   const hasDateResults = !!dateEvents && dateEvents.length > 0;
+  const hasFilters = !!(query || category || (status && status !== "all") || date || from || to || month);
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -130,38 +131,49 @@ export default async function EventsPage({
           <div className="flex flex-col gap-1.5"><h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1><p className="text-sm text-muted-foreground">{dict.home.subtitle}</p></div>
           {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">{dict.home.createCommunityEvent}</span><span className="sm:hidden">{dict.home.createCommunityEventShort}</span></Link>}
         </div>
-        <form className="relative max-w-md">
+        <form action="/events" method="get" role="search" aria-label={dict.home.searchPlaceholder} className="flex max-w-md items-center gap-2">
           {category && <input type="hidden" name="category" value={category} />}
           {status && <input type="hidden" name="status" value={status} />}
           {date && <input type="hidden" name="date" value={date} />}
           {from && <input type="hidden" name="from" value={from} />}
           {to && <input type="hidden" name="to" value={to} />}
           {month && <input type="hidden" name="month" value={month} />}
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            name="q"
-            defaultValue={query}
-            placeholder={dict.home.searchPlaceholder}
-            className="h-10 rounded-full pl-10 shadow-sm"
-          />
+          <div className="relative min-w-0 flex-1">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              key={query}
+              type="search"
+              name="q"
+              aria-label={dict.home.searchPlaceholder}
+              enterKeyHint="search"
+              defaultValue={query}
+              placeholder={dict.home.searchPlaceholder}
+              className="h-11 rounded-full pl-10 shadow-sm"
+            />
+          </div>
+          <Button type="submit" className="h-11 shrink-0 rounded-full">{dict.common.search}</Button>
         </form>
         <div className="flex flex-wrap items-center gap-2">
           <EventFilter />
           <EventStatusFilter />
         </div>
         <EventCalendar eventDates={calendarDates} />
+        {hasFilters && (
+          <Link href="/events" className={buttonVariants({ variant: "outline", className: "min-h-11 w-fit rounded-full" })}>
+            {dict.home.clearFilters}
+          </Link>
+        )}
       </div>
 
       {error && (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-          {dict.home.loadError}: {error.message}
+        <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          {dict.home.loadError}{locale === "ja" ? "。時間をおいて、ページを再読み込みしてください。" : ". Please wait a moment and reload the page."}
         </p>
       )}
 
       {showDateOnly ? (
         <>
-          {!hasDateResults && (
+          {!dateError && !hasDateResults && (
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
               <p className="text-sm font-medium">{dict.home.empty}</p>
               <p className="text-xs text-muted-foreground">{dict.home.emptyHint}</p>
@@ -182,7 +194,7 @@ export default async function EventsPage({
         </>
       ) : (
         <>
-          {!hasUpcoming && !hasPast && (
+          {!error && !hasUpcoming && !hasPast && (
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-secondary/40 py-20 text-center">
               <p className="text-sm font-medium">
                 {query ? dict.home.noSearchResults.replace("{query}", query) : dict.home.empty}
@@ -191,7 +203,7 @@ export default async function EventsPage({
             </div>
           )}
 
-          {showUpcoming && !hasUpcoming && hasPast && (
+          {showUpcoming && !upcomingError && !hasUpcoming && hasPast && (
             <p className="text-sm text-muted-foreground">{dict.home.noUpcoming}</p>
           )}
 
