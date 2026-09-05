@@ -86,12 +86,12 @@ export async function EventCard({
             : "[@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:border-foreground/15 [@media(hover:hover)]:group-hover:shadow-card-hover"
         )}
       >
-        <div className="relative overflow-hidden">
+        <div className="relative shrink-0 overflow-hidden">
           <EventPoster
             src={event.thumbnail_url ?? event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
-            ratioClassName="aspect-[1.618/1]"
+            ratioClassName="aspect-square"
             roundedClassName="rounded-none"
             softenBackdrop={false}
             fit="cover"
