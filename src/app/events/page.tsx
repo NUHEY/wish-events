@@ -36,8 +36,12 @@ export default async function EventsPage({
   const now = new Date().toISOString();
   const residentEventState = await getFeatureFlagState("resident_events");
 
-  const isDateKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
-  const isMonthKey = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}$/.test(v);
+  const isDateKey = (v: string | undefined): v is string => {
+    if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const parsed = new Date(`${v}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === v;
+  };
+  const isMonthKey = (v: string | undefined): v is string => !!v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v);
 
   // 日付系の絞り込みは「単日」「期間（いつからいつ）」「月指定（何月中）」の
   // いずれか1つが有効という前提でURLが組み立てられる（event-calendar.tsx側で排他制御）。
@@ -127,7 +131,7 @@ export default async function EventsPage({
       <PendingSurveyBanner userId={profile.id} />
 
       <div className="flex flex-col gap-3.5 border-b border-border pb-6">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1.5"><h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1><p className="text-sm text-muted-foreground">{dict.home.subtitle}</p></div>
           {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">{dict.home.createCommunityEvent}</span><span className="sm:hidden">{dict.home.createCommunityEventShort}</span></Link>}
         </div>
@@ -153,10 +157,15 @@ export default async function EventsPage({
           </div>
           <Button type="submit" className="h-11 shrink-0 rounded-full">{dict.common.search}</Button>
         </form>
-        <div className="flex flex-wrap items-center gap-2">
+        <fieldset className="min-w-0 space-y-2">
+          <legend className="mb-2 text-xs font-semibold text-muted-foreground">{dict.eventForm.categoryLabel}</legend>
           <EventFilter />
+        </fieldset>
+        <fieldset className="min-w-0 space-y-2">
+          <legend className="mb-2 text-xs font-semibold text-muted-foreground">{locale === "ja" ? "開催状況" : "Event status"}</legend>
           <EventStatusFilter />
-        </div>
+          {showDateOnly && <p className="text-xs text-muted-foreground">{locale === "ja" ? "指定した日付のイベントを表示しています。開催状況を選ぶと日付指定が解除されます。" : "Showing events for your selected dates. Choosing a status clears the date filter."}</p>}
+        </fieldset>
         <EventCalendar eventDates={calendarDates} />
         {hasFilters && (
           <Link href="/events" className={buttonVariants({ variant: "outline", className: "min-h-11 w-fit rounded-full" })}>

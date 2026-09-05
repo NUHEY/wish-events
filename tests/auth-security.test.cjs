@@ -30,6 +30,7 @@ const NextResponse = { next: () => response('next'), redirect: url => response('
 function middleware(user = null) {
   return load('src/lib/supabase/middleware.ts', {
     'next/server': { NextResponse },
+    './bounded-fetch': { boundedFetch: () => {} },
     '@/lib/institutional-accounts': { institutionalAccountKindForEmail: () => null },
     '@supabase/ssr': { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
   }).updateSession;

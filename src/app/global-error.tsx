@@ -41,6 +41,7 @@ export default function GlobalError({
           <button
             onClick={() => reset()}
             style={{
+              minHeight: 44,
               padding: "0.5rem 1.25rem",
               borderRadius: "9999px",
               background: "#111",
@@ -51,6 +52,7 @@ export default function GlobalError({
           >
             もう一度試す
           </button>
+          <button onClick={() => window.location.reload()} style={{ minHeight: 44, padding: "0.5rem 1.25rem", textDecoration: "underline" }}>ページを読み込み直す / Reload page</button>
         </div>
       </body>
     </html>

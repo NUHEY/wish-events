@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
+import { boundedFetch } from "./bounded-fetch";
 import { institutionalAccountKindForEmail } from "@/lib/institutional-accounts";
 
 const WASEDA_EMAIL_REGEX = /^[^@]+@([a-zA-Z0-9-]+\.)*waseda\.jp$/i;
@@ -42,6 +43,7 @@ async function updateSessionInner(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: boundedFetch },
       cookies: {
         getAll() {
           return request.cookies.getAll();

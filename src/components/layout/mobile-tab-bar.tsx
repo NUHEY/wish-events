@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, MessageCircle } from "lucide-react";
+import { CalendarDays, Home, MessageCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 
@@ -35,7 +35,7 @@ function TabLink({
 }
 
 /**
- * モバイル幅（sm未満）専用の下部固定タブバー。ホーム/イベント一覧/トークへ
+ * モバイル幅（sm未満）専用の下部固定タブバー。ホーム/イベント一覧/トーク/便利ツールへ
  * 常に1タップで移動できるようにすることで、
  * ページ間の行き来の体感速度を上げる。sm以上ではヘッダーの通常ナビに戻るため
  * このバー自体を非表示にする。
@@ -58,6 +58,7 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
         <TabLink href="/" icon={Home} label={dict.nav.home} active={pathname === "/"} />
         <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} active={pathname.startsWith("/events")} />
         <TabLink href="/talks" icon={MessageCircle} label={dict.nav.talks} badge={hasUnreadTalk} active={pathname.startsWith("/talks")} />
+        <TabLink href="/tools" icon={Sparkles} label={dict.nav.tools} active={["/tools", "/questions", "/links", "/wisdom"].some((path) => pathname === path || pathname.startsWith(`${path}/`))} />
       </div>
     </nav>
   );

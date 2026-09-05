@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Textarea } from "@/components/ui/textarea";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
+import { ChatConnectionStatus } from "./chat-connection-status";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
 import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { createClient } from "@/lib/supabase/client";
@@ -111,15 +112,16 @@ export function FloorGroupChat({
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const result = await getFloorMessagesByIds(ids);
     if (result.messages.length !== ids.length) throw new Error("Message recovery incomplete");
     setLiveMessages((current) => mergeMessages(current, result.messages));
     const latest = data?.at(-1);
     if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
+    return ids.length === 50;
   }, [floorNumber]);
 
-  useChatRecovery(`floor-${floorNumber}`, syncMissingMessages);
+  const connection = useChatRecovery(`floor-${currentUserId}-${floorNumber}`, syncMissingMessages);
 
   async function loadOlder() {
     if (!hasMore || loadingOlder || liveMessages.length === 0) return;
@@ -174,6 +176,7 @@ export function FloorGroupChat({
 
   return (
     <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
+      <ChatConnectionStatus state={connection} />
       <PendingFeedback active={pending || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : dict.talks.sendingMessage} />
       <div ref={setScrollRef} className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[linear-gradient(180deg,var(--chat-bg-sidebar),var(--chat-bg-main)_10rem)] px-3.5 py-5 sm:min-h-[20rem] sm:px-5">
         {hasMore && <button type="button" onClick={loadOlder} disabled={loadingOlder} className="mb-3 inline-flex items-center gap-1.5 self-center rounded-full border border-[var(--chat-border)] bg-[var(--chat-bg-main)] px-3 py-1.5 text-[11px] font-semibold text-[var(--chat-text-secondary)] shadow-[var(--chat-shadow-sm)] disabled:opacity-60">{loadingOlder && <Loader2 className="h-3 w-3 animate-spin" />}{dict.talks.loadOlder}</button>}

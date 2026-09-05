@@ -77,14 +77,14 @@ export function UserMenu({
         ) : (
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={fullName ?? "menu"}
           >
             <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-full w-full object-cover" />
           </button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-[15rem]">
+      <DropdownMenuContent className="min-w-[15rem] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto">
         <Link href={`/directory/${userId}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-accent">
           <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
           <span className="flex min-w-0 flex-col">
@@ -104,6 +104,7 @@ export function UserMenu({
           <ThemeToggle />
         </div>
         <DropdownMenuSeparator />
+        <DropdownMenuLabel>{locale === "ja" ? "プロフィール" : "Profile"}</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link href={`/directory/${userId}`} className="cursor-pointer">
             <IdCard className="h-4 w-4" />
@@ -113,6 +114,8 @@ export function UserMenu({
         {accountKind === "resident" && <DropdownMenuItem asChild>
           <Link href="/profile/edit" className="cursor-pointer"><UserRound className="h-4 w-4" />{dict.header.editProfile}</Link>
         </DropdownMenuItem>}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>{locale === "ja" ? "寮生活・ヘルプ" : "Dorm life & help"}</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link href="/directory" className="cursor-pointer">
             <Users className="h-4 w-4" />
@@ -131,6 +134,8 @@ export function UserMenu({
             {locale === "en" ? "Quick guide" : "使い方ガイド"}
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>{locale === "ja" ? "アカウント・管理" : "Account & management"}</DropdownMenuLabel>
         {role === "ra" && variant !== "tab" && (
           <DropdownMenuItem asChild>
             <Link href="/dashboard" className="cursor-pointer">

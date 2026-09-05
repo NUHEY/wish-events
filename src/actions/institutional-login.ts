@@ -74,6 +74,9 @@ export async function signInInstitutionalAccount(kind: string, password: string)
     };
   }
 
+  // Accepted login aliases must not rotate the Auth password on every login.
+  // Use the dedicated password when configured, otherwise the shared password.
+  const authPassword = credentials.expectedPasswords[0];
   let authEmail = credentials.email;
   const displayName = institutionalDisplayName(accountKind);
   const avatarUrl = institutionalAvatarUrl(accountKind);
@@ -136,7 +139,7 @@ export async function signInInstitutionalAccount(kind: string, password: string)
     if (authUserId) {
       const { data: updated, error: updateAuthError } = await admin.auth.admin.updateUserById(authUserId, {
         email: authEmail,
-        password,
+        password: authPassword,
         email_confirm: true,
         user_metadata: { ...existingUserMetadata, full_name: displayName, avatar_url: avatarUrl, account_kind: accountKind },
         app_metadata: { ...existingAppMetadata, account_kind: accountKind },
@@ -149,7 +152,7 @@ export async function signInInstitutionalAccount(kind: string, password: string)
     } else {
       const { data: created, error: createAuthError } = await admin.auth.admin.createUser({
         email: authEmail,
-        password,
+        password: authPassword,
         email_confirm: true,
         user_metadata: { full_name: displayName, avatar_url: avatarUrl, account_kind: accountKind },
         app_metadata: { account_kind: accountKind },
@@ -182,7 +185,7 @@ export async function signInInstitutionalAccount(kind: string, password: string)
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email: authEmail,
-    password,
+    password: admin ? authPassword : password,
   });
   if (error || !data.user || !data.session) {
     console.error("Institutional password sign-in failed", { kind: accountKind, hasAdminClient: !!admin, message: error?.message });

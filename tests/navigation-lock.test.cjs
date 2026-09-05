@@ -8,6 +8,8 @@ const ts = require('typescript');
 function mount(lockEnabled = true) {
   const effects = [], handlers = new Map(), timers = new Map();
   let timerId = 0;
+  let loading = false, observer;
+  class MutationObserver { constructor(fn) { observer = fn; } observe() {} disconnect() {} }
   const location = new URL('https://wish.test/events');
   const window = {
     location,
@@ -17,12 +19,12 @@ function mount(lockEnabled = true) {
     addEventListener(name, fn) { handlers.set(name, fn); },
     removeEventListener() {},
   };
-  const document = { addEventListener: window.addEventListener, removeEventListener() {} };
+  const document = { body: {}, querySelector: () => loading ? {} : null, addEventListener: window.addEventListener, removeEventListener() {} };
   const mocks = {
     react: { useRef: current => ({ current }), useState: value => [value, () => {}], useEffect: fn => effects.push(fn) },
     'react/jsx-runtime': { jsx() {}, jsxs() {} },
     'next/navigation': { usePathname: () => location.pathname, useSearchParams: () => location.searchParams },
-    '@/lib/navigation-signal': { NAVIGATION_START_EVENT: 'wish:navigation-start' },
+    '@/lib/navigation-signal': { NAVIGATION_START_EVENT: 'wish:navigation-start', NAVIGATION_END_EVENT: 'wish:navigation-end' },
     '@/lib/i18n/locale-provider': { useDict: () => ({ common: {} }) },
   };
   const filename = path.join(__dirname, '../src/components/layout/navigation-feedback.tsx');
@@ -30,7 +32,7 @@ function mount(lockEnabled = true) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(source, { exports, URL, window, document, location, FormData, require(name) {
+  vm.runInNewContext(source, { exports, URL, window, document, location, FormData, MutationObserver, require(name) {
     assert.ok(name in mocks, `Unexpected dependency: ${name}`);
     return mocks[name];
   } }, { filename });
@@ -44,6 +46,7 @@ function mount(lockEnabled = true) {
       return event;
     },
     finishRoute: () => effects[0](),
+    setLoading(value) { loading = value; observer(); },
     tick() { for (const [id, timer] of [...timers]) { timers.delete(id); timer.fn(); } },
   };
 }
@@ -86,4 +89,33 @@ test('disabled navigation lock preserves normal button interaction', () => {
   app.send('wish:navigation-start', { detail: { href: '/talks' } });
   assert.equal(app.send('click').defaultPrevented, false);
   assert.equal(app.send('wish:navigation-start', { detail: { href: '/' } }).defaultPrevented, false);
+});
+
+
+test('streaming loading UI keeps route locked until content arrives', () => {
+  const app = mount();
+  app.send('wish:navigation-start', { detail: { href: '/talks' } });
+  app.setLoading(true);
+  app.finishRoute();
+  app.tick();
+  assert.equal(app.send('click').defaultPrevented, true);
+  app.setLoading(false);
+  app.tick();
+  assert.equal(app.send('click').defaultPrevented, false);
+});
+
+test('error boundary and back-forward cache restore unlock recovery controls', () => {
+  for (const [name, extra] of [['wish:navigation-end', {}], ['pageshow', {persisted:true}]]) {
+    const app = mount();
+    app.send('wish:navigation-start', { detail: { href: '/talks' } });
+    app.send(name, extra);
+    assert.equal(app.send('click').defaultPrevented, false);
+  }
+});
+
+test('ordinary pageshow cannot clear a navigation started before load completes', () => {
+  const app = mount();
+  app.send('wish:navigation-start', { detail: { href: '/talks' } });
+  app.send('pageshow', {persisted:false});
+  assert.equal(app.send('click').defaultPrevented, true);
 });

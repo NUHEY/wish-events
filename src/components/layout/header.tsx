@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { getFriendDmThreads } from "@/actions/direct-messages";
@@ -21,30 +22,25 @@ export async function Header() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name, role, account_kind, floor_number, room_number, avatar_url")
+    .select("full_name, role, account_kind, floor_number, room_number, avatar_url, moved_out_at")
     .eq("id", user.id)
     .maybeSingle();
 
   if (!profile) return null;
+  // Keep sign-out available on the farewell page without querying community data.
+  if (profile.account_kind === "resident" && profile.moved_out_at) {
+    return <header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><span className="font-bold">WISH Events</span><SignOutButton /></div></header>;
+  }
   const configuredAccountKind = institutionalAccountKindForEmail(user.email);
   const accountKind = configuredAccountKind ?? profile.account_kind;
   const fullName = configuredAccountKind ? institutionalDisplayName(configuredAccountKind) : profile.full_name;
   const avatarUrl = configuredAccountKind ? institutionalAvatarUrl(configuredAccountKind) : profile.avatar_url;
-  const { data: registrations } = await supabase.from("registrations").select("event_id").eq("user_id", user.id);
-  const eventIds = (registrations ?? []).map((registration) => registration.event_id);
-  const [{ data: reads }, { data: messages }, friendThreads, { data: hasUnreadNotifications }] = await Promise.all([
-    eventIds.length
-      ? supabase.from("event_chat_reads").select("event_id, last_read_at").eq("user_id", user.id)
-      : Promise.resolve({ data: [] }),
-    eventIds.length
-      ? supabase.from("event_messages").select("event_id, sender_id, created_at").in("event_id", eventIds)
-      : Promise.resolve({ data: [] }),
+  const [{ data: hasUnreadEventTalk }, friendThreads, { data: hasUnreadNotifications }] = await Promise.all([
+    supabase.rpc("has_unread_event_talk"),
     getFriendDmThreads(),
     supabase.rpc("has_unread_notifications"),
   ]);
-  const lastReadByEvent = new Map((reads ?? []).map((read) => [read.event_id, read.last_read_at]));
-  const hasUnreadEventTalk = (messages ?? []).some((message) => message.sender_id !== user.id && message.created_at > (lastReadByEvent.get(message.event_id) ?? "1970-01-01T00:00:00Z"));
-  const hasUnreadTalk = hasUnreadEventTalk || friendThreads.some((t) => t.unread);
+  const hasUnreadTalk = !!hasUnreadEventTalk || friendThreads.some((t) => t.unread);
 
   return (
     <>

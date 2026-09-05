@@ -41,7 +41,7 @@ function withInstitutionalIdentity(profile: UserRow, email: string | null | unde
  * リクエスト内では最初の1回の結果を使い回すようにする（別リクエスト
  * （別ページ表示）ではキャッシュされず、常に最新の状態を取得する）。
  */
-export const getCurrentProfile = cache(async (): Promise<UserRow> => {
+const getSignedInProfile = cache(async (): Promise<UserRow> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -103,6 +103,18 @@ export const getCurrentProfile = cache(async (): Promise<UserRow> => {
   console.error("Failed to provision public.users row", { insertError, retryError });
   throw new Error("プロフィールを準備できませんでした。しばらくしてからもう一度お試しください。");
 });
+
+/** 通常画面とServer Actionでは、退寮後のセッションもここで拒否する。 */
+export const getCurrentProfile = cache(async (): Promise<UserRow> => {
+  const profile = await getSignedInProfile();
+  if (profile.account_kind === "resident" && profile.moved_out_at) redirect("/move-out");
+  return profile;
+});
+
+/** 退寮完了画面だけで使う。本人のプロフィール取得以外の権限は付与しない。 */
+export async function getMoveOutProfile(): Promise<UserRow> {
+  return getSignedInProfile();
+}
 
 /** RAでなければホームへリダイレクトする */
 export async function requireRa(): Promise<UserRow> {

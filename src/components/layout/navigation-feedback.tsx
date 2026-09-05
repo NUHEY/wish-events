@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { NAVIGATION_START_EVENT } from "@/lib/navigation-signal";
+import { NAVIGATION_START_EVENT, NAVIGATION_END_EVENT } from "@/lib/navigation-signal";
 import { useDict } from "@/lib/i18n/locale-provider";
 
 export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { lockEnabled?: boolean; stallSeconds?: number }) {
@@ -16,20 +16,34 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
   const navigationLockedRef = useRef(false);
   const targetHrefRef = useRef<string | null>(null);
   const settleTimerRef = useRef<number | null>(null);
+  const routeObserverRef = useRef<MutationObserver | null>(null);
   const currentSearch = searchParams.toString();
 
   useEffect(() => {
     // スマホではpathnameが先に切り替わり、重いServer Componentの描画が直後まで
     // 続くことがある。短い描画安定時間まで入力を保持し、連続RSC取得を防ぐ。
     const settleMs = window.matchMedia("(max-width: 639px)").matches ? 420 : 0;
-    const timer = window.setTimeout(() => {
-      navigationLockedRef.current = false;
-      targetHrefRef.current = null;
-      setStalled(false);
-      setTargetPath(null);
-    }, settleMs);
-    settleTimerRef.current = timer;
-    return () => window.clearTimeout(timer);
+    const settle = () => {
+      if (document.querySelector("[data-route-loading]")) return;
+      routeObserverRef.current?.disconnect();
+      settleTimerRef.current = window.setTimeout(() => {
+        if (document.querySelector("[data-route-loading]")) {
+          routeObserverRef.current?.observe(document.body, { childList: true, subtree: true });
+          return;
+        }
+        navigationLockedRef.current = false;
+        targetHrefRef.current = null;
+        setStalled(false);
+        setTargetPath(null);
+      }, settleMs);
+    };
+    routeObserverRef.current = new MutationObserver(settle);
+    routeObserverRef.current.observe(document.body, { childList: true, subtree: true });
+    settle();
+    return () => {
+      routeObserverRef.current?.disconnect();
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
+    };
   }, [pathname, currentSearch]);
   useEffect(() => {
     if (!targetPath) return;
@@ -51,6 +65,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
       if (lockEnabled && navigationLockedRef.current) return "blocked";
       // 初期表示や直前の遷移の解除タイマーが、新しい遷移のロックを外さないようにする。
       if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
+      routeObserverRef.current?.disconnect();
       navigationLockedRef.current = true;
       targetHrefRef.current = next.href;
       setStalled(false);
@@ -98,13 +113,26 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
       const result = start((event as CustomEvent<{ href: string }>).detail.href);
       if (result !== "started") event.preventDefault();
     };
+    const onEnd = () => {
+      routeObserverRef.current?.disconnect();
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
+      navigationLockedRef.current = false;
+      targetHrefRef.current = null;
+      setTargetPath(null);
+      setStalled(false);
+    };
+    const onPageShow = (event: PageTransitionEvent) => { if (event.persisted) onEnd(); };
     document.addEventListener("click", onClick, true);
     document.addEventListener("submit", onSubmit, true);
     window.addEventListener(NAVIGATION_START_EVENT, onSignal);
+    window.addEventListener(NAVIGATION_END_EVENT, onEnd);
+    window.addEventListener("pageshow", onPageShow);
     return () => {
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("submit", onSubmit, true);
       window.removeEventListener(NAVIGATION_START_EVENT, onSignal);
+      window.removeEventListener(NAVIGATION_END_EVENT, onEnd);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [lockEnabled]);
 

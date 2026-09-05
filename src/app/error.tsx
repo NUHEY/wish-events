@@ -4,17 +4,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { finishNavigation } from "@/lib/navigation-signal";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
-/**
- * 画面の描画中にエラーが起きた際、真っ白のまま固まって見えるのを防ぐための
- * 全体エラーバウンダリー。「更新されたのか何か知らないが真っ白のまま
- * フリーズすることがある」という報告への対策として追加。
- *
- * 「もう一度試す」（reset）と「再読み込み」が同じ意味に見えるという指摘を受け、
- * 2つ目のボタンは意味の異なる「ホームに戻る」に変更した。resetはこのセグメントの
- * 再描画だけを試みる軽量な操作、ホームに戻るはページ遷移によって状態そのものを
- * リセットする、明確に異なる代替手段にしている。
- */
+/** Recover rendering failures and release any pending navigation lock. */
 export default function GlobalErrorBoundary({
   error,
   reset,
@@ -23,9 +16,11 @@ export default function GlobalErrorBoundary({
   reset: () => void;
 }) {
   const router = useRouter();
+  const en = useLocale() === "en";
 
   useEffect(() => {
     console.error(error);
+    finishNavigation();
   }, [error]);
 
   return (
@@ -34,15 +29,17 @@ export default function GlobalErrorBoundary({
         <RefreshCw className="h-6 w-6" />
       </div>
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-lg font-bold">表示中に問題が発生しました</h1>
+        <h1 className="text-lg font-bold">{en ? "This page could not be displayed" : "表示中に問題が発生しました"}</h1>
         <p className="text-sm text-muted-foreground">
-          一時的な問題が発生した可能性があります。もう一度お試しください。改善しない場合はホームからやり直してください。
+          {en ? "Please retry. If the problem continues, reload the page or return home." : "もう一度お試しください。改善しない場合は、ページを読み込み直すか、ホームからやり直してください。"}
         </p>
       </div>
-      <div className="flex gap-2">
-        <Button onClick={() => reset()}>もう一度試す</Button>
-        <Button variant="outline" onClick={() => router.push("/")}>
-          ホームに戻る
+      {error.digest && <p className="text-xs text-muted-foreground">{en ? "Error reference" : "エラー番号"}: {error.digest}</p>}
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button className="min-h-11" onClick={() => { router.refresh(); reset(); }}>{en ? "Retry" : "もう一度試す"}</Button>
+        <Button className="min-h-11" variant="outline" onClick={() => window.location.reload()}>{en ? "Reload page" : "読み込み直す"}</Button>
+        <Button className="min-h-11" variant="outline" onClick={() => router.push("/")}>
+          {en ? "Return home" : "ホームに戻る"}
         </Button>
       </div>
     </div>

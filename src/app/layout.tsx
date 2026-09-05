@@ -13,6 +13,7 @@ import { LocaleProvider } from "@/lib/i18n/locale-provider";
 import { getSiteSettings, buildSiteThemeStyle, SITE_DEFAULT_TITLE, SITE_DEFAULT_DESCRIPTION } from "@/lib/site-settings";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { themeInitScript } from "@/lib/theme";
+import { RouteLoading } from "@/components/layout/route-loading";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -88,9 +89,15 @@ export default async function RootLayout({
         <ThemeProvider>
           <LocaleProvider locale={locale}>
             <ConfirmDialogProvider>
-              <NavigationFeedback lockEnabled={siteSettings.navigationLockEnabled} stallSeconds={siteSettings.navigationStallSeconds} />
-              <Header />
-              <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">{children}</main>
+              <Suspense fallback={null}>
+                <NavigationFeedback lockEnabled={siteSettings.navigationLockEnabled} stallSeconds={siteSettings.navigationStallSeconds} />
+              </Suspense>
+              <Suspense fallback={<div aria-hidden="true" className="h-16 border-b border-border bg-card" />}>
+                <Header />
+              </Suspense>
+              <main className="mx-auto max-w-5xl px-4 py-4 pb-24 sm:py-6 sm:pb-6">
+                <Suspense fallback={<RouteLoading />}>{children}</Suspense>
+              </main>
               <AppToaster />
               <Suspense fallback={null}>
                 <SavedToastWatcher />

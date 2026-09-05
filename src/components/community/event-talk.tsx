@@ -42,6 +42,7 @@ import { ImageLightbox } from "@/components/community/image-lightbox";
 import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
+import { ChatConnectionStatus } from "./chat-connection-status";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
 import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
@@ -256,17 +257,18 @@ export function EventTalk({
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const { messages: fetched } = await getEventMessagesByIds(eventId, ids);
     if (fetched.length !== ids.length) throw new Error("Message recovery incomplete");
     const recoveredMessages = fetched as Message[];
     setLiveMessages((current) => mergeMessages(current, recoveredMessages));
     const pollIds = [...new Set(recoveredMessages.map((message) => message.poll_id).filter((id): id is string => !!id))];
     if (pollIds.length > 0) {
-      const [{ data: recoveredPolls }, { data: recoveredVotes }] = await Promise.all([
+      const [{ data: recoveredPolls, error: pollError }, { data: recoveredVotes, error: voteError }] = await Promise.all([
         supabase.from("event_polls").select("*").in("id", pollIds),
         supabase.from("event_poll_votes").select("*").in("poll_id", pollIds),
       ]);
+      if (pollError || voteError) throw pollError || voteError;
       setPollsState((current) => [
         ...current,
         ...((recoveredPolls ?? []) as Poll[]).filter((poll) => !current.some((saved) => saved.id === poll.id)),
@@ -278,9 +280,10 @@ export function EventTalk({
     }
     const latest = data?.at(-1);
     if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
+    return ids.length === 50;
   }, [eventId]);
 
-  useChatRecovery(`event-${eventId}`, syncMissingMessages);
+  const connection = useChatRecovery(`event-${currentUserId}-${eventId}`, syncMissingMessages);
 
   useEffect(() => {
     const tapTimers = tapTimerRef.current;
@@ -411,6 +414,7 @@ export function EventTalk({
 
   return (
     <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
+      <ChatConnectionStatus state={connection} />
       <div
         ref={setMessagesScrollRef}
         className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[linear-gradient(180deg,var(--chat-bg-sidebar),var(--chat-bg-main)_10rem)] px-3.5 py-5 sm:min-h-[20rem] sm:px-5"

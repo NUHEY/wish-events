@@ -28,3 +28,18 @@ PY
 "$pg_bin/psql" -X -h "$test_dir/socket" -d wish_events_security_test \
   -v ON_ERROR_STOP=1 -v resync_function_file="$test_dir/resync.sql" \
   -f "$repo_dir/tests/sql/account-security.sql"
+
+python3 - "$repo_dir" "$test_dir/active-functions.sql" <<'PYSQL'
+from pathlib import Path
+import sys,re
+source=(Path(sys.argv[1])/'supabase/schema.sql').read_text()
+functions=[]
+for name in ('can_access_event_talk','event_community_profiles_v3'):
+ match=re.search(r'create or replace function public\.'+name+r'\([\s\S]*?\$\$;',source,re.I)
+ if not match: raise RuntimeError(name)
+ functions.append(match.group())
+Path(sys.argv[2]).write_text('\n'.join(functions))
+PYSQL
+"$pg_bin/psql" -X -h "$test_dir/socket" -d wish_events_security_test \
+  -v ON_ERROR_STOP=1 -v active_functions_file="$test_dir/active-functions.sql" \
+  -f "$repo_dir/tests/sql/active-account-security.sql"

@@ -1,4 +1,10 @@
 export const NAVIGATION_START_EVENT = "wish:navigation-start";
+export const NAVIGATION_END_EVENT = "wish:navigation-end";
+
+/** An error boundary must restore access to retry/home controls even without a URL change. */
+export function finishNavigation() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(NAVIGATION_END_EVENT));
+}
 
 /** router.push/replaceを使うボタンからも、リンクと同じ即時ローディング表示を開始する。 */
 export function signalNavigation(href: string): boolean {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   const searchParams = useSearchParams();
   const dict = useDict();
   const locale = useLocale();
+  const panelId = useId();
 
   const selectedDate = searchParams.get("date");
   const from = searchParams.get("from");
@@ -59,6 +60,12 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   const [rangeDraft, setRangeDraft] = useState({ from: from ?? "", to: to ?? "" });
   const [monthDraft, setMonthDraft] = useState(month ?? thisMonthKey());
   useEffect(() => setOptimisticDate(selectedDate), [selectedDate]);
+  useEffect(() => {
+    setRangeDraft({ from: from ?? "", to: to ?? "" });
+    setMonthDraft(month ?? thisMonthKey());
+    setMode(from || to ? "range" : month ? "month" : "single");
+  }, [from, to, month]);
+  const invalidRange = !!(rangeDraft.from && rangeDraft.to && rangeDraft.from > rangeDraft.to);
 
   const datesWithEvents = useMemo(() => new Set(eventDates.map(toJstDateKey)), [eventDates]);
 
@@ -70,6 +77,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
     params.delete("from");
     params.delete("to");
     params.delete("month");
+    // Date filtering includes both past and upcoming events; do not retain a hidden status.
+    params.delete("status");
     mutate(params);
     const qs = params.toString();
     const href = qs ? `${pathname}?${qs}` : pathname;
@@ -90,7 +99,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
   }
 
   function applyRange() {
-    if (!rangeDraft.from && !rangeDraft.to) return;
+    if (invalidRange || (!rangeDraft.from && !rangeDraft.to)) return;
     navigateWithParams((params) => {
       if (rangeDraft.from) params.set("from", rangeDraft.from);
       if (rangeDraft.to) params.set("to", rangeDraft.to);
@@ -158,6 +167,9 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
           type="button"
           variant={hasActiveDateFilter ? "default" : "outline"}
           size="sm"
+          className="min-h-11"
+          aria-expanded={panelOpen}
+          aria-controls={panelId}
           onClick={() => setPanelOpen((v) => !v)}
         >
           <CalendarDays className="mr-1 h-3.5 w-3.5" />
@@ -167,7 +179,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
           <button
             type="button"
             onClick={clearDateFilter}
-            className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
+            aria-label={`${dict.home.clearFilters}: ${activeChipLabel}`}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
           >
             {activeChipLabel}
             <X className="h-3 w-3" />
@@ -176,15 +189,16 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
       </div>
 
       {panelOpen && (
-        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <div id={panelId} className="w-full min-w-0 max-w-sm rounded-2xl border border-border bg-card p-3 shadow-sm">
           <div className="mb-3 flex items-center gap-1 rounded-full bg-secondary/50 p-0.5">
             {modeTabs.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setMode(tab.key)}
+                aria-pressed={mode === tab.key}
                 className={cn(
-                  "flex-1 rounded-full px-2 py-1.5 text-xs font-semibold transition-colors",
+                  "min-h-11 min-w-0 flex-1 rounded-full px-2 py-1.5 text-xs font-semibold transition-colors",
                   mode === tab.key
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -203,8 +217,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                   onClick={() =>
                     setViewDate((v) => (v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 }))
                   }
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  aria-label="prev month"
+                  className="flex h-11 w-11 items-center justify-center rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  aria-label={locale === "ja" ? "前の月" : "Previous month"}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -214,8 +228,8 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                   onClick={() =>
                     setViewDate((v) => (v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 }))
                   }
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  aria-label="next month"
+                  className="flex h-11 w-11 items-center justify-center rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  aria-label={locale === "ja" ? "次の月" : "Next month"}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -235,8 +249,10 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                       key={cell.dateKey}
                       type="button"
                       onClick={() => selectSingleDate(cell.dateKey)}
+                      aria-label={cell.dateKey}
+                      aria-pressed={isSelected}
                       className={cn(
-                        "relative flex h-8 flex-col items-center justify-center rounded-lg text-xs transition-colors",
+                        "relative flex min-h-11 min-w-0 flex-col items-center justify-center rounded-lg text-xs transition-colors",
                         isSelected
                           ? "bg-primary text-primary-foreground font-semibold"
                           : "text-foreground hover:bg-secondary"
@@ -262,7 +278,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                   value={rangeDraft.from}
                   max={rangeDraft.to || undefined}
                   onChange={(e) => setRangeDraft((v) => ({ ...v, from: e.target.value }))}
-                  className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground"
+                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
@@ -272,10 +288,11 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                   value={rangeDraft.to}
                   min={rangeDraft.from || undefined}
                   onChange={(e) => setRangeDraft((v) => ({ ...v, to: e.target.value }))}
-                  className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground"
+                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
                 />
               </label>
-              <Button type="button" size="sm" onClick={applyRange} disabled={!rangeDraft.from && !rangeDraft.to}>
+              {invalidRange && <p role="alert" className="text-xs text-destructive">{locale === "ja" ? "終了日は開始日以降にしてください。" : "The end date must be on or after the start date."}</p>}
+              <Button type="button" size="sm" className="min-h-11" onClick={applyRange} disabled={pending || invalidRange || (!rangeDraft.from && !rangeDraft.to)}>
                 {dict.home.dateFilterApply}
               </Button>
             </div>
@@ -289,26 +306,26 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
                   type="month"
                   value={monthDraft}
                   onChange={(e) => setMonthDraft(e.target.value)}
-                  className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground"
+                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
                 />
               </label>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => applyMonth(thisMonthKey())}
-                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
+                  className="min-h-11 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
                 >
                   {dict.home.monthThisMonth}
                 </button>
                 <button
                   type="button"
                   onClick={() => applyMonth(thisMonthKey(1))}
-                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
+                  className="min-h-11 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
                 >
                   {dict.home.monthNextMonth}
                 </button>
               </div>
-              <Button type="button" size="sm" onClick={() => applyMonth(monthDraft)} disabled={!monthDraft}>
+              <Button type="button" size="sm" className="min-h-11" onClick={() => applyMonth(monthDraft)} disabled={pending || !monthDraft}>
                 {dict.home.dateFilterApply}
               </Button>
             </div>
@@ -317,7 +334,7 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
           <button
             type="button"
             onClick={() => setPanelOpen(false)}
-            className="mt-3 w-full rounded-lg py-1.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="mt-3 min-h-11 w-full rounded-lg py-1.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             {dict.home.dateFilterCloseButton}
           </button>

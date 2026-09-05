@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDict } from "@/lib/i18n/locale-provider";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { signalNavigation } from "@/lib/navigation-signal";
 
 const STATUSES = ["all", "upcoming", "past"] as const;
@@ -18,13 +18,17 @@ export function EventStatusFilter() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const active = (searchParams.get("status") as EventStatus | null) ?? "all";
+  const hasDateFilter = ["date", "from", "to", "month"].some((key) => searchParams.has(key));
+  const requestedStatus = searchParams.get("status");
+  const active: EventStatus = !hasDateFilter && (requestedStatus === "upcoming" || requestedStatus === "past") ? requestedStatus : "all";
   const dict = useDict();
+  const locale = useLocale();
   const [pending, startTransition] = useTransition();
 
   function setStatus(status: EventStatus) {
-    if (pending || status === active) return;
+    if (pending || (status === active && !hasDateFilter)) return;
     const params = new URLSearchParams(searchParams.toString());
+    for (const key of ["date", "from", "to", "month"]) params.delete(key);
     if (status === "all") {
       params.delete("status");
     } else {
@@ -46,10 +50,10 @@ export function EventStatusFilter() {
 
   return (
     <div
-      role="tablist"
-      aria-label="event status"
+      role="group"
+      aria-label={locale === "ja" ? "開催状況" : "Event status"}
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity",
+        "flex w-full max-w-sm items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity",
         pending && "opacity-60"
       )}
     >
@@ -57,12 +61,11 @@ export function EventStatusFilter() {
         <button
           key={status}
           type="button"
-          role="tab"
-          aria-selected={active === status}
+          aria-pressed={active === status}
           disabled={pending}
           onClick={() => setStatus(status)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+            "min-h-11 min-w-0 flex-1 rounded-full px-2 py-1.5 whitespace-nowrap text-xs sm:text-sm font-medium transition-colors",
             active === status
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"

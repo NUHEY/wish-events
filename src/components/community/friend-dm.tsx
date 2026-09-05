@@ -17,6 +17,7 @@ import { dmPairFolder } from "@/lib/utils";
 import { compressImageFile } from "@/lib/image-compress";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
+import { ChatConnectionStatus } from "./chat-connection-status";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
 import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { useDict } from "@/lib/i18n/locale-provider";
@@ -154,15 +155,16 @@ export function FriendDm({
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const result = await getDirectMessagesByIds(friendId, ids);
     if (result.messages.length !== ids.length) throw new Error("Message recovery incomplete");
     setLiveMessages((current) => mergeMessages(current, result.messages as DirectMessage[]));
     const latest = data?.at(-1);
     if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
+    return ids.length === 50;
   }, [currentUserId, friendId]);
 
-  useChatRecovery(`friend-${currentUserId}-${friendId}`, syncMissingMessages);
+  const connection = useChatRecovery(`friend-${currentUserId}-${friendId}`, syncMissingMessages);
 
   async function loadOlder() {
     if (!hasMoreOlderState || loadingOlder || liveMessages.length === 0) return;
@@ -300,6 +302,7 @@ export function FriendDm({
 
   return (
     <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
+      <ChatConnectionStatus state={connection} />
       <PendingFeedback active={pending || uploading || loadingOlder} label={loadingOlder ? dict.talks.loadingOlder : uploading ? dict.talks.sendingImage : dict.talks.sendingMessage} />
       <div
         ref={setMessagesScrollRef}

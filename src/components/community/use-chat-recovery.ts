@@ -1,47 +1,43 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
+import useSWR from "swr";
 
-/**
- * RealtimeのWebSocketが一時的に切れてもメッセージを取りこぼさないための補完層。
- * 通常はSupabase Realtimeが即時反映し、この処理は一定間隔・オンライン復帰・
- * タブ再表示時に未取得分だけを確認する。別のメッセージDBを二重管理せず、
- * 永続データを唯一の正として復旧できるようにしている。
+const subscribeOnline = (notify: () => void) => {
+  window.addEventListener("online", notify);
+  window.addEventListener("offline", notify);
+  return () => {
+    window.removeEventListener("online", notify);
+    window.removeEventListener("offline", notify);
+  };
+};
+
+/** Realtime delivers immediately; SWR reconciles durable messages after gaps.
+ * Only the recovery result is cached, never message contents. Keys include the
+ * signed-in user. Sending is deliberately excluded from automatic retries.
  */
-export function useChatRecovery(recoveryKey: string, syncMissingMessages: () => Promise<void>) {
+export function useChatRecovery(recoveryKey: string, syncMissingMessages: () => Promise<boolean | void>) {
   const syncRef = useRef(syncMissingMessages);
   syncRef.current = syncMissingMessages;
-
-  useEffect(() => {
-    let active = true;
-    let running = false;
-
-    async function recover() {
-      if (!active || running || document.visibilityState === "hidden" || !navigator.onLine) return;
-      running = true;
-      try {
-        await syncRef.current();
-      } catch (error) {
-        // Realtime自体は動作し続けるため、補完問い合わせの一時失敗は次回に再試行する。
-        console.warn("Chat recovery retry scheduled", error);
-      } finally {
-        running = false;
-      }
+  const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
+  const { data, error, isValidating, mutate } = useSWR(
+    ["chat-recovery", recoveryKey],
+    async () => ({ hasMore: (await syncRef.current()) === true }),
+    {
+      revalidateOnMount: true,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      // Drain a backlog promptly, then reduce idle traffic.
+      refreshInterval: (result) => result?.hasMore ? 300 : 20_000,
+      dedupingInterval: 250,
+      focusThrottleInterval: 5_000,
+      errorRetryInterval: 5_000,
+      shouldRetryOnError: true,
+      isPaused: () => typeof navigator !== "undefined" && !navigator.onLine,
     }
-
-    const initialTimer = window.setTimeout(() => { void recover(); }, 1200);
-    const interval = window.setInterval(() => { void recover(); }, 20_000);
-    const handleVisible = () => { if (document.visibilityState === "visible") void recover(); };
-    const handleOnline = () => { void recover(); };
-    document.addEventListener("visibilitychange", handleVisible);
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      active = false;
-      window.clearTimeout(initialTimer);
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisible);
-      window.removeEventListener("online", handleOnline);
-    };
-  }, [recoveryKey]);
+  );
+  return { online, error: !!error, catchingUp: !!data?.hasMore, isValidating,
+    retry: () => { void mutate().catch(() => {}); } };
 }

@@ -748,6 +748,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      has_unread_event_talk: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      move_out_event_history: {
+        Args: Record<string, never>;
+        Returns: { id: string; title: string; title_en: string | null; category: EventCategory; event_date: string; poster_url: string | null }[];
+      };
       sync_own_role: {
         Args: Record<string, never>;
         Returns: string | null;
