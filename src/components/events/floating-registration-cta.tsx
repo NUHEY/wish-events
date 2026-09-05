@@ -1,5 +1,6 @@
 "use client";
 
+import { shouldReduceMotion } from "@/lib/motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -69,7 +70,7 @@ export function FloatingRegistrationCta({
           tabIndex={visible ? 0 : -1}
           className="h-12 w-full rounded-xl shadow-elevated"
           onClick={() => {
-            document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            document.getElementById(anchorId)?.scrollIntoView({ behavior: shouldReduceMotion() ? "instant" : "smooth", block: "center" });
           }}
         >
           {label}

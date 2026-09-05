@@ -17,7 +17,9 @@ const ALLOWED_TYPES: Record<string, string> = {
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 function intFromForm(formData: FormData, name: string, min: number, max: number, fallback: number) {
-  const parsed = Number(formData.get(name));
+  const raw = formData.get(name);
+  if (raw === null || String(raw).trim() === "") return fallback;
+  const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, Math.round(parsed)));
 }

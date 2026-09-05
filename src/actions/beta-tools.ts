@@ -201,27 +201,25 @@ export async function answerRaQuestion(_questionId: string, _answerText: string,
 export type LinkHubItemInput = { id?: string; title: string; url: string; description?: string; icon: "link" | "form" | "instagram" | "document" | "calendar" | "contact"; enabled: boolean };
 
 export async function saveRaLinkHub(input: { slug: string; title: string; bio?: string; published: boolean; items: LinkHubItemInput[] }) {
-  const profile = await requireManagement("links");
+  await requireManagement("links");
+  if (!input || typeof input.slug !== "string" || typeof input.title !== "string" || (input.bio != null && typeof input.bio !== "string") || typeof input.published !== "boolean") return { error: "ページの入力内容を確認してください。" };
   const slug = input.slug.trim().toLowerCase();
   const title = input.title.trim();
   const bio = input.bio?.trim() || null;
   if (!/^[a-z0-9][a-z0-9-]{2,39}$/.test(slug)) return { error: "共有URLは3〜40文字の半角英数字・ハイフンで入力してください。" };
   if (!title || title.length > 60 || (bio && bio.length > 240)) return { error: "タイトルまたは説明が長すぎます。" };
-  const items = input.items.slice(0, 30).map((item, position) => ({ ...item, title: item.title.trim(), url: item.url.trim(), description: item.description?.trim() || null, position }));
-  if (items.some((item) => !item.title || item.title.length > 60)) return { error: "各リンクのタイトルを1〜60文字で入力してください。" };
-  if (items.some((item) => { try { const url = new URL(item.url); return !["http:", "https:"].includes(url.protocol); } catch { return true; } })) return { error: "URLは https:// または http:// から入力してください。" };
+  if (!Array.isArray(input.items) || input.items.length > 30) return { error: "掲載リンクは30件までです。件数を確認してください。" };
+  if (input.items.some((item) => !item || typeof item.title !== "string" || typeof item.url !== "string" || (item.description != null && typeof item.description !== "string") || !["link", "form", "instagram", "document", "calendar", "contact"].includes(item.icon) || typeof item.enabled !== "boolean")) return { error: "リンクの入力内容を確認してください。" };
+  const items = input.items.map((item) => ({ title: item.title.trim(), url: item.url.trim(), description: item.description?.trim() || null, icon: item.icon, enabled: item.enabled }));
+  if (items.some((item) => !item.title || item.title.length > 60 || (item.description?.length ?? 0) > 120)) return { error: "各リンクのタイトルは1〜60文字、補足は120文字以内で入力してください。" };
+  if (items.some((item) => { try { const url = new URL(item.url); return item.url.length < 8 || item.url.length > 1000 || /\s/.test(item.url) || !/^https?:\/\//i.test(item.url) || !["http:", "https:"].includes(url.protocol); } catch { return true; } })) return { error: "URLは https:// または http:// から、1000文字以内で入力してください。" };
 
   const supabase = await createClient();
-  const { data: hub, error } = await supabase.from("ra_link_hubs").upsert({ owner_id: profile.id, slug, title, bio, is_published: input.published, updated_at: new Date().toISOString() }, { onConflict: "owner_id" }).select("id, slug").single();
-  if (error || !hub) return { error: error?.code === "23505" ? "この共有URLはすでに使われています。" : `ページを保存できませんでした: ${error?.message ?? "不明なエラー"}` };
-  const { error: deleteError } = await supabase.from("ra_link_items").delete().eq("hub_id", hub.id);
-  if (deleteError) return { error: `リンクを更新できませんでした: ${deleteError.message}` };
-  if (items.length) {
-    const { error: itemError } = await supabase.from("ra_link_items").insert(items.map((item) => ({ hub_id: hub.id, title: item.title, url: item.url, description: item.description, icon: item.icon, position: item.position, is_enabled: item.enabled })));
-    if (itemError) return { error: `リンクを保存できませんでした: ${itemError.message}` };
-  }
+  // One transaction keeps the previous page and links intact if any item fails.
+  const { data, error } = await supabase.rpc("save_ra_link_hub", { p_slug: slug, p_title: title, p_bio: bio, p_published: input.published, p_items: items });
+  const hub = data?.[0];
+  if (error || !hub) return { error: error?.code === "23505" ? "この共有URLはすでに使われています。" : "リンクページを保存できませんでした。入力内容を確認して、もう一度お試しください。" };
   revalidatePath("/dashboard/link-hub");
-  revalidatePath("/links");
-  revalidatePath(`/links/${slug}`);
-  return { success: true, slug: hub.slug as string };
+  revalidatePath("/links", "layout");
+  return { success: true, slug: hub.slug };
 }

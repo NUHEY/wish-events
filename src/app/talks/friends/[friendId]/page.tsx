@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { getFriendRelation } from "@/actions/friends";
 import { getInitialDirectMessages } from "@/actions/direct-messages";
+import { TalkParticipantsButton } from "@/components/community/talk-participants-button";
 import { FriendDm } from "@/components/community/friend-dm";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
@@ -43,7 +44,7 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
   return (
     <MobileChatViewport>
       <div data-chat-theme="aurora" className="flex shrink-0 items-center gap-3 border-b border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3 py-3 backdrop-blur-xl sm:rounded-t-2xl sm:border-x sm:border-t sm:border-[var(--chat-border)]">
-        <BackButton fallbackHref="/talks?tab=friends" className="-ml-1 !h-9 !w-9 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
+        <BackButton fallbackHref="/talks?tab=friends" className="-ml-1 !h-11 !w-11 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
         <AvatarRing role={friend.role} size={40}>
           <Image src={friend.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
         </AvatarRing>
@@ -51,6 +52,7 @@ export default async function FriendDmPage({ params }: { params: Promise<{ frien
           <h1 className="truncate text-[15px] font-bold tracking-tight text-[var(--chat-text-primary)]">{friend.full_name ?? dict.talks.residentFallback}</h1>
           <p className="text-[11px] font-medium text-[var(--chat-text-secondary)]">{dict.talks.friendLabel}</p>
         </div>
+        <TalkParticipantsButton participants={[{ id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url, role: profile.role }, friend]} total={2} />
       </div>
       <FriendDm
         friendId={friendId}

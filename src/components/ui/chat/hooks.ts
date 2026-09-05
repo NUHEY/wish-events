@@ -1,5 +1,6 @@
 "use client"
 
+import { shouldReduceMotion } from "@/lib/motion";
 import {
   useRef,
   useEffect,
@@ -128,7 +129,7 @@ export function useAutoScroll(
     (behavior: ScrollBehavior = "smooth") => {
       const el = containerRef.current
       if (!el) return
-      el.scrollTo({ top: el.scrollHeight, behavior })
+      el.scrollTo({ top: el.scrollHeight, behavior: shouldReduceMotion() ? "instant" : behavior })
       setUnseenCount(0)
     },
     []

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 
 /**
  * 画面遷移時の追加・削除をWeb Animations APIで短く補間する。

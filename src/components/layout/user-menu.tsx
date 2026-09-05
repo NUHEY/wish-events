@@ -23,7 +23,7 @@ import type { UserAccountKind, UserRole } from "@/types/database";
  * ヘッダー右端のアバターボタン。以前は「プロフィール編集」リンク・RA用の
  * ダッシュボードアイコン・「ログアウト」ボタンが常時横並びで表示されていたが、
  * 頻度の低い操作が常に目に入り煩雑だったため、すべてこのドロップダウンに
- * まとめている。常時表示するのは日英切替とこのアバターのみ。
+ * まとめている。右上にはアバターを表示し、言語やテーマの変更は「自分の設定」にまとめる。
  */
 export function UserMenu({
   userId,
@@ -94,10 +94,10 @@ export function UserMenu({
             <span className="mt-1 flex flex-wrap items-center gap-1.5">
               {role === "ra" && <Badge variant="default">RA</Badge>}
               {accountKind !== "resident" && <Badge variant="secondary">{dict.common.institutionalAccount}</Badge>}
+              {accountKind === "resident" && <span className="whitespace-nowrap text-xs leading-5 text-muted-foreground">
+                {formatRoomNumber(floorNumber, roomNumber)}
+              </span>}
             </span>
-            {accountKind === "resident" && <span className="text-xs text-muted-foreground">
-              {formatRoomNumber(floorNumber, roomNumber)}
-            </span>}
           </span>
         </Link>
         <DropdownMenuSeparator />

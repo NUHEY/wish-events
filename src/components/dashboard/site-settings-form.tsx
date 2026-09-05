@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useDirtyForm } from "@/lib/hooks/use-dirty-form";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { updateSiteSettings, uploadOgImage, removeOgImage, uploadBrandIcon, removeBrandIcon, type SiteSettingsActionResult } from "@/actions/site-settings";
 
@@ -24,6 +26,11 @@ function useImageUpdate() {
     finally { inFlight.current = false; setPending(false); }
   }
   return [pending, run] as const;
+}
+
+function PendingFields({ children }: { children: React.ReactNode }) {
+  const { pending } = useFormStatus();
+  return <fieldset disabled={pending} className="grid min-w-0 gap-4">{children}</fieldset>;
 }
 
 function SaveButton() {
@@ -93,13 +100,20 @@ export function SiteSettingsForm({
   ctaTransitionMs: number;
 }) {
   const [accentColor, setAccentColor] = useState(initialAccentColor);
+  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
+  useUnsavedChangesGuard(isDirty, "保存していないサイト設定の変更を破棄しますか？");
+  const [interaction, setInteraction] = useState({ navigationLockEnabled, navigationStallSeconds, mobileTouchFeedbackEnabled, mobileTouchFeedbackMs, motionLevel, ctaBlurPx, ctaFadeHeightPx, ctaTransitionMs });
+  function applyPreset(kind: "mobile" | "calm") {
+    setInteraction({ navigationLockEnabled: true, navigationStallSeconds: 8, mobileTouchFeedbackEnabled: kind === "mobile", mobileTouchFeedbackMs: 180, motionLevel: kind === "mobile" ? "standard" : "subtle", ctaBlurPx: kind === "mobile" ? 16 : 0, ctaFadeHeightPx: 64, ctaTransitionMs: kind === "mobile" ? 200 : 100 });
+    markDirty();
+  }
   const [state, formAction] = useFormState<SiteSettingsActionResult, FormData>(updateSiteSettings, {});
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
   const [pending, startTransition] = useImageUpdate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (state?.success) toast.success("保存しました");
+    if (state?.success) { toast.success("保存しました"); reset(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
@@ -132,15 +146,16 @@ export function SiteSettingsForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <PendingFeedback active={pending} label="OGP画像を更新しています…" />
-      <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <PendingFeedback active={pending} label="共有画像を更新しています…" />
+      <p className="rounded-xl bg-secondary/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">この画面の設定は、サイトを使う全員に反映されます。画像は変更時に保存され、名前・色・動きは最後にまとめて保存します。</p>
+      <section id="site-icons" className="scroll-mt-24 space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
         <div><h2 className="font-bold">アプリアイコン</h2><p className="mt-1 text-sm text-muted-foreground">ブラウザのタブとスマホのホーム画面で使う画像です。正方形で、端に十分な余白がある画像が適しています。</p></div>
         <div className="grid gap-3 sm:grid-cols-2">
           <BrandIconSetting kind="favicon" initialUrl={initialFaviconUrl} title="ブラウザアイコン" note="推奨 512×512px。タブやブックマークに表示します。変更するとすぐに保存されます。" />
           <BrandIconSetting kind="apple" initialUrl={initialAppleTouchIconUrl} title="スマホホーム画面" note="推奨 512×512px。未設定時はブラウザアイコンを使います。変更するとすぐに保存されます。" />
         </div>
       </section>
-      <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <section id="site-sharing" className="scroll-mt-24 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
         <div>
           <h2 className="font-bold">共有時のプレビュー画像</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -194,9 +209,10 @@ export function SiteSettingsForm({
         </div>
       </section>
 
-      <form action={formAction} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <form ref={formRef} action={formAction} onInput={markDirty} onChange={markDirty} id="site-appearance" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <PendingFields>
         <div>
-          <h2 className="font-bold">サイトの名前・説明</h2>
+          <h2 className="font-bold">名前・色・操作感</h2>
           <p className="mt-1 text-sm text-muted-foreground">変更後、下の「サイト設定を保存」を押してください。名前・説明を空欄にすると標準の内容に戻ります。</p>
         </div>
         <div className="grid gap-1.5">
@@ -232,7 +248,7 @@ export function SiteSettingsForm({
               aria-label="アクセントカラー"
             />
             <span className="text-sm text-muted-foreground">{accentColor}</span>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setAccentColor(defaultAccentColor)}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setAccentColor(defaultAccentColor); markDirty(); }}>
               早稲田カラーに戻す
             </Button>
           </div>
@@ -244,6 +260,12 @@ export function SiteSettingsForm({
             </span>
           </label>
         </div>
+        <section id="site-interaction" className="scroll-mt-24 space-y-3 border-t border-border pt-4">
+          <div><h2 className="font-bold">スマホの操作感</h2><p className="mt-1 text-sm text-muted-foreground">迷ったら「スマホ向け標準」。動きを抑えたい時は「動きを控えめに」を選べます。</p></div>
+          <div className="grid gap-2 sm:grid-cols-2"><Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal py-3" onClick={() => applyPreset("mobile")}>スマホ向け標準</Button><Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal py-3" onClick={() => applyPreset("calm")}>動きを控えめに</Button></div>
+          <p className="text-xs leading-relaxed text-muted-foreground">操作感の設定だけをまとめて変更します。連続タップの防止はどちらもオン。下の保存ボタンで反映されます。</p>
+          <p aria-live="polite" className="rounded-xl bg-secondary/40 p-3 text-sm">連続タップ防止: {interaction.navigationLockEnabled ? "オン" : "オフ"} · 動き: {interaction.motionLevel === "subtle" ? "控えめ" : interaction.motionLevel === "lively" ? "活発" : "標準"}</p>
+        </section>
         <details className="group rounded-lg border border-border">
           <summary className="min-h-11 cursor-pointer rounded-lg px-4 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">操作・動きの詳細設定</summary>
           <div className="space-y-5 px-4 pb-4">
@@ -252,31 +274,34 @@ export function SiteSettingsForm({
           <p className="mt-1 text-sm text-muted-foreground">連続タップへの対応と、画面の動きを調整します。通常は現在の設定のままで使えます。</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 rounded-xl bg-secondary/35 p-3 text-sm">
-              <input type="checkbox" name="navigation_lock_enabled" defaultChecked={navigationLockEnabled} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
+              <input type="checkbox" name="navigation_lock_enabled" checked={interaction.navigationLockEnabled} onChange={event => setInteraction(current => ({ ...current, navigationLockEnabled: event.target.checked }))} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
               <span><span className="font-medium">ページの読み込み中は連続タップを防ぐ</span><span className="mt-0.5 block text-xs text-muted-foreground">複数のページを同時に開こうとする操作を抑えます。通常はオンを推奨します。</span></span>
             </label>
             <label className="flex items-start gap-2 rounded-xl bg-secondary/35 p-3 text-sm">
-              <input type="checkbox" name="mobile_touch_feedback_enabled" defaultChecked={mobileTouchFeedbackEnabled} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
+              <input type="checkbox" name="mobile_touch_feedback_enabled" checked={interaction.mobileTouchFeedbackEnabled} onChange={event => setInteraction(current => ({ ...current, mobileTouchFeedbackEnabled: event.target.checked }))} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
               <span><span className="font-medium">スマホのタップ反応を表示</span><span className="mt-0.5 block text-xs text-muted-foreground">ボタンを押したことが短い動きで分かります。</span></span>
             </label>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-1.5"><Label htmlFor="navigation_stall_seconds">読み込み案内を出すまで（秒）</Label><Input id="navigation_stall_seconds" name="navigation_stall_seconds" type="number" min={3} max={30} defaultValue={navigationStallSeconds} className="h-11" /><p className="text-xs text-muted-foreground">3〜30秒</p></div>
-            <div className="grid gap-1.5"><Label htmlFor="mobile_touch_feedback_ms">タップの動きの時間（ミリ秒）</Label><Input id="mobile_touch_feedback_ms" name="mobile_touch_feedback_ms" type="number" min={80} max={500} step={10} defaultValue={mobileTouchFeedbackMs} className="h-11" /><p className="text-xs text-muted-foreground">80〜500ミリ秒（1000ミリ秒＝1秒）</p></div>
-            <div className="grid gap-1.5"><Label htmlFor="motion_level">動きの大きさ</Label><Select id="motion_level" name="motion_level" defaultValue={motionLevel}><option value="subtle">控えめ</option><option value="standard">標準</option><option value="lively">活発</option></Select><p className="text-xs text-muted-foreground">端末の「動きを減らす」が最優先です。</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="navigation_stall_seconds">読み込み案内を出すまで（秒）</Label><Input id="navigation_stall_seconds" name="navigation_stall_seconds" type="number" min={3} max={30} value={interaction.navigationStallSeconds} onChange={event => setInteraction(current => ({ ...current, navigationStallSeconds: Number(event.target.value) }))} className="h-11" /><p className="text-xs text-muted-foreground">3〜30秒</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="mobile_touch_feedback_ms">タップの動きの時間（ミリ秒）</Label><Input id="mobile_touch_feedback_ms" name="mobile_touch_feedback_ms" type="number" min={80} max={500} step={10} value={interaction.mobileTouchFeedbackMs} onChange={event => setInteraction(current => ({ ...current, mobileTouchFeedbackMs: Number(event.target.value) }))} className="h-11" /><p className="text-xs text-muted-foreground">80〜500ミリ秒（1000ミリ秒＝1秒）</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="motion_level">動きの大きさ</Label><Select id="motion_level" name="motion_level" value={interaction.motionLevel} onChange={event => setInteraction(current => ({ ...current, motionLevel: event.target.value as typeof motionLevel }))}><option value="subtle">控えめ</option><option value="standard">標準</option><option value="lively">活発</option></Select><p className="text-xs text-muted-foreground">端末の「動きを減らす」が最優先です。</p></div>
           </div>
         </div>
         <div className="border-t border-border pt-4">
           <h2 className="font-bold">イベント申込の固定ボタン</h2>
           <p className="mt-1 text-sm text-muted-foreground">スマホの画面下に表示する申込ボタンの背景と動きを調整します。</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-1.5"><Label htmlFor="cta_blur_px">背景のぼかし（px）</Label><Input id="cta_blur_px" name="cta_blur_px" type="number" min={0} max={32} defaultValue={ctaBlurPx} className="h-11" /><p className="text-xs text-muted-foreground">0〜32px</p></div>
-            <div className="grid gap-1.5"><Label htmlFor="cta_fade_height_px">背景をなじませる高さ（px）</Label><Input id="cta_fade_height_px" name="cta_fade_height_px" type="number" min={32} max={128} defaultValue={ctaFadeHeightPx} className="h-11" /><p className="text-xs text-muted-foreground">32〜128px</p></div>
-            <div className="grid gap-1.5"><Label htmlFor="cta_transition_ms">ボタンが現れる時間（ミリ秒）</Label><Input id="cta_transition_ms" name="cta_transition_ms" type="number" min={100} max={600} step={10} defaultValue={ctaTransitionMs} className="h-11" /><p className="text-xs text-muted-foreground">100〜600ミリ秒（1000ミリ秒＝1秒）</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="cta_blur_px">背景のぼかし（px）</Label><Input id="cta_blur_px" name="cta_blur_px" type="number" min={0} max={32} value={interaction.ctaBlurPx} onChange={event => setInteraction(current => ({ ...current, ctaBlurPx: Number(event.target.value) }))} className="h-11" /><p className="text-xs text-muted-foreground">0〜32px</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="cta_fade_height_px">背景をなじませる高さ（px）</Label><Input id="cta_fade_height_px" name="cta_fade_height_px" type="number" min={32} max={128} value={interaction.ctaFadeHeightPx} onChange={event => setInteraction(current => ({ ...current, ctaFadeHeightPx: Number(event.target.value) }))} className="h-11" /><p className="text-xs text-muted-foreground">32〜128px</p></div>
+            <div className="grid gap-1.5"><Label htmlFor="cta_transition_ms">ボタンが現れる時間（ミリ秒）</Label><Input id="cta_transition_ms" name="cta_transition_ms" type="number" min={100} max={600} step={10} value={interaction.ctaTransitionMs} onChange={event => setInteraction(current => ({ ...current, ctaTransitionMs: Number(event.target.value) }))} className="h-11" /><p className="text-xs text-muted-foreground">100〜600ミリ秒（1000ミリ秒＝1秒）</p></div>
           </div>
         </div>
           </div>
         </details>
+        </PendingFields>
+        {isDirty && <p role="status" className="text-sm font-medium text-primary">保存していない変更があります。</p>}
+        {state?.success && !isDirty && <p role="status" className="text-sm text-primary">名前・色・操作感を保存しました。</p>}
         {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
         <div className="border-t border-border pt-4">
           <SaveButton />

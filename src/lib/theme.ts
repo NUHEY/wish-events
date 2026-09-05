@@ -1,3 +1,5 @@
+import { motionInitScript } from "@/lib/motion";
+
 export const THEME_STORAGE_KEY = "wish-events-theme";
 
 export const themeInitScript = `
@@ -8,4 +10,4 @@ export const themeInitScript = `
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   } catch (_) {}
-})();`;
+})();` + motionInitScript;

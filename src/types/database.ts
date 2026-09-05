@@ -758,6 +758,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      save_ra_link_hub: {
+        Args: { p_slug: string; p_title: string; p_bio: string | null; p_published: boolean; p_items: { title: string; url: string; description: string | null; icon: string; enabled: boolean }[] };
+        Returns: { id: string; slug: string }[];
+      };
       has_management_permission: { Args: { p_permission: string }; Returns: boolean };
       has_unread_event_talk: {
         Args: Record<string, never>;

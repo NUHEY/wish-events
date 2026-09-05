@@ -1,4 +1,5 @@
-import { requireManagement } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
+import { getManagementAccess, requireManagement } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { EventOptionManager } from "@/components/dashboard/event-option-manager";
 import {
@@ -29,7 +30,7 @@ export default async function EventOptionsPage() {
         <p className="text-sm text-muted-foreground">イベント一覧の表示と、作成フォームで使う選択肢を管理します。</p>
       </div>
 
-      <EventDisplaySettingsForm settings={settings} />
+      {canManage(await getManagementAccess(), "settings") && <EventDisplaySettingsForm settings={settings} />}
 
       <div className="border-t border-border pt-6"><h2 className="text-lg font-bold">作成フォームの選択肢</h2><p className="mt-1 text-sm text-muted-foreground">会場と対象者の候補を管理します。</p></div>
 

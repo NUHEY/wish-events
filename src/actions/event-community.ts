@@ -177,16 +177,19 @@ export async function getOlderEventMessages(eventId: string, before: MessageCurs
  */
 export async function getEventTalkParticipants(eventId: string) {
   const supabase = await createClient();
-  const { data: registrations } = await supabase
+  const { data: registrations, error: registrationsError } = await supabase
     .rpc("event_registration_user_ids", { p_event_id: eventId })
     .returns<{ user_id: string; registered_at: string }[]>();
+  if (registrationsError) throw new Error("Could not load talk participants");
   const userIds = (registrations ?? []).map((r) => r.user_id);
   if (userIds.length === 0) return { participants: [] as CommunityProfile[], total: 0 };
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .rpc("event_community_profiles_v3", { profile_ids: userIds })
     .returns<CommunityProfile[]>();
+  if (profilesError) throw new Error("Could not load participant profiles");
   const profilesById = new Map((profiles ?? []).map((p) => [p.id, p]));
   const ordered = userIds.map((id) => profilesById.get(id)).filter((p): p is CommunityProfile => !!p);
+  if (ordered.length !== userIds.length) throw new Error("Participant profiles are incomplete");
   return { participants: ordered, total: userIds.length };
 }
 

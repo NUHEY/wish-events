@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { AvatarRing } from "@/components/profile/avatar-ring";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -23,7 +24,7 @@ export type WishQuestionDetailView = WishQuestionRow & { asker_name: string | nu
 
 function Person({ name, avatar, role }: { name: string | null; avatar: string | null; role?: "resident" | "ra" }) {
   const en = useLocale() === "en";
-  return <span className="flex min-w-0 items-center gap-2"><span className={cn("relative h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 ring-border", role === "ra" && "ring-primary")}><Image src={avatar || DEFAULT_AVATAR_IMAGE_URL} alt="" fill sizes="32px" className="object-cover" /></span><span className="break-words text-xs font-semibold leading-relaxed">{name ?? (en ? "Resident" : "寮生")}{role === "ra" && <span className="ml-1 text-xs font-bold text-primary">RA</span>}</span></span>;
+  return <span className="flex min-w-0 items-center gap-2"><AvatarRing role={role} size={32}><Image src={avatar || DEFAULT_AVATAR_IMAGE_URL} alt="" width={32} height={32} className="object-cover" /></AvatarRing><span className="break-words text-xs font-semibold leading-relaxed">{name ?? (en ? "Resident" : "寮生")}{role === "ra" && <span className="ml-1 text-xs font-bold text-primary">RA</span>}</span></span>;
 }
 
 export function WishQuestionDetail({ question, initialAnswers, current, canModerate = false }: { question: WishQuestionDetailView; initialAnswers: WishAnswerView[]; current: { id: string; name: string | null; avatar: string | null; role: "resident" | "ra" }; canModerate?: boolean }) {

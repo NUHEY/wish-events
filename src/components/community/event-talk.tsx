@@ -1,35 +1,24 @@
 "use client";
 
+import { shouldReduceMotion } from "@/lib/motion";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 import {
   BarChart3,
   Check,
-  ChevronDown,
   Copy,
   Heart,
   ImagePlus,
-  Info,
   Loader2,
-  MapPin,
   Send,
-  Smile,
-  Sparkles,
-  Wallet,
   X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  createEventPoll,
   getEventMessagesByIds,
   getOlderEventMessages,
   markEventTalkRead,
-  prepareEventDetailsToolDraft,
-  prepareEventLocationToolDraft,
-  prepareEventPaymentToolDraft,
-  prepareEventSurveyToolDraft,
   sendEventMessage,
   toggleEventMessageReaction,
   voteEventPoll,
@@ -135,7 +124,6 @@ export function EventTalk({
   polls,
   votes,
   hasMoreOlder = false,
-  isRa,
   appOrigin = "",
   initialLastReadAt = null,
 }: {
@@ -146,7 +134,6 @@ export function EventTalk({
   polls: Poll[];
   votes: Vote[];
   hasMoreOlder?: boolean;
-  isRa: boolean;
   appOrigin?: string;
   initialLastReadAt?: string | null;
 }) {
@@ -184,7 +171,6 @@ export function EventTalk({
     },
     [messagesAnimateRef]
   );
-  const router = useRouter();
 
   const displayedMessages = useMemo(
     () => [...liveMessages, ...optimisticMessages.filter((m) => !liveMessages.some((saved) => saved.id === m.id))],
@@ -206,7 +192,7 @@ export function EventTalk({
   }), [dict]);
 
   function scrollToBottom(smooth = true) {
-    endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+    endRef.current?.scrollIntoView({ behavior: smooth && !shouldReduceMotion() ? "smooth" : "instant", block: "end" });
   }
 
   // 他の人からの新着メッセージだけを取得して直接末尾に追加する。
@@ -470,7 +456,7 @@ export function EventTalk({
                 </div>
               )}
               <div
-                className={`chat-message group flex max-w-[88%] gap-2 ${mine ? "self-end" : "self-start"} ${
+                className={`chat-message group flex min-w-0 max-w-[88%] gap-2 ${mine ? "self-end" : "self-start"} ${
                   isGroupStart && index !== 0 ? "mt-3" : ""
                 }`}
               >
@@ -494,9 +480,9 @@ export function EventTalk({
                 {!mine && isGroupStart && (
                   <Link
                     href={`/directory/${message.sender_id}`}
-                      className="mb-1 flex w-fit items-center pl-1 text-[11px] font-semibold text-[var(--chat-text-secondary)]"
+                      className="mb-1 flex max-w-full flex-wrap items-center break-words pl-1 text-[11px] font-semibold text-[var(--chat-text-secondary)]"
                   >
-                    {message.sender?.full_name ?? "RA"}
+                    {message.sender?.full_name ?? dict.talks.residentFallback}
                     {message.sender?.role === "ra" && (
                       <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] text-primary">RA</span>
                     )}
@@ -515,7 +501,7 @@ export function EventTalk({
                       alt={dict.talks.eventImageAlt}
                       loading="lazy"
                       decoding="async"
-                      className="block max-h-80 min-w-40 rounded-2xl object-cover"
+                      className="block max-h-80 min-w-0 max-w-full rounded-2xl object-cover"
                     />
                     {heartPulseId === message.id && (
                       <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -636,7 +622,6 @@ export function EventTalk({
       <Composer
         eventId={eventId}
         currentUserId={currentUserId}
-        isRa={isRa}
         onOptimisticAdd={addOptimisticMessages}
         onOptimisticResolve={resolveOptimisticMessages}
         onOptimisticRevert={revertOptimisticMessages}
@@ -659,7 +644,6 @@ export function EventTalk({
 function Composer({
   eventId,
   currentUserId,
-  isRa,
   onOptimisticAdd,
   onOptimisticResolve,
   onOptimisticRevert,
@@ -669,7 +653,6 @@ function Composer({
 }: {
   eventId: string;
   currentUserId: string;
-  isRa: boolean;
   onOptimisticAdd: (rows: Message[]) => void;
   onOptimisticResolve: (tempIds: string[], realRows: Message[]) => void;
   onOptimisticRevert: (tempIds: string[]) => void;
@@ -678,16 +661,12 @@ function Composer({
   onFocus: () => void;
 }) {
   const dict = useDict();
+  const locale = useLocale();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const [stagedImages, setStagedImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
-  const [toolOpen, setToolOpen] = useState(false);
-  const [pollOpen, setPollOpen] = useState(false);
-  const [pollQuestion, setPollQuestion] = useState("");
-  const [pollOptions, setPollOptions] = useState(["", ""]);
-  const router = useRouter();
   const shownError = error ?? externalError;
 
   function addStagedFiles(files: File[]) {
@@ -806,117 +785,8 @@ function Composer({
     })();
   }
 
-  function createPoll() {
-    startTransition(async () => {
-      const result = await createEventPoll(eventId, pollQuestion, pollOptions);
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setPollQuestion("");
-        setPollOptions(["", ""]);
-        setPollOpen(false);
-        setToolOpen(false);
-        router.refresh();
-      }
-    });
-  }
-
-  /**
-   * RAツールのボタンは即送信せず、下書き文面をテキスト欄に入れるだけにする。
-   * 内容を確認・編集してから、通常の送信ボタンで自分で送ってもらう。
-   */
-  function fillToolDraft(action: () => Promise<{ body?: string; error?: string }>) {
-    startTransition(async () => {
-      const result = await action();
-      if (result?.error) {
-        setError(result.error);
-      } else if (result?.body) {
-        setBody(result.body);
-        setToolOpen(false);
-      }
-    });
-  }
-
   return (
     <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
-      {isRa && (
-        <div className="mb-2">
-          <button
-            type="button"
-            onClick={() => setToolOpen((open) => !open)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {dict.talks.raTools}
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${toolOpen ? "rotate-180" : ""}`} />
-          </button>
-          {toolOpen && (
-            // ツールの種類が増えても崩れないよう、固定グリッドではなく横スクロールの
-            // 1行レイアウトにする。各ボタンはアイコンを丸背景に載せたカード型にし、
-            // ただのテキストリンクより「送る内容を選ぶ」操作であることが伝わるようにした。
-            <div className="mt-2 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background p-2 shadow-lg [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <ToolButton
-                icon={Smile}
-                label={dict.talks.surveyTool}
-                onClick={() => fillToolDraft(() => prepareEventSurveyToolDraft(eventId))}
-              />
-              <ToolButton icon={BarChart3} label={dict.talks.pollTool} onClick={() => setPollOpen((open) => !open)} />
-              <ToolButton
-                icon={Info}
-                label={dict.talks.detailsTool}
-                onClick={() => fillToolDraft(() => prepareEventDetailsToolDraft(eventId))}
-              />
-              <ToolButton
-                icon={MapPin}
-                label={dict.talks.locationTool}
-                onClick={() => fillToolDraft(() => prepareEventLocationToolDraft(eventId))}
-              />
-              <ToolButton
-                icon={Wallet}
-                label={dict.talks.paymentTool}
-                onClick={() => fillToolDraft(() => prepareEventPaymentToolDraft(eventId))}
-              />
-            </div>
-          )}
-          {pollOpen && (
-            <div className="mt-2 rounded-2xl border border-border bg-background p-3 shadow-lg">
-              <input
-                value={pollQuestion}
-                onChange={(e) => setPollQuestion(e.target.value)}
-                placeholder={dict.talks.pollQuestion}
-                maxLength={300}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary"
-              />
-              {pollOptions.map((option, index) => (
-                <input
-                  key={index}
-                  value={option}
-                  onChange={(e) =>
-                    setPollOptions((current) => current.map((item, itemIndex) => (itemIndex === index ? e.target.value : item)))
-                  }
-                  placeholder={dict.talks.pollOption.replace("{number}", String(index + 1))}
-                  maxLength={120}
-                  className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-              ))}
-              <div className="mt-2 flex justify-between">
-                <button
-                  type="button"
-                  disabled={pollOptions.length >= 4}
-                  onClick={() => setPollOptions((current) => [...current, ""])}
-                  className="text-xs font-semibold text-primary disabled:opacity-40"
-                >
-                  {dict.talks.addPollOption}
-                </button>
-                <Button size="sm" disabled={pending} onClick={createPoll}>
-                  {dict.talks.sendPoll}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {stagedImages.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {stagedImages.map((item) => (
@@ -937,7 +807,7 @@ function Composer({
       )}
 
       <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
-        <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
+        <label className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
           <ImagePlus className="h-5 w-5" />
           <input
             type="file"
@@ -967,11 +837,12 @@ function Composer({
           maxLength={2000}
           placeholder={uploading ? dict.talks.uploadingImage : dict.talks.composerPlaceholder}
           onFocus={onFocus}
-          className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
+          className="min-w-0 min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
         />
         <Button
           size="icon"
-          className="h-9 w-9 shrink-0 rounded-full shadow-sm transition-transform active:scale-90"
+          aria-label={locale === "ja" ? "メッセージを送信" : "Send message"}
+          className="h-11 w-11 shrink-0 rounded-full shadow-sm transition-transform active:scale-90"
           disabled={pending || uploading || (!body.trim() && stagedImages.length === 0)}
           onClick={handleSend}
         >
@@ -980,30 +851,6 @@ function Composer({
       </div>
       {shownError && <p className="mt-1.5 px-1 text-xs text-destructive">{shownError}</p>}
     </div>
-  );
-}
-
-/** RAツール横スクロール行の1枚。アイコンを丸背景に載せ、下にラベルを添える縦積みカード。 */
-function ToolButton({
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  icon: typeof Smile;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-transparent p-2 text-center transition-colors active:bg-[var(--chat-accent-soft)] sm:hover:border-[var(--chat-border)] sm:hover:bg-[var(--chat-bg-main)]"
-    >
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Icon className="h-[18px] w-[18px]" />
-      </span>
-      <span className="text-[10px] font-semibold leading-tight">{label}</span>
-    </button>
   );
 }
 
@@ -1023,7 +870,7 @@ function PollCard({
   const total = votes.length;
 
   return (
-    <div className="chat-content-card mt-2 min-w-60 rounded-xl bg-[var(--chat-bg-content-card)] p-3 text-[var(--chat-text-primary)] shadow-[var(--chat-shadow-sm)]">
+    <div className="chat-content-card mt-2 w-60 min-w-0 max-w-full rounded-xl bg-[var(--chat-bg-content-card)] p-3 text-[var(--chat-text-primary)] shadow-[var(--chat-shadow-sm)]">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-bold">
         <BarChart3 className="h-4 w-4 text-primary" />
         {dict.talks.pollTool}
@@ -1043,7 +890,7 @@ function PollCard({
               }`}
             >
               <span className="absolute inset-y-0 left-0 bg-primary/12 transition-[width] duration-300" style={{ width: `${percentage}%` }} />
-              <span className="relative flex-1">{option}</span>
+              <span className="relative min-w-0 flex-1 break-words pr-2">{option}</span>
               <span className="relative text-muted-foreground">{selected !== undefined ? `${percentage}%` : dict.talks.vote}</span>
             </button>
           );

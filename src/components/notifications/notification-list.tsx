@@ -7,7 +7,7 @@ import { useState, useTransition } from "react";
 import { Heart, Megaphone, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
 import { deleteNotification } from "@/actions/notifications";
 import type { NotificationType } from "@/types/database";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 
 type ActorProfile = { id: string; full_name: string | null; avatar_url: string | null };
 

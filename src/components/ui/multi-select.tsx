@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Check, Search, X, ChevronDown } from "lucide-react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/lib/i18n/locale-provider";
 

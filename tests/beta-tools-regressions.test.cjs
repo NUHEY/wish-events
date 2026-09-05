@@ -107,6 +107,8 @@ function componentHarness(file, actions = {}) {
   })) ui[module] = Object.fromEntries(names.map(n => [n, n]));
   const component = load(file, {
     ...ui,
+    '@/components/profile/avatar-ring': { AvatarRing: 'AvatarRing' },
+    '@/lib/media-defaults': { DEFAULT_AVATAR_IMAGE_URL: '/avatar.svg' },
     'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'Fragment' },
     react: { useState(initial) { const i = index++; if (!(i in state)) state[i] = typeof initial === 'function' ? initial() : initial; return [state[i], v => { state[i] = typeof v === 'function' ? v(state[i]) : v; }]; }, useMemo: fn => fn() },
     'next/navigation': { useRouter: () => ({ refresh() {}, replace() {} }) }, 'next/image': { default: 'img' },
@@ -162,5 +164,73 @@ test('the staff scheduling manager does not auto-select itself as a booking RA; 
     assert.equal(created.length, expectCreated ? 1 : 0);
     if (expectCreated) assert.deepEqual(created[0].raIds, [me]);
     else assert.match(h.errors.at(-1), /担当RA/);
+  }
+});
+
+
+test('booking UI distinguishes eligible residents, assigned RAs and managers, including closed sessions', async () => {
+  const requests = [];
+  const base = {
+    session: { id: sessionId, kind: 'lets_chat', title: '予約', status: 'open', floor_number: 3, start_date: '2026-09-06', end_date: '2026-09-06', daily_start_time: '09:00:00', daily_end_time: '10:00:00', slot_minutes: 30 },
+    participants: [{ user_id: ra, participant_role: 'ra', full_name: '担当RA' }],
+    availability: [], openLetsChatSlots: [{ ra_id: ra, start_at: '2026-09-06T00:00:00Z', end_at: '2026-09-06T00:30:00Z' }],
+    bookings: [], currentUserId: me, canManageBookings: false, canBook: false,
+  };
+  for (const props of [
+    { ...base, canManageBookings: true },
+    { ...base, currentUserId: ra },
+    { ...base, canBook: true, session: { ...base.session, status: 'closed' } },
+  ]) {
+    const h = componentHarness('src/components/tools/schedule-room.tsx');
+    const tree = h.render('ScheduleRoom', props);
+    assert.ok(!textOf(tree).includes('RAと時間を選んで予約'));
+    assert.equal(nodes(tree).filter(n => n.type === 'button' && !('aria-pressed' in n.props)).length, 0);
+    if (props.session.status === 'closed') assert.match(textOf(tree), /受付は終了/);
+    if (props.currentUserId === ra) assert.match(textOf(tree), /空いている時間を選択/);
+  }
+  const h = componentHarness('src/components/tools/schedule-room.tsx', { bookLetsChatSlot: async (...args) => { requests.push(args); return { success: true }; } });
+  const tree = h.render('ScheduleRoom', { ...base, canBook: true });
+  const bookingButton = nodes(tree).find(n => n.type === 'button' && !('aria-pressed' in n.props));
+  assert.ok(bookingButton, 'Eligible residents can choose a booking slot');
+  const previousWindow = global.window;
+  global.window = { confirm: () => true };
+  try { bookingButton.props.onClick(); await h.settle(); }
+  finally { if (previousWindow === undefined) delete global.window; else global.window = previousWindow; }
+  assert.deepEqual(requests, [[sessionId, ra, '2026-09-06T00:00:00Z']]);
+  const booked = h.render('ScheduleRoom', { ...base, session: { ...base.session, status: 'closed' }, bookings: [{ id: 'booking', resident_id: me, ra_id: ra, status: 'confirmed', start_at: '2026-09-06T00:00:00Z' }] });
+  assert.ok(nodes(booked).some(node => textOf(node).includes("予約済みです")));
+  assert.match(textOf(booked), /受付は終了/);
+});
+
+test('the schedule page passes an explicit booking grant only for current new residents on the target floor', async () => {
+  for (const scenario of [
+    { role: 'resident', account_kind: 'resident', floor: 3, current: true, open: true, expected: true },
+    { role: 'resident', account_kind: 'resident', floor: 3, current: false, open: true, expected: false },
+    { role: 'ra', account_kind: 'resident', floor: 3, current: true, open: true, expected: false },
+    { role: 'resident', account_kind: 'service_desk', floor: null, current: true, open: true, expected: false },
+    { role: 'resident', account_kind: 'resident', floor: 4, current: true, open: true, expected: false },
+    { role: 'resident', account_kind: 'resident', floor: 3, current: true, open: false, expected: false },
+  ]) {
+    const calls = [];
+    const session = { id: sessionId, kind: 'lets_chat', floor_number: 3, status: scenario.open ? 'open' : 'closed' };
+    const db = {
+      from(table) {
+        const query = { select() { return query; }, eq() { return query; }, order() { return query; }, maybeSingle: async () => ({ data: table === 'schedule_sessions' ? session : null, error: null }), then(resolve) { return Promise.resolve({ data: [], error: null }).then(resolve); } };
+        return query;
+      },
+      async rpc(name) { calls.push(name); return { data: name === 'is_current_new_resident' ? scenario.current : [], error: null }; },
+    };
+    const page = load('src/app/tools/schedule/[token]/page.tsx', {
+      'react/jsx-runtime': { jsx: (type, props) => ({ type, props }) },
+      'next/navigation': { notFound() { throw Error('not found'); } },
+      '@/components/tools/schedule-room': { ScheduleRoom: 'ScheduleRoom' },
+      '@/lib/auth': { getCurrentProfile: async () => ({ id: me, role: scenario.role, account_kind: scenario.account_kind, floor_number: scenario.floor }) },
+      '@/lib/management-access': { getManagementAccess: async () => ({ isRa: scenario.role === 'ra', permissions: [] }) },
+      '@/lib/management-permissions': permissions,
+      '@/lib/supabase/server': { createClient: async () => db },
+    });
+    const result = await page.default({ params: { token: 'fixture-token' } });
+    assert.equal(result.props.canBook, scenario.expected, JSON.stringify(scenario));
+    if (scenario.role !== 'resident' || scenario.account_kind !== 'resident' || scenario.floor !== 3 || !scenario.open) assert.ok(!calls.includes('is_current_new_resident'));
   }
 });

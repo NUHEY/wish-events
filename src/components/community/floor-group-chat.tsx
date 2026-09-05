@@ -1,5 +1,6 @@
 "use client";
 
+import { shouldReduceMotion } from "@/lib/motion";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
 import {
@@ -72,7 +73,7 @@ export function FloorGroupChat({
   const setScrollRef = useCallback((node: HTMLDivElement | null) => { scrollRef.current = node; }, []);
 
   function scrollToBottom(smooth = true) {
-    endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+    endRef.current?.scrollIntoView({ behavior: smooth && !shouldReduceMotion() ? "smooth" : "instant", block: "end" });
   }
 
   useEffect(() => {

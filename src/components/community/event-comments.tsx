@@ -12,7 +12,7 @@ import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 
 type Comment = {
   id: string;

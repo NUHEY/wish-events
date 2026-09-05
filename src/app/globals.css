@@ -330,3 +330,34 @@
     animation: none;
   }
 }
+
+/* Shared calendar language: compact spacing, the same selected-day color and corners. */
+.wish-calendar { margin: 0 !important; max-width: 100%; }
+.wish-calendar .rdp-month { margin: 0; }
+.wish-calendar .rdp-caption_label { font-size: 0.875rem; }
+.wish-calendar .rdp-day { border-radius: calc(var(--radius) - 4px); }
+.wish-calendar .rdp-cell, .wish-calendar .rdp-head_cell { height: 44px; }
+.wish-calendar .rdp-day, .wish-calendar .rdp-nav_button { min-height: 44px; }
+.wish-calendar .rdp-nav_button { border-radius: calc(var(--radius) - 4px); }
+
+/* Personal browser preference, independent of the shared site animation settings. */
+html[data-motion="reduce"],
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+}
+html[data-motion="reduce"] .event-label-track--rotating,
+html[data-motion="reduce"] .event-label-window--rotating {
+  animation: none !important;
+}
+html[data-motion="reduce"] [class*="active:scale"]:active,
+html[data-motion="reduce"] [class*="hover:scale"]:hover,
+html[data-motion="reduce"] [class*="hover:-translate"]:hover {
+  transform: none !important;
+}

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { AvatarRing } from "@/components/profile/avatar-ring"
 import {
   Check,
   CheckCheck,
@@ -123,7 +124,7 @@ function QuickReactionPicker({
 }) {
   return (
     <div
-      className="chat-toolbar-enter flex items-center gap-0.5 rounded-[10px] border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] p-1 shadow-[var(--chat-shadow-toolbar)]"
+      className="chat-toolbar-enter flex items-center gap-0.5 rounded-md border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] p-1 shadow-[var(--chat-shadow-toolbar)]"
       onMouseLeave={onClose}
     >
       {QUICK_REACTIONS.map((emoji) => (
@@ -435,28 +436,25 @@ function ChatMessage({
       {/* Avatar slot — 32px, only for incoming, only on last/solo */}
       {!isOutgoing ? (
         <div className="w-8 shrink-0">
-          {showAvatar && message.senderAvatar ? (
-            <img
-              src={message.senderAvatar}
-              alt={message.senderName}
-              className={cn(
-                "size-8 rounded-full object-cover",
-                message.senderRole === "ra" && "ring-2 ring-[var(--chat-accent)] ring-offset-2 ring-offset-[var(--chat-bg-main)]"
+          {showAvatar && (
+            <AvatarRing role={message.senderRole} size={32}>
+              {message.senderAvatar ? (
+                <img src={message.senderAvatar} alt={message.senderName} className="size-8 rounded-full object-cover" />
+              ) : (
+                <span className="flex size-8 items-center justify-center rounded-full bg-[var(--chat-bubble-incoming)] text-[11px] font-semibold text-[var(--chat-text-secondary)]">
+                  {message.senderName.charAt(0).toUpperCase()}
+                </span>
               )}
-            />
-          ) : showAvatar ? (
-            <div className="flex size-8 items-center justify-center rounded-full bg-[var(--chat-bubble-incoming)] text-[11px] font-semibold text-[var(--chat-text-secondary)]">
-              {message.senderName.charAt(0).toUpperCase()}
-            </div>
-          ) : null}
+            </AvatarRing>
+          )}
         </div>
       ) : null}
 
       {/* Bubble + reactions column */}
-      <div className="flex max-w-[75%] flex-col">
+      <div className="flex min-w-0 max-w-[75%] flex-col">
         {/* Sender name — only first in group, incoming */}
         {showSender && !isOutgoing && (
-          <span className="mb-0.5 ml-3 text-[14px] font-semibold leading-tight tracking-[-0.01em] text-[var(--chat-text-secondary)]">
+          <span className="mb-0.5 ml-3 break-words text-[14px] font-semibold leading-tight tracking-[-0.01em] text-[var(--chat-text-secondary)]">
             {message.senderName}
           </span>
         )}
@@ -648,29 +646,8 @@ function getBubbleRadius(
   isOutgoing: boolean,
   position: "solo" | "first" | "middle" | "last"
 ): string {
-  if (isOutgoing) {
-    switch (position) {
-      case "solo":
-        return "rounded-[18px_18px_4px_18px]"
-      case "first":
-        return "rounded-[18px_18px_4px_18px]"
-      case "middle":
-        return "rounded-[18px_4px_4px_18px]"
-      case "last":
-        return "rounded-[18px_4px_18px_18px]"
-    }
-  } else {
-    switch (position) {
-      case "solo":
-        return "rounded-[18px_18px_18px_4px]"
-      case "first":
-        return "rounded-[18px_18px_18px_4px]"
-      case "middle":
-        return "rounded-[4px_18px_18px_4px]"
-      case "last":
-        return "rounded-[4px_18px_18px_18px]"
-    }
-  }
+  const groupEnd = position === "solo" || position === "last"
+  return cn("rounded-2xl", groupEnd && (isOutgoing ? "rounded-br-md" : "rounded-bl-md"))
 }
 
 // ─── ChatMessageStatus ────────────────────────────────────────────────────────
@@ -950,7 +927,7 @@ function ChatTypingIndicator({ users, className }: ChatTypingIndicatorProps) {
         </span>
 
         {/* Dots bubble */}
-        <div className="flex w-16 items-center justify-center gap-1 rounded-[18px_18px_18px_4px] bg-[var(--chat-bubble-incoming)] px-4 py-3">
+        <div className="flex w-16 items-center justify-center gap-1 rounded-2xl rounded-bl-md bg-[var(--chat-bubble-incoming)] px-4 py-3">
           <span
             className="chat-typing-dot size-[7px] rounded-full bg-[var(--chat-text-secondary)]"
             style={{ animationDelay: "0ms" }}
@@ -1367,7 +1344,7 @@ function ChatComposer({
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = "" }} />
             <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = "" }} />
 
-            <div className="relative flex flex-1 items-end rounded-[22px] border border-[var(--chat-border)] bg-[var(--chat-bg-sidebar)]">
+            <div className="relative flex flex-1 items-end rounded-2xl border border-[var(--chat-border)] bg-[var(--chat-bg-sidebar)]">
               <textarea
                 ref={textareaRef}
                 value={value}

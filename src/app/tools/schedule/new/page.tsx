@@ -11,7 +11,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 
 export default async function NewSchedulePage({ searchParams }: { searchParams: { mode?: string } }) {
   const kind = (searchParams.mode ?? "general") as ScheduleKind;
-  if (!(kind in SCHEDULE_COPY)) notFound();
+  if (!Object.prototype.hasOwnProperty.call(SCHEDULE_COPY, kind)) notFound();
   const profile = await getCurrentProfile();
   const canManageModule = canManage(await getManagementAccess(), "schedules");
   if (profile.account_kind !== "resident" && !canManageModule) redirect("/tools");

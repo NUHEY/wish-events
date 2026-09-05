@@ -1,7 +1,8 @@
 "use client";
 
+import { shouldReduceMotion } from "@/lib/motion";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import {
   getDirectMessagesByIds,
@@ -20,7 +21,7 @@ import { useInitialChatPosition } from "@/components/community/use-initial-chat-
 import { ChatConnectionStatus } from "./chat-connection-status";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
 import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
-import { useDict } from "@/lib/i18n/locale-provider";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { ChatMessage, ChatProvider } from "@/components/ui/chat/chat";
 import type { ChatMessageData } from "@/components/ui/chat/types";
 
@@ -69,6 +70,7 @@ export function FriendDm({
   initialLastReadAt?: string | null;
 }) {
   const dict = useDict();
+  const locale = useLocale();
   const [liveMessages, setLiveMessages] = useState<DirectMessage[]>(messages);
   const [optimisticMessages, setOptimisticMessages] = useState<DirectMessage[]>([]);
   const [hasMoreOlderState, setHasMoreOlderState] = useState(hasMoreOlder);
@@ -111,7 +113,7 @@ export function FriendDm({
   );
 
   function scrollToBottom(smooth = true) {
-    endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+    endRef.current?.scrollIntoView({ behavior: smooth && !shouldReduceMotion() ? "smooth" : "instant", block: "end" });
   }
 
   // 相手からの新着メッセージだけをリアルタイムで差分取得する。
@@ -385,7 +387,7 @@ export function FriendDm({
           </div>
         )}
         <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
-          <label className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
+          <label className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
             <ImagePlus className="h-5 w-5" />
             <input
               type="file"
@@ -420,11 +422,12 @@ export function FriendDm({
                 { once: true }
               );
             }}
-            className="min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
+            className="min-w-0 min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
           />
           <Button
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-full shadow-sm transition-transform active:scale-90"
+            aria-label={locale === "ja" ? "メッセージを送信" : "Send message"}
+            className="h-11 w-11 shrink-0 rounded-full shadow-sm transition-transform active:scale-90"
             disabled={pending || uploading || (!body.trim() && stagedImages.length === 0)}
             onClick={handleSend}
           >

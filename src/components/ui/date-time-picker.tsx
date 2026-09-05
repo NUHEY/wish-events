@@ -78,25 +78,26 @@ export function DateTimePicker({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={isJa ? "開催日時を選択" : "Select date and time"}
-        className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-sm ring-offset-background transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-expanded={open}
+        className="flex min-h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-sm ring-offset-background transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn(!displayLabel && "text-muted-foreground")}>
+        <span className={cn("min-w-0 flex-1 text-left", !displayLabel && "text-muted-foreground")}>
           {displayLabel ?? (isJa ? "日付を選択" : "Select a date")}
         </span>
-        <span className="ml-auto tabular-nums text-muted-foreground">{time}</span>
+        <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{time}</span>
       </button>
 
       {open && (
         <div
-          className="absolute z-20 mt-2 flex flex-col gap-1 rounded-lg border border-border bg-card p-3 shadow-card-hover"
+          className="relative z-20 mt-2 flex w-fit max-w-full flex-col gap-1 rounded-xl sm:absolute border border-border bg-card p-3 shadow-card-hover"
           style={
             {
               // react-day-pickerのデフォルトは青系(#0000ff等)。サイトのワインレッドに
               // 合わせて選択日・ホバー背景ともに青みが一切残らないよう明示的に上書きする。
               // --accentはhueが220(青寄り)のため、ホバー背景には使わずワイン色を薄めた
               // 独自のトーンを用いる。
-              "--rdp-cell-size": "2.25rem",
+              "--rdp-cell-size": "clamp(1.75rem, calc((100vw - 7rem) / 7), 2.5rem)",
               "--rdp-accent-color": "hsl(var(--primary))",
               "--rdp-background-color": "hsl(var(--primary) / 0.08)",
               "--rdp-outline": "2px solid hsl(var(--primary))",
@@ -105,6 +106,7 @@ export function DateTimePicker({
           }
         >
           <DayPicker
+            className="wish-calendar"
             mode="single"
             selected={date}
             onSelect={(d) => d && setDate(d)}
@@ -116,6 +118,7 @@ export function DateTimePicker({
             // styleに直接指定し、確実にワインレッドで上書きする。
             style={
               {
+                "--rdp-cell-size": "clamp(1.75rem, calc((100vw - 7rem) / 7), 2.5rem)",
                 "--rdp-accent-color": "hsl(var(--primary))",
                 "--rdp-background-color": "hsl(var(--primary) / 0.08)",
                 "--rdp-outline": "2px solid hsl(var(--primary))",
@@ -138,7 +141,7 @@ export function DateTimePicker({
               type="button"
               onClick={() => setOpen(false)}
               disabled={!date}
-              className="rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-40"
+              className="min-h-11 rounded-lg bg-primary px-3 py-1 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-40"
             >
               {isJa ? "決定" : "Done"}
             </button>

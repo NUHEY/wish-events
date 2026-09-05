@@ -1,4 +1,5 @@
 import { getManagementAccess, requireManagement } from "@/lib/management-access";
+import Link from "next/link";
 import { canManage } from "@/lib/management-permissions";
 import { createClient } from "@/lib/supabase/server";
 import { HomeLayoutEditor } from "@/components/home/home-layout-editor";
@@ -16,11 +17,14 @@ export default async function HomeLayoutPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [{ data: sections }, { data: toolRows }, settings] = await Promise.all([
+  const [{ data: sections, error: sectionsError }, { data: toolRows, error: toolsError }, settings] = await Promise.all([
     supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
     supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)),
     getSiteSettings(),
   ]);
+
+  if (sectionsError) throw sectionsError;
+  if (toolsError) throw toolsError;
 
   // 万が一シード行が欠けている場合に備えたフォールバック（通常は発生しない）
   const byKey = new Map((sections ?? []).map((section) => [section.section_key, section]));
@@ -44,7 +48,8 @@ export default async function HomeLayoutPage() {
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-bold tracking-tight">{dict.homeLayout.title}</h1>
-        <p className="text-sm text-muted-foreground">{dict.homeLayout.subtitle}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{locale === "en" ? "Choose what residents see first. Save the section layout and tool settings separately." : "寮生が最初に見る情報を選びます。「ホームの並び順」と「便利ツール欄」は、それぞれの保存ボタンで反映します。"}</p>
+        <Link href="/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-fit items-center text-sm font-medium text-primary underline underline-offset-4">{locale === "en" ? "Open the saved home page in a new tab" : "保存済みのホームを別タブで確認"}</Link>
       </div>
 
       <HomeLayoutEditor initialSections={safeSections} />

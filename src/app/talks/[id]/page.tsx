@@ -43,9 +43,9 @@ export default async function EventTalkPage({
   return (
     <MobileChatViewport>
       <div data-chat-theme="aurora" className="flex shrink-0 items-center gap-3 border-b border-[var(--chat-border)] bg-[var(--chat-bg-header)] px-3 py-3 backdrop-blur-xl sm:rounded-t-2xl sm:border-x sm:border-t sm:border-[var(--chat-border)]">
-        <BackButton fallbackHref="/talks" className="-ml-1 !h-9 !w-9 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
+        <BackButton fallbackHref="/talks" className="-ml-1 !h-11 !w-11 !rounded-full !p-2 active:bg-[var(--chat-accent-soft)]" />
         {event.poster_url && (
-          <Image src={event.poster_url} alt="" width={42} height={42} className="h-[42px] w-[42px] rounded-lg object-cover shadow-[var(--chat-shadow-sm)]" />
+          <Image src={event.poster_url} alt="" width={42} height={42} className="h-[42px] w-[42px] shrink-0 rounded-lg object-cover shadow-[var(--chat-shadow-sm)]" />
         )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15px] font-bold tracking-tight text-[var(--chat-text-primary)]">{event.title}</h1>
@@ -68,7 +68,6 @@ export default async function EventTalkPage({
         votes={initial.votes}
         reactions={initial.reactions}
         hasMoreOlder={initial.hasMore}
-        isRa={canManageModule}
         appOrigin={appOrigin}
         initialLastReadAt={initial.lastReadAt}
       />

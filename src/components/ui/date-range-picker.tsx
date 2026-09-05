@@ -64,8 +64,9 @@ export function DateRangePicker({
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute left-0 z-30 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card p-3 shadow-card-hover">
+        <div className="relative z-30 mt-2 w-fit max-w-full sm:absolute sm:left-0 rounded-2xl border border-border bg-card p-3 shadow-card-hover">
           <DayPicker
+            className="wish-calendar"
             mode="range"
             selected={range}
             onSelect={(next) => {
@@ -79,7 +80,7 @@ export function DateRangePicker({
             weekStartsOn={0}
             disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
             style={{
-              "--rdp-cell-size": "2.25rem",
+              "--rdp-cell-size": "clamp(1.75rem, calc((100vw - 7rem) / 7), 2.5rem)",
               "--rdp-accent-color": "hsl(var(--primary))",
               "--rdp-background-color": "hsl(var(--primary) / 0.08)",
               "--rdp-outline": "2px solid hsl(var(--primary))",
@@ -88,7 +89,7 @@ export function DateRangePicker({
           />
           <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
             <span className="text-xs text-muted-foreground">{isJa ? `最大${maxDays}日` : `Up to ${maxDays} days`}</span>
-            <button type="button" disabled={!range?.from || !range?.to} onClick={() => setOpen(false)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-40">{isJa ? "決定" : "Done"}</button>
+            <button type="button" disabled={!range?.from || !range?.to} onClick={() => setOpen(false)} className="min-h-11 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-40">{isJa ? "決定" : "Done"}</button>
           </div>
         </div>
       )}
