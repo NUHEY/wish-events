@@ -7,7 +7,7 @@ import { getLocale, getDictionary } from "@/lib/i18n";
 import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
-import { AtSign, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, Sparkles, SquarePen } from "lucide-react";
+import { AtSign, Award, CalendarDays, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, Sparkles, SquarePen, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,14 +44,6 @@ function statForCriteria(stats: EngagementStats, criteriaType: BadgeCriteriaType
 
 type PastEvent = { id: string; title: string; title_en: string | null; event_date: string; poster_url: string | null };
 
-const INFO_CHIP_STYLES = [
-  "border-transparent bg-[hsl(var(--profile-pop-blue))] text-[hsl(var(--profile-pop-blue-foreground))]",
-  "border-transparent bg-[hsl(var(--profile-pop-mint))] text-[hsl(var(--profile-pop-mint-foreground))]",
-  "border-transparent bg-[hsl(var(--profile-pop-yellow))] text-[hsl(var(--profile-pop-yellow-foreground))]",
-  "border-transparent bg-[hsl(var(--profile-pop-lilac))] text-[hsl(var(--profile-pop-lilac-foreground))]",
-  "border-transparent bg-[hsl(var(--profile-pop-pink))] text-[hsl(var(--profile-pop-pink-foreground))]",
-] as const;
-
 function countryFlag(code: string) {
   const normalized = code.toUpperCase();
   if (!/^[A-Z]{2}$/.test(normalized)) return "🌏";
@@ -62,10 +54,10 @@ function ChipList({ codes, list, locale, kind }: { codes: string[] | null; list:
   if (!codes || codes.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
-      {codes.map((code, index) => (
-        <span key={code} className={cn("inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold", INFO_CHIP_STYLES[index % INFO_CHIP_STYLES.length])}>
-          {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon className="h-3.5 w-3.5" />}
-          {findLabel(list, code, locale)}
+      {codes.map((code) => (
+        <span key={code} className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground">
+          {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+          <span className="min-w-0 break-words">{findLabel(list, code, locale)}</span>
         </span>
       ))}
     </div>
@@ -151,8 +143,6 @@ export default async function DirectoryProfilePage({
 
   return (
     <div className="relative mx-auto flex max-w-2xl flex-col gap-4">
-      <div className="pointer-events-none absolute -left-20 top-24 -z-10 h-52 w-52 rounded-full bg-[hsl(var(--profile-pop-pink))] opacity-70 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-20 top-80 -z-10 h-56 w-56 rounded-full bg-[hsl(var(--profile-pop-blue))] opacity-60 blur-3xl" aria-hidden />
       <div className="flex items-center gap-2 px-1">
         <BackButton fallbackHref="/directory" className="-ml-2" />
         <div className="min-w-0">
@@ -226,97 +216,64 @@ export default async function DirectoryProfilePage({
             <p className="mt-0.5 text-sm text-muted-foreground">{roomText}</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-[hsl(var(--profile-pop-pink))] px-2 py-3 text-[hsl(var(--profile-pop-pink-foreground))]">
-              <span className="text-base" aria-hidden>🎉</span>
-              <p className="text-xl font-black leading-tight">{stats.event_count}</p>
-              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsEvents}</p>
-            </div>
-            <div className="rounded-xl bg-[hsl(var(--profile-pop-yellow))] px-2 py-3 text-[hsl(var(--profile-pop-yellow-foreground))]">
-              <span className="text-base" aria-hidden>🏅</span>
-              <p className="text-xl font-black leading-tight">{earnedBadges.length}</p>
-              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsBadges}</p>
-            </div>
-            <div className="rounded-xl bg-[hsl(var(--profile-pop-blue))] px-2 py-3 text-[hsl(var(--profile-pop-blue-foreground))]">
-              <span className="text-base" aria-hidden>🤝</span>
-              <p className="text-xl font-black leading-tight">{stats.friend_count}</p>
-              <p className="truncate text-[10px] font-semibold opacity-80 sm:text-[11px]">{dict.directory.statsFriends}</p>
-            </div>
-          </div>
+          <dl className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-secondary/20 py-3 text-center">
+            {[
+              { label: dict.directory.statsEvents, value: stats.event_count, icon: CalendarDays, tone: "text-rose-600 dark:text-rose-300" },
+              { label: dict.directory.statsBadges, value: earnedBadges.length, icon: Award, tone: "text-amber-600 dark:text-amber-300" },
+              { label: dict.directory.statsFriends, value: stats.friend_count, icon: UsersRound, tone: "text-sky-600 dark:text-sky-300" },
+            ].map(({ label, value, icon: Icon, tone }) => <div key={label} className="min-w-0 px-2">
+              <dt className="flex flex-col items-center gap-1.5 text-[11px] font-medium leading-snug text-muted-foreground"><Icon aria-hidden="true" className={cn("h-4 w-4", tone)} /><span>{label}</span></dt>
+              <dd className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight">{value}</dd>
+            </div>)}
+          </dl>
 
           {isSelf && <IncomingFriendRequests requests={incomingRequests} />}
 
           {earnedBadges.length > 0 && (
-            <div className="flex flex-wrap gap-2 rounded-xl bg-[hsl(var(--profile-pop-yellow))]/60 p-3">
-              {earnedBadges.map((b, i) => (
-                <span
-                  key={i}
-                  title={b.description ?? b.label}
-                  className="flex items-center gap-1 rounded-full border border-white/70 bg-card/80 px-2.5 py-1 text-xs font-bold shadow-sm dark:border-border"
-                >
-                  <span className="text-sm leading-none">{b.icon}</span>
-                  {b.label}
+            <section className="space-y-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold"><Award aria-hidden="true" className="h-4 w-4 text-amber-600 dark:text-amber-300" />{dict.directory.statsBadges}</h3>
+              <div className="flex flex-wrap gap-2">{earnedBadges.map((b, i) => (
+                <span key={i} title={b.description ?? b.label} className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium">
+                  <span aria-hidden="true" className="shrink-0 text-base leading-none">{b.icon}</span><span className="min-w-0 break-words">{b.label}</span>
                 </span>
-              ))}
-            </div>
+              ))}</div>
+            </section>
           )}
 
-          <div className="grid gap-2 rounded-xl bg-[hsl(var(--profile-pop-lilac))] p-4 text-[hsl(var(--profile-pop-lilac-foreground))]">
-            <p className="text-xs font-bold opacity-75">✦ {dict.profile.selfIntroLabel}</p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-              {target.self_intro || (
-                <span className="text-muted-foreground">{dict.directory.noSelfIntro}</span>
-              )}
+          <section className="space-y-3 rounded-xl border border-border bg-secondary/20 p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><Sparkles aria-hidden="true" className="h-4 w-4 text-violet-600 dark:text-violet-300" />{dict.profile.selfIntroLabel}</h3>
+            <p className="whitespace-pre-wrap break-words text-sm leading-7 [overflow-wrap:anywhere]">
+              {target.self_intro || <span className="text-muted-foreground">{dict.directory.noSelfIntro}</span>}
             </p>
-          </div>
+          </section>
 
-          {(target.faculty || target.grade_level) && (
-            <div className="flex flex-wrap gap-2 text-sm">
-              {target.faculty && (
-                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-transparent bg-[hsl(var(--profile-pop-mint))] px-3 py-2 font-bold text-[hsl(var(--profile-pop-mint-foreground))]">
-                  <GraduationCap className="h-4 w-4" />
-                  {dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}
-                </span>
-              )}
-              {target.grade_level && (
-                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-transparent bg-[hsl(var(--profile-pop-pink))] px-3 py-2 font-bold text-[hsl(var(--profile-pop-pink-foreground))]">
-                  <Sparkles className="h-4 w-4" />
-                  {dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}
-                </span>
-              )}
-            </div>
-          )}
-
-          {target.languages && target.languages.length > 0 && (
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
-              <p className="text-xs font-bold text-muted-foreground">{dict.profile.languagesLabel}</p>
-              <ChipList codes={target.languages} list={LANGUAGES} locale={locale} kind="language" />
-            </div>
-          )}
-
-          {target.nationalities && target.nationalities.length > 0 && (
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
-              <p className="text-xs font-bold text-muted-foreground">{dict.profile.nationalitiesLabel}</p>
-              <ChipList codes={target.nationalities} list={COUNTRIES} locale={locale} kind="country" />
-            </div>
-          )}
-
-          {target.lived_countries && target.lived_countries.length > 0 && (
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-card/70 p-3">
-              <p className="text-xs font-bold text-muted-foreground">{dict.profile.livedCountriesLabel}</p>
-              <ChipList codes={target.lived_countries} list={COUNTRIES} locale={locale} kind="country" />
-            </div>
-          )}
+          {(target.faculty || target.grade_level || target.languages?.length || target.nationalities?.length || target.lived_countries?.length) ? <dl className="divide-y divide-border">
+            {(target.faculty || target.grade_level) && <div className="grid gap-2 py-4 first:pt-0 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
+              <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><GraduationCap aria-hidden="true" className="h-4 w-4 shrink-0" />{locale === "en" ? "Studies" : "学部・学年"}</dt>
+              <dd className="min-w-0 space-y-1 text-sm leading-relaxed">
+                {target.faculty && <p className="break-words">{dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}</p>}
+                {target.grade_level && <p className="text-muted-foreground">{dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}</p>}
+              </dd>
+            </div>}
+            {[
+              { label: dict.profile.languagesLabel, codes: target.languages, list: LANGUAGES, kind: "language" as const },
+              { label: dict.profile.nationalitiesLabel, codes: target.nationalities, list: COUNTRIES, kind: "country" as const },
+              { label: dict.profile.livedCountriesLabel, codes: target.lived_countries, list: COUNTRIES, kind: "country" as const },
+            ].filter(row => row.codes?.length).map(row => <div key={row.label} className="grid gap-2 py-4 first:pt-0 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
+              <dt className="text-xs font-medium leading-6 text-muted-foreground">{row.label}</dt>
+              <dd className="min-w-0"><ChipList codes={row.codes} list={row.list} locale={locale} kind={row.kind} /></dd>
+            </div>)}
+          </dl> : null}
 
           {(target.instagram_handle || target.x_handle || target.line_id) && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[hsl(var(--profile-pop-blue))]/55 p-3">
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
               {target.instagram_handle && (
                 <a
                   href={`https://instagram.com/${target.instagram_handle}`}
                   target="_blank"
                   rel="noreferrer"
                   title={`@${target.instagram_handle}`}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-gradient-to-r from-brand-instagram-start/15 via-brand-instagram-middle/15 to-brand-instagram-end/15 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
+                  className="flex min-h-11 max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-brand-instagram-start via-brand-instagram-middle to-brand-instagram-end text-primary-foreground">
                     <Instagram className="h-3.5 w-3.5" />
@@ -330,7 +287,7 @@ export default async function DirectoryProfilePage({
                   target="_blank"
                   rel="noreferrer"
                   title={`@${target.x_handle}`}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm transition-transform active:scale-95"
+                  className="flex min-h-11 max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
                     <AtSign className="h-3.5 w-3.5" />
@@ -341,7 +298,7 @@ export default async function DirectoryProfilePage({
               {target.line_id && (
                 <span
                   title={`LINE ID: ${target.line_id}`}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-brand-line/10 py-1.5 pl-1.5 pr-3 text-sm font-medium shadow-sm"
+                  className="flex min-h-11 max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-line text-primary-foreground">
                     <MessageCircle className="h-3.5 w-3.5" />
@@ -353,7 +310,7 @@ export default async function DirectoryProfilePage({
           )}
 
           {canViewFull && (
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-secondary/30 p-4">
+            <div className="grid gap-3 rounded-xl border border-border p-4">
               <p className="text-xs text-muted-foreground">{dict.profile.lineLabel}</p>
               {lineQrSignedUrl ? (
                 <LineQrDisplay src={lineQrSignedUrl} name={target.full_name} />
@@ -368,28 +325,29 @@ export default async function DirectoryProfilePage({
           )}
 
           {isSelf && pastEvents.length > 0 && (
-            <div className="grid gap-2 rounded-xl bg-[hsl(var(--profile-pop-mint))]/55 p-3">
-              <p className="text-xs font-bold text-[hsl(var(--profile-pop-mint-foreground))]">{dict.directory.pastEventsTitle}</p>
-              <div className="grid grid-cols-4 gap-2">
+            <div className="grid gap-3 border-t border-border pt-5">
+              <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarDays aria-hidden="true" className="h-4 w-4 text-rose-600 dark:text-rose-300" />{dict.directory.pastEventsTitle}</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {pastEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`} className="group flex flex-col gap-1">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-white/70 dark:ring-border">
+                  <Link key={event.id} href={`/events/${event.id}`} className="group min-w-0 space-y-1.5 rounded-xl border border-border bg-card p-2 transition-colors hover:bg-secondary/40">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted">
                       {event.poster_url ? (
                         <Image
                           src={event.poster_url}
                           alt=""
                           fill
-                          sizes="120px"
+                          sizes="(max-width: 640px) 40vw, 180px"
                           className="object-cover transition-transform duration-200 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
-                          {(locale === "en" && event.title_en) || event.title}
+                        <div className="flex h-full items-center justify-center bg-primary/5 p-3 text-primary/50">
+                          <CalendarDays aria-hidden="true" className="h-7 w-7" />
                         </div>
                       )}
                     </div>
-                    <p className="truncate text-[10px] text-muted-foreground">
-                      {formatEventDateTime(event.event_date, locale).split(" ")[0]}
+                    <p className="line-clamp-2 break-words text-xs font-medium leading-relaxed">{(locale === "en" && event.title_en) || event.title}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatEventDateTime(event.event_date, locale, true, false)}
                     </p>
                   </Link>
                 ))}
