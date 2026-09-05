@@ -373,9 +373,9 @@ const ja = {
   },
   raRooms: {
     title: "RA管理",
-    subtitle: "RA個室として登録された部屋番号でプロフィール登録すると自動的にRA権限が付与されます。学期ごとにRAが交代する際はここで一覧を更新してください。",
+    subtitle: "RA権限は管理者が本人と部屋番号を確認して承認します。プロフィールに部屋番号を入力するだけではRAになりません。",
     listTitle: "RA個室一覧",
-    listSubtitle: "ここに登録した部屋番号でプロフィール登録・変更をすると自動的にRA権限が付与されます。学期の変わり目にはこの一覧を更新してください。",
+    listSubtitle: "本人がプロフィールを登録した後、部屋番号を追加すると、その部屋の利用者をRAとして承認します。登録済みの部屋で担当者が交代した場合は、本人を確認してから部屋を削除・再追加してください。",
     floorLabel: "階",
     roomLabel: "号室（数字2桁、記号なし）",
     noteLabel: "メモ（任意）",
@@ -1145,9 +1145,9 @@ const en: typeof ja = {
   },
   raRooms: {
     title: "Manage RAs",
-    subtitle: "Anyone who registers with a room number listed as an RA room is automatically granted RA access. Update this list here whenever RAs change each semester.",
+    subtitle: "An administrator must verify the person and room before approving RA access. Entering a room number in a profile does not grant RA access.",
     listTitle: "RA room list",
-    listSubtitle: "Registering or updating a profile with a room number on this list automatically grants RA access. Update this list at the start of each semester.",
+    listSubtitle: "After the person completes their profile, adding their room approves its current occupant as an RA. When an existing room changes occupants, verify the new person, then remove and re-add the room.",
     floorLabel: "Floor",
     roomLabel: "Room (2 digits, no letter)",
     noteLabel: "Note (optional)",

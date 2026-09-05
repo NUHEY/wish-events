@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Search, X, ChevronDown } from "lucide-react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { cn } from "@/lib/utils";
+import { useDict } from "@/lib/i18n/locale-provider";
 
 export type MultiSelectOption = { code: string; label: string };
 
@@ -15,16 +16,21 @@ export type MultiSelectOption = { code: string; label: string };
  * （formData.getAll(name)で配列として受け取れる）。
  */
 export function MultiSelect({
+  id,
   name,
   options,
   defaultValues = [],
   placeholder,
+  onValueChange,
 }: {
+  id?: string;
   name: string;
   options: MultiSelectOption[];
   defaultValues?: string[];
   placeholder?: string;
+  onValueChange?: (values: string[]) => void;
 }) {
+  const dict = useDict();
   const [selected, setSelected] = React.useState<string[]>(defaultValues);
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -43,12 +49,17 @@ export function MultiSelect({
     .filter((o) => `${o.label} ${o.code}`.toLocaleLowerCase().includes(normalizedQuery));
 
   function addOption(code: string) {
-    setSelected((s) => (s.includes(code) ? s : [...s, code]));
+    if (selected.includes(code)) return;
+    const next = [...selected, code];
+    setSelected(next);
+    onValueChange?.(next);
     setQuery("");
   }
 
   function removeOption(code: string) {
-    setSelected((s) => s.filter((c) => c !== code));
+    const next = selected.filter((c) => c !== code);
+    setSelected(next);
+    onValueChange?.(next);
   }
 
   React.useEffect(() => {
@@ -80,6 +91,7 @@ export function MultiSelect({
             {labelFor(code)}
             <button
               type="button"
+              aria-label={`${dict.common.remove}: ${labelFor(code)}`}
               onClick={(e) => {
                 e.stopPropagation();
                 removeOption(code);
@@ -91,6 +103,7 @@ export function MultiSelect({
           </span>
         ))}
         <input
+          id={id}
           type="text"
           value={query}
           onChange={(e) => {

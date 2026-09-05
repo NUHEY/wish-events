@@ -57,7 +57,7 @@ create table public.users (
   -- room_number は階を含まない号室部分のみ（例: "01A" や RA個室なら "07"）。
   -- ユニット文字(A-D)の有無はroleに関わらず任意とする。role自体は自己申告の
   -- room_numberでは変更できず、ra_roomsテーブルとの突き合わせによって
-  -- sync_own_role()/resync_room_role()が自動的に判定する（下記参照）。
+  -- 昇格には既存RAによるresync_room_role()での承認が必要（下記参照）。
   constraint users_room_number_check
     check (
       room_number is null
@@ -404,7 +404,7 @@ using (public.is_ra());
 
 create policy "users_insert_own"
 on public.users for insert
-with check (id = auth.uid());
+with check (id = auth.uid() and email = (auth.jwt() ->> 'email') and role = 'resident');
 
 create policy "users_update_own"
 on public.users for update
@@ -419,7 +419,10 @@ grant update (
   instagram_handle, line_qr_path, self_intro, avatar_url,
   line_id, x_handle, profile_accent
 ) on public.users to authenticated;
-grant select, insert on public.users to authenticated;
+grant select on public.users to authenticated;
+-- Stub repair must never accept role or future privileged identity columns.
+revoke insert on public.users from authenticated;
+grant insert (id, email, full_name, avatar_url) on public.users to authenticated;
 
 
 -- ---------------------------------------------------------------------
@@ -667,9 +670,8 @@ using (
 
 -- ---------------------------------------------------------------------
 -- 14. ra_rooms: RA個室として登録されている部屋番号の一覧（学期ごとに更新）
---     この一覧に載っている floor_number + room_number でプロフィール登録
---     すると自動的にRA権限が付与される。RAが自分たちでこの一覧を管理する
---     ことで、開発者がSQLを直接叩かなくても学期ごとのRA交代に対応できる。
+--     プロフィール登録後、既存RAが本人と部屋番号を確認して承認する。
+--     部屋番号の自己申告だけでは昇格しない。
 -- ---------------------------------------------------------------------
 create table public.ra_rooms (
   id            uuid primary key default gen_random_uuid(),
@@ -685,7 +687,7 @@ create table public.ra_rooms (
 );
 
 comment on table public.ra_rooms is
-  'RA個室として登録されている部屋番号の一覧。この一覧に載っている部屋番号で登録すると自動的にRA権限が付与される。RAのみ閲覧・追加・削除可能。';
+  'RA承認対象の部屋番号一覧。プロフィール登録後、既存RAが本人を確認して承認する。部屋番号の自己申告では昇格しない。RAのみ閲覧・追加・削除可能。';
 
 alter table public.ra_rooms enable row level security;
 
@@ -707,10 +709,8 @@ using (public.is_ra());
 -- ---------------------------------------------------------------------
 
 -- 自分自身の floor_number/room_number が ra_rooms に登録されているかどうかで
--- 自分自身のroleを同期する。usersテーブルのrole列はauthenticatedへの
--- update権限が無い（上記8.のgrant参照）ため、SECURITY DEFINERかつ
--- 「呼び出し本人(auth.uid())の行のみ」を対象にすることで、権限昇格の
--- 抜け道を作らずに自己同期を許可する。
+-- 自己申告の部屋番号はRA権限の証明にはならない。自己同期は既存RAの
+-- 維持・降格だけを行い、昇格はRAによるresync_room_roleかSQL管理操作に限定する。
 create or replace function public.sync_own_role()
 returns text
 language plpgsql
@@ -718,29 +718,25 @@ security definer
 set search_path = public
 as $$
 declare
-  v_floor integer;
-  v_room  text;
-  v_new_role text;
+  v_profile public.users%rowtype;
 begin
-  select floor_number, room_number into v_floor, v_room
-    from public.users where id = auth.uid();
-
-  if v_floor is null or v_room is null then
-    return (select role from public.users where id = auth.uid());
+  select * into v_profile from public.users where id = auth.uid() for update;
+  if not found then
+    return null;
   end if;
 
-  if exists (
-    select 1 from public.ra_rooms
-    where floor_number = v_floor and room_number = v_room
-  ) then
-    v_new_role := 'ra';
-  else
-    v_new_role := 'resident';
+  if v_profile.role = 'ra'
+    and v_profile.floor_number is not null
+    and v_profile.room_number is not null
+    and not exists (
+      select 1 from public.ra_rooms
+      where floor_number = v_profile.floor_number and room_number = v_profile.room_number
+    ) then
+    update public.users set role = 'resident' where id = auth.uid();
+    return 'resident';
   end if;
 
-  update public.users set role = v_new_role where id = auth.uid();
-
-  return v_new_role;
+  return v_profile.role;
 end;
 $$;
 

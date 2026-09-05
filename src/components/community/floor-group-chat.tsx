@@ -14,6 +14,7 @@ import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Textarea } from "@/components/ui/textarea";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
+import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import type { FloorMessageRow } from "@/types/database";
@@ -52,7 +53,8 @@ export function FloorGroupChat({
   const [pending, startTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const latestMessageAtRef = useRef(messages.at(-1)?.created_at ?? "1970-01-01T00:00:00.000Z");
+  // A confirmed fetch cursor also recovers gaps before newly delivered realtime messages.
+  const recoveryCursorRef = useRef(initialMessageCursor(messages));
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
   const displayedMessages = useMemo(
     () => [...liveMessages, ...optimisticMessages.filter((item) => !liveMessages.some((saved) => saved.id === item.id))],
@@ -85,7 +87,7 @@ export function FloorGroupChat({
             const result = await getFloorMessagesByIds([id]);
             const fetched = result.messages[0];
             if (!fetched) return;
-            setLiveMessages((current) => current.some((message) => message.id === id) ? current : [...current, fetched]);
+            setLiveMessages((current) => mergeMessages(current, [fetched]));
             setOptimisticMessages((current) => current.filter((message) => message.id !== id));
             requestAnimationFrame(() => scrollToBottom());
           })();
@@ -97,33 +99,24 @@ export function FloorGroupChat({
 
   useEffect(() => { void markFloorMessagesRead(); }, [liveMessages.length]);
 
-  useEffect(() => {
-    const latest = displayedMessages.reduce(
-      (current, message) => message.created_at > current ? message.created_at : current,
-      latestMessageAtRef.current
-    );
-    latestMessageAtRef.current = latest;
-  }, [displayedMessages]);
-
   const syncMissingMessages = useCallback(async () => {
     const supabase = createClient();
     const { data, error: recoveryError } = await supabase
       .from("floor_messages")
       .select("id,created_at")
       .eq("floor_number", floorNumber)
-      .gt("created_at", latestMessageAtRef.current)
+      .or(messageCursorFilter(recoveryCursorRef.current, "after"))
       .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
     if (ids.length === 0) return;
     const result = await getFloorMessagesByIds(ids);
-    setLiveMessages((current) => [
-      ...current,
-      ...result.messages.filter((message) => !current.some((saved) => saved.id === message.id)),
-    ]);
-    const latest = data?.at(-1)?.created_at;
-    if (latest) latestMessageAtRef.current = latest;
+    if (result.messages.length !== ids.length) throw new Error("Message recovery incomplete");
+    setLiveMessages((current) => mergeMessages(current, result.messages));
+    const latest = data?.at(-1);
+    if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
   }, [floorNumber]);
 
   useChatRecovery(`floor-${floorNumber}`, syncMissingMessages);
@@ -132,14 +125,21 @@ export function FloorGroupChat({
     if (!hasMore || loadingOlder || liveMessages.length === 0) return;
     const container = scrollRef.current;
     const previousHeight = container?.scrollHeight ?? 0;
+    setError(null);
     setLoadingOlder(true);
-    const result = await getOlderFloorMessages(liveMessages[0].created_at);
-    setLiveMessages((current) => [...result.messages, ...current]);
-    setHasMore(result.hasMore);
-    setLoadingOlder(false);
-    requestAnimationFrame(() => {
-      if (container) container.scrollTop = container.scrollHeight - previousHeight;
-    });
+    try {
+      const result = await getOlderFloorMessages({ created_at: liveMessages[0].created_at, id: liveMessages[0].id });
+      if (result.error) throw new Error(result.error);
+      setLiveMessages((current) => mergeMessages(current, result.messages));
+      setHasMore(result.hasMore);
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - previousHeight;
+      });
+    } catch {
+      setError(dict.toast.error);
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   function handleSend() {

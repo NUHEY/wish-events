@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { messageCursorFilter, type MessageCursor } from "@/lib/message-cursor";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import type { DirectMessageRow } from "@/types/database";
@@ -87,7 +88,7 @@ export async function getInitialDirectMessages(friendId: string, limit = 50) {
     .from("direct_messages")
     .select("*")
     .or(pairFilter(profile.id, friendId))
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(effectiveLimit);
   const ordered = (rows ?? []).slice().reverse();
   const hydrated = await hydrateDirectMessages(supabase, ordered);
@@ -99,16 +100,17 @@ export async function getInitialDirectMessages(friendId: string, limit = 50) {
 }
 
 /** DMスレッドの「さらに読み込む」用。 */
-export async function getOlderDirectMessages(friendId: string, beforeCreatedAt: string, limit = 40) {
+export async function getOlderDirectMessages(friendId: string, before: MessageCursor, limit = 40) {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("direct_messages")
     .select("*")
     .or(pairFilter(profile.id, friendId))
-    .lt("created_at", beforeCreatedAt)
-    .order("created_at", { ascending: false })
+    .or(messageCursorFilter(before))
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(limit);
+  if (error) throw new Error("メッセージを読み込めませんでした。再度お試しください。");
   const ordered = (rows ?? []).slice().reverse();
   const hydrated = await hydrateDirectMessages(supabase, ordered);
   return { messages: hydrated, hasMore: (rows ?? []).length === limit };
@@ -124,7 +126,7 @@ export async function getDirectMessagesByIds(friendId: string, ids: string[]) {
     .select("*")
     .or(pairFilter(profile.id, friendId))
     .in("id", ids)
-    .order("created_at");
+    .order("created_at").order("id");
   const hydrated = await hydrateDirectMessages(supabase, rows ?? []);
   return { messages: hydrated };
 }

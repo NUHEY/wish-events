@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 type ConfirmOptions = {
   title?: string;
@@ -30,7 +31,11 @@ const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boole
  */
 export function ConfirmDialogProvider({ children }: { children: React.ReactNode }) {
   const [pending, setPending] = useState<PendingConfirm | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const messageId = useId();
+  const locale = useLocale();
 
   const confirm = useCallback((options: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
@@ -39,35 +44,61 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
   }, []);
 
   function close(result: boolean) {
+    dialogRef.current?.close();
     pending?.resolve(result);
     setPending(null);
   }
 
   useEffect(() => {
-    if (!pending) return;
+    const dialog = dialogRef.current;
+    if (!pending || !dialog) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The browser's modal top layer contains focus and makes the page inert.
+    // close() also restores focus to the control that opened the confirmation.
+    dialog.showModal();
     cancelButtonRef.current?.focus();
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") close(false);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (opener?.isConnected) opener.focus();
+    };
   }, [pending]);
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
       {pending && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 motion-safe:animate-fade-in"
-          onClick={() => close(false)}
-        >
-          <div
+        <dialog
+            ref={dialogRef}
             role="alertdialog"
             aria-modal="true"
-            aria-label={pending.title ?? pending.message}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-elevated motion-safe:animate-pop-in"
+            aria-labelledby={pending.title ? titleId : messageId}
+            aria-describedby={pending.title ? messageId : undefined}
+            onCancel={(e) => {
+              e.preventDefault();
+              close(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Tab") return;
+              const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
+              const first = buttons[0];
+              const last = buttons[buttons.length - 1];
+              if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last?.focus();
+              } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first?.focus();
+              }
+            }}
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return;
+              const bounds = e.currentTarget.getBoundingClientRect();
+              if (e.clientX < bounds.left || e.clientX > bounds.right || e.clientY < bounds.top || e.clientY > bounds.bottom) close(false);
+            }}
+            className="fixed inset-0 m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-sm overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-elevated backdrop:bg-black/50 motion-safe:animate-pop-in"
           >
             <div className="flex items-start gap-3">
               {pending.danger && (
@@ -76,15 +107,15 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
                 </span>
               )}
               <div className="min-w-0 flex-1 pt-0.5">
-                {pending.title && <p className="font-semibold">{pending.title}</p>}
-                <p className={cn("whitespace-pre-wrap text-sm text-foreground/90", !pending.title && "font-medium")}>
+                {pending.title && <p id={titleId} className="font-semibold">{pending.title}</p>}
+                <p id={messageId} className={cn("whitespace-pre-wrap text-sm text-foreground/90", !pending.title && "font-medium")}>
                   {pending.message}
                 </p>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button ref={cancelButtonRef} type="button" variant="outline" size="sm" onClick={() => close(false)}>
-                {pending.cancelLabel ?? "キャンセル"}
+                {pending.cancelLabel ?? (locale === "ja" ? "キャンセル" : "Cancel")}
               </Button>
               <Button
                 type="button"
@@ -95,8 +126,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
                 {pending.confirmLabel ?? "OK"}
               </Button>
             </div>
-          </div>
-        </div>
+        </dialog>
       )}
     </ConfirmContext.Provider>
   );

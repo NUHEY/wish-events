@@ -43,6 +43,7 @@ import { createClient } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
+import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { ChatProvider } from "@/components/ui/chat/chat";
 
@@ -164,7 +165,8 @@ export function EventTalk({
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const latestMessageAtRef = useRef(messages.at(-1)?.created_at ?? "1970-01-01T00:00:00.000Z");
+  // A confirmed fetch cursor also recovers gaps before newly delivered realtime messages.
+  const recoveryCursorRef = useRef(initialMessageCursor(messages));
   const tapTimerRef = useRef<Map<string, number>>(new Map());
   const heartTimerRef = useRef<number | null>(null);
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
@@ -222,7 +224,7 @@ export function EventTalk({
           void (async () => {
             const { messages: fetched } = await getEventMessagesByIds(eventId, [row.id]);
             if (fetched.length === 0) return;
-            setLiveMessages((current) => (current.some((m) => m.id === row.id) ? current : [...current, ...(fetched as Message[])]));
+            setLiveMessages((current) => mergeMessages(current, fetched as Message[]));
             if (row.message_type === "poll" && row.poll_id) {
               const supabase2 = createClient();
               const { data: poll } = await supabase2.from("event_polls").select("*").eq("id", row.poll_id).maybeSingle();
@@ -242,32 +244,23 @@ export function EventTalk({
     markEventTalkRead(eventId);
   }, [eventId, liveMessages.length]);
 
-  useEffect(() => {
-    const latest = displayedMessages.reduce(
-      (current, message) => message.created_at > current ? message.created_at : current,
-      latestMessageAtRef.current
-    );
-    latestMessageAtRef.current = latest;
-  }, [displayedMessages]);
-
   const syncMissingMessages = useCallback(async () => {
     const supabase = createClient();
     const { data, error: recoveryError } = await supabase
       .from("event_messages")
       .select("id,created_at")
       .eq("event_id", eventId)
-      .gt("created_at", latestMessageAtRef.current)
+      .or(messageCursorFilter(recoveryCursorRef.current, "after"))
       .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
     if (ids.length === 0) return;
     const { messages: fetched } = await getEventMessagesByIds(eventId, ids);
+    if (fetched.length !== ids.length) throw new Error("Message recovery incomplete");
     const recoveredMessages = fetched as Message[];
-    setLiveMessages((current) => [
-      ...current,
-      ...recoveredMessages.filter((message) => !current.some((saved) => saved.id === message.id)),
-    ]);
+    setLiveMessages((current) => mergeMessages(current, recoveredMessages));
     const pollIds = [...new Set(recoveredMessages.map((message) => message.poll_id).filter((id): id is string => !!id))];
     if (pollIds.length > 0) {
       const [{ data: recoveredPolls }, { data: recoveredVotes }] = await Promise.all([
@@ -283,16 +276,17 @@ export function EventTalk({
         ...((recoveredVotes ?? []) as Vote[]).filter((vote) => !current.some((saved) => saved.poll_id === vote.poll_id && saved.user_id === vote.user_id)),
       ]);
     }
-    const latest = data?.at(-1)?.created_at;
-    if (latest) latestMessageAtRef.current = latest;
+    const latest = data?.at(-1);
+    if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
   }, [eventId]);
 
   useChatRecovery(`event-${eventId}`, syncMissingMessages);
 
   useEffect(() => {
+    const tapTimers = tapTimerRef.current;
     return () => {
       if (heartTimerRef.current) window.clearTimeout(heartTimerRef.current);
-      tapTimerRef.current.forEach((timer) => window.clearTimeout(timer));
+      tapTimers.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
 
@@ -300,18 +294,24 @@ export function EventTalk({
     if (!hasMoreOlderState || loadingOlder || liveMessages.length === 0) return;
     const container = scrollRef.current;
     const prevHeight = container?.scrollHeight ?? 0;
+    setError(null);
     setLoadingOlder(true);
-    const oldest = liveMessages[0].created_at;
-    const res = await getOlderEventMessages(eventId, oldest, 40);
-    setLiveMessages((current) => [...(res.messages as Message[]), ...current]);
-    if (res.polls.length) setPollsState((current) => [...current, ...(res.polls as Poll[])]);
-    if (res.votes.length) setVoteState((current) => [...current, ...(res.votes as Vote[])]);
-    if (res.reactions.length) setReactionState((current) => [...current, ...(res.reactions as Reaction[])]);
-    setHasMoreOlderState(res.hasMore);
-    setLoadingOlder(false);
-    requestAnimationFrame(() => {
-      if (container) container.scrollTop = container.scrollHeight - prevHeight;
-    });
+    try {
+      const oldest = { created_at: liveMessages[0].created_at, id: liveMessages[0].id };
+      const res = await getOlderEventMessages(eventId, oldest, 40);
+      setLiveMessages((current) => mergeMessages(current, res.messages as Message[]));
+      if (res.polls.length) setPollsState((current) => [...current, ...(res.polls as Poll[])]);
+      if (res.votes.length) setVoteState((current) => [...current, ...(res.votes as Vote[])]);
+      if (res.reactions.length) setReactionState((current) => [...current, ...(res.reactions as Reaction[])]);
+      setHasMoreOlderState(res.hasMore);
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - prevHeight;
+      });
+    } catch {
+      setError(dict.toast.error);
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   const addOptimisticMessages = useCallback((rows: Message[]) => {

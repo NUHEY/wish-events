@@ -111,10 +111,8 @@ export function ProfileForm({
   const locale = useLocale();
   const [state, formAction] = useFormState(
     async (prev: Parameters<typeof submitProfile>[0], formData: FormData) => {
-      // 保存を開始した時点で「未保存の変更あり」フラグを解除する。
-      // 消さないままだと、保存成功後のページ遷移中にブラウザ標準の
-      // 「このページを離れますか」警告が誤って表示されてしまう。
-      reset();
+      // 成功時はServer Actionがアプリ内でリダイレクトする。送信開始だけで
+      // 解除すると、検証・通信エラーの後に未保存の入力を失ってしまう。
       return submitProfile(prev, formData);
     },
     undefined
@@ -140,7 +138,7 @@ export function ProfileForm({
     });
   }
 
-  const { formRef, isDirty, markDirty, reset } = useDirtyForm();
+  const { formRef, isDirty, markDirty } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, dict.common.unsavedChangesConfirm);
 
   return (
@@ -267,9 +265,11 @@ export function ProfileForm({
             {dict.profile.languagesLabel}
           </FieldLabel>
           <MultiSelect
+            id="languages"
             name="languages"
             options={languageOptions}
             defaultValues={initialProfile?.languages ?? []}
+            onValueChange={markDirty}
             placeholder={dict.common.notSelected}
           />
         </div>
@@ -279,9 +279,11 @@ export function ProfileForm({
             {dict.profile.nationalitiesLabel}
           </FieldLabel>
           <MultiSelect
+            id="nationalities"
             name="nationalities"
             options={countryOptions}
             defaultValues={initialProfile?.nationalities ?? []}
+            onValueChange={markDirty}
             placeholder={dict.common.notSelected}
           />
         </div>
@@ -291,9 +293,11 @@ export function ProfileForm({
             {dict.profile.livedCountriesLabel}
           </FieldLabel>
           <MultiSelect
+            id="lived_countries"
             name="lived_countries"
             options={countryOptions}
             defaultValues={initialProfile?.lived_countries ?? []}
+            onValueChange={markDirty}
             placeholder={dict.common.notSelected}
           />
           <p className="text-xs text-muted-foreground">{dict.profile.livedCountriesHint}</p>
@@ -416,7 +420,7 @@ export function ProfileForm({
         </div>
       </div>
 
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
 
       <SubmitButton
         label={submitLabel ?? dict.profile.submitSetup}

@@ -18,6 +18,7 @@ import { compressImageFile } from "@/lib/image-compress";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { useInitialChatPosition } from "@/components/community/use-initial-chat-position";
 import { useChatRecovery } from "@/components/community/use-chat-recovery";
+import { initialMessageCursor, mergeMessages, messageCursorFilter } from "@/lib/message-cursor";
 import { useDict } from "@/lib/i18n/locale-provider";
 import { ChatMessage, ChatProvider } from "@/components/ui/chat/chat";
 import type { ChatMessageData } from "@/components/ui/chat/types";
@@ -78,7 +79,8 @@ export function FriendDm({
   const [stagedImages, setStagedImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const latestMessageAtRef = useRef(messages.at(-1)?.created_at ?? "1970-01-01T00:00:00.000Z");
+  // A confirmed fetch cursor also recovers gaps before newly delivered realtime messages.
+  const recoveryCursorRef = useRef(initialMessageCursor(messages));
   const [messagesAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 130, easing: "ease-out" });
   // scrollRefとmessagesAnimateRefを合成するref関数はuseCallbackで固定化する。
   // インラインの矢印関数のままだと描画のたびに新しい関数として扱われ、Reactが
@@ -125,9 +127,7 @@ export function FriendDm({
           void (async () => {
             const { messages: fetched } = await getDirectMessagesByIds(friendId, [row.id]);
             if (fetched.length === 0) return;
-            setLiveMessages((current) =>
-              current.some((m) => m.id === row.id) ? current : [...current, ...(fetched as DirectMessage[])]
-            );
+            setLiveMessages((current) => mergeMessages(current, fetched as DirectMessage[]));
             scrollToBottom();
           })();
         }
@@ -142,33 +142,24 @@ export function FriendDm({
     markDirectMessageRead(friendId);
   }, [friendId, liveMessages.length]);
 
-  useEffect(() => {
-    const latest = displayedMessages.reduce(
-      (current, message) => message.created_at > current ? message.created_at : current,
-      latestMessageAtRef.current
-    );
-    latestMessageAtRef.current = latest;
-  }, [displayedMessages]);
-
   const syncMissingMessages = useCallback(async () => {
     const supabase = createClient();
     const { data, error: recoveryError } = await supabase
       .from("direct_messages")
       .select("id,created_at")
       .or(`and(sender_id.eq.${friendId},recipient_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},recipient_id.eq.${friendId})`)
-      .gt("created_at", latestMessageAtRef.current)
+      .or(messageCursorFilter(recoveryCursorRef.current, "after"))
       .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(50);
     if (recoveryError) throw recoveryError;
     const ids = (data ?? []).map((row) => row.id);
     if (ids.length === 0) return;
     const result = await getDirectMessagesByIds(friendId, ids);
-    setLiveMessages((current) => [
-      ...current,
-      ...(result.messages as DirectMessage[]).filter((message) => !current.some((saved) => saved.id === message.id)),
-    ]);
-    const latest = data?.at(-1)?.created_at;
-    if (latest) latestMessageAtRef.current = latest;
+    if (result.messages.length !== ids.length) throw new Error("Message recovery incomplete");
+    setLiveMessages((current) => mergeMessages(current, result.messages as DirectMessage[]));
+    const latest = data?.at(-1);
+    if (latest) recoveryCursorRef.current = { created_at: latest.created_at, id: latest.id };
   }, [currentUserId, friendId]);
 
   useChatRecovery(`friend-${currentUserId}-${friendId}`, syncMissingMessages);
@@ -177,15 +168,21 @@ export function FriendDm({
     if (!hasMoreOlderState || loadingOlder || liveMessages.length === 0) return;
     const container = scrollRef.current;
     const prevHeight = container?.scrollHeight ?? 0;
+    setError(null);
     setLoadingOlder(true);
-    const oldest = liveMessages[0].created_at;
-    const res = await getOlderDirectMessages(friendId, oldest, 40);
-    setLiveMessages((current) => [...(res.messages as DirectMessage[]), ...current]);
-    setHasMoreOlderState(res.hasMore);
-    setLoadingOlder(false);
-    requestAnimationFrame(() => {
-      if (container) container.scrollTop = container.scrollHeight - prevHeight;
-    });
+    try {
+      const oldest = { created_at: liveMessages[0].created_at, id: liveMessages[0].id };
+      const res = await getOlderDirectMessages(friendId, oldest, 40);
+      setLiveMessages((current) => mergeMessages(current, res.messages as DirectMessage[]));
+      setHasMoreOlderState(res.hasMore);
+      requestAnimationFrame(() => {
+        if (container) container.scrollTop = container.scrollHeight - prevHeight;
+      });
+    } catch {
+      setError(dict.toast.error);
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   function addStagedFiles(files: File[]) {

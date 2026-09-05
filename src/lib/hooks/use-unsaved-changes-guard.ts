@@ -34,12 +34,12 @@ export function useUnsavedChangesGuard(isDirty: boolean, message: string) {
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (!isDirtyRef.current || confirmingRef.current) return;
+      if (!isDirtyRef.current) return;
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const anchor = (e.target as HTMLElement)?.closest?.("a");
       if (!anchor) return;
       const href = anchor.getAttribute("href");
-      if (!href || href.startsWith("#") || anchor.target === "_blank") return;
+      if (!href || href.startsWith("#") || (anchor.target && anchor.target !== "_self") || anchor.hasAttribute("download")) return;
 
       let url: URL;
       try {
@@ -52,6 +52,7 @@ export function useUnsavedChangesGuard(isDirty: boolean, message: string) {
 
       e.preventDefault();
       e.stopImmediatePropagation();
+      if (confirmingRef.current) return;
       confirmingRef.current = true;
       confirm({ message, danger: true }).then((ok) => {
         confirmingRef.current = false;
@@ -61,8 +62,10 @@ export function useUnsavedChangesGuard(isDirty: boolean, message: string) {
         }
       });
     }
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    // Window capture always runs before NavigationFeedback's document listener,
+    // regardless of mount order, so canceled navigation never locks the page.
+    window.addEventListener("click", onClick, true);
+    return () => window.removeEventListener("click", onClick, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirm, message]);
 }

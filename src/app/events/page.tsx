@@ -59,8 +59,8 @@ export default async function EventsPage({
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function applyCommonFilters(q: any) {
+  const eventCardQuery = () => supabase.from("events").select(EVENT_CARD_COLUMNS);
+  function applyCommonFilters(q: ReturnType<typeof eventCardQuery>) {
     let query_ = q;
     if (category) query_ = query_.eq("category", category as EventCategory);
     if (query) {
@@ -93,14 +93,16 @@ export default async function EventsPage({
     : null;
 
   const [
-    { data: upcomingEventsRaw, error },
-    { data: pastEventsRaw },
-    { data: dateEventsRaw },
+    { data: upcomingEventsRaw, error: upcomingError },
+    { data: pastEventsRaw, error: pastError },
+    { data: dateEventsRaw, error: dateError },
   ] = await Promise.all([
     showUpcoming ? upcomingQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
     showPast ? pastQuery : Promise.resolve({ data: [] as EventCardData[], error: null }),
-    dateQuery ?? Promise.resolve({ data: [] as EventCardData[] }),
+    dateQuery ?? Promise.resolve({ data: [] as EventCardData[], error: null }),
   ]);
+  // 日付・過去イベントの取得失敗も「0件」として隠さず、再試行できるようにする。
+  const error = upcomingError || pastError || dateError;
   const allUpcomingEvents = (upcomingEventsRaw as EventCardData[] | null) ?? [];
   const allPastEvents = (pastEventsRaw as EventCardData[] | null) ?? [];
   const allDateEvents = (dateEventsRaw as EventCardData[] | null) ?? [];

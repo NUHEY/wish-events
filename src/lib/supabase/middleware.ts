@@ -5,7 +5,7 @@ import { institutionalAccountKindForEmail } from "@/lib/institutional-accounts";
 
 const WASEDA_EMAIL_REGEX = /^[^@]+@([a-zA-Z0-9-]+\.)*waseda\.jp$/i;
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/auth/institutional-login"];
 
 /**
  * middleware.ts から呼ばれる中核ロジック。
@@ -64,7 +64,7 @@ async function updateSessionInner(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublicPath = PUBLIC_PATHS.some((p) => path.startsWith(p));
+  const isPublicPath = PUBLIC_PATHS.includes(path);
 
   /**
    * リダイレクト時は必ずこのヘルパーを経由すること。
@@ -108,7 +108,7 @@ async function updateSessionInner(request: NextRequest) {
     }
 
     // ログイン済みなのに /login や /auth/callback にいる場合はホームへ
-    if (isPublicPath && path !== "/auth/callback") {
+    if (path === "/login") {
       return redirectTo("/");
     }
 

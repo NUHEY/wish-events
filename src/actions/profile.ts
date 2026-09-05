@@ -71,10 +71,8 @@ export async function submitProfile(
     };
   }
 
-  // ra_rooms（RA個室一覧）に登録されている部屋番号であれば自動的にRAへ昇格し、
-  // そうでなければresidentのままになる。role列は自己申告では直接書き換えら
-  // れないため、この同期はDB側のSECURITY DEFINER関数(sync_own_role)経由で
-  // 行っている（詳細はschema.sql参照）。
+  // 自己申告の部屋変更ではRAへ昇格させない。既存RAの維持・降格だけを同期し、
+  // 新しいRAの承認は管理者によるRA管理操作で行う。
   await supabase.rpc("sync_own_role");
 
   revalidatePath("/", "layout");

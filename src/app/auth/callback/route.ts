@@ -8,7 +8,16 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // "next" が明示的に指定されていれば最優先する（例: 特定イベントへの招待リンクなど）。
   // 指定が無ければ、RAは管理ダッシュボード、一般寮生はイベント一覧をデフォルトにする。
-  const explicitNext = searchParams.get("next");
+  const requestedNext = searchParams.get("next");
+  // Accept only local absolute paths. In particular, appending "@host" to the
+  // origin would turn the trusted host into URL credentials and redirect away.
+  const explicitNext = requestedNext
+    && requestedNext.startsWith("/")
+    && !requestedNext.startsWith("//")
+    && !requestedNext.includes("\\")
+    && !/[\u0000-\u001f\u007f]/.test(requestedNext)
+    ? requestedNext
+    : null;
 
   if (code) {
     const supabase = await createClient();

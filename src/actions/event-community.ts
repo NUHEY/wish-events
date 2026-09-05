@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { messageCursorFilter, type MessageCursor } from "@/lib/message-cursor";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
@@ -88,7 +89,7 @@ export async function getEventMessagesByIds(eventId: string, ids: string[]) {
     .select("*")
     .eq("event_id", eventId)
     .in("id", ids)
-    .order("created_at");
+    .order("created_at").order("id");
   const hydrated = await hydrateEventMessages(supabase, rows ?? []);
   return { messages: hydrated };
 }
@@ -101,11 +102,12 @@ export async function getEventMessagesByIds(eventId: string, ids: string[]) {
 async function fetchEventMessagesPage(
   supabase: Awaited<ReturnType<typeof createClient>>,
   eventId: string,
-  opts: { before?: string; limit: number }
+  opts: { before?: MessageCursor; limit: number }
 ) {
   let q = supabase.from("event_messages").select("*").eq("event_id", eventId);
-  if (opts.before) q = q.lt("created_at", opts.before);
-  const { data: rows } = await q.order("created_at", { ascending: false }).limit(opts.limit);
+  if (opts.before) q = q.or(messageCursorFilter(opts.before));
+  const { data: rows, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(opts.limit);
+  if (error) throw new Error("メッセージを読み込めませんでした。再度お試しください。");
   const ordered = (rows ?? []).slice().reverse();
   const hydrated = await hydrateEventMessages(supabase, ordered);
 
@@ -158,9 +160,9 @@ export async function getInitialEventMessages(eventId: string, limit = 50) {
 }
 
 /** トーク画面の「さらに読み込む」用に、指定時刻より前のメッセージをまとめて取得する。 */
-export async function getOlderEventMessages(eventId: string, beforeCreatedAt: string, limit = 40) {
+export async function getOlderEventMessages(eventId: string, before: MessageCursor, limit = 40) {
   const supabase = await createClient();
-  return fetchEventMessagesPage(supabase, eventId, { before: beforeCreatedAt, limit });
+  return fetchEventMessagesPage(supabase, eventId, { before, limit });
 }
 
 /**

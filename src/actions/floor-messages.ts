@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { messageCursorFilter, type MessageCursor } from "@/lib/message-cursor";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { getFeatureFlagState } from "@/lib/feature-flags";
@@ -55,7 +56,7 @@ export async function getInitialFloorMessages(limit = 60) {
     .from("floor_messages")
     .select("*")
     .eq("floor_number", floorNumber)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(effectiveLimit);
 
   return {
@@ -67,17 +68,18 @@ export async function getInitialFloorMessages(limit = 60) {
   };
 }
 
-export async function getOlderFloorMessages(beforeCreatedAt: string, limit = 40) {
+export async function getOlderFloorMessages(before: MessageCursor, limit = 40) {
   const access = await requireFloorChat();
   if (access.error) return { error: access.error, messages: [], hasMore: false };
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("floor_messages")
     .select("*")
     .eq("floor_number", access.profile.floor_number!)
-    .lt("created_at", beforeCreatedAt)
-    .order("created_at", { ascending: false })
+    .or(messageCursorFilter(before))
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(limit);
+  if (error) throw new Error("メッセージを読み込めませんでした。再度お試しください。");
   return { messages: ((rows ?? []).slice().reverse()) as FloorMessageRow[], hasMore: (rows ?? []).length === limit };
 }
 
@@ -91,7 +93,7 @@ export async function getFloorMessagesByIds(ids: string[]) {
     .select("*")
     .eq("floor_number", access.profile.floor_number!)
     .in("id", ids)
-    .order("created_at");
+    .order("created_at").order("id");
   return { messages: (data ?? []) as FloorMessageRow[] };
 }
 
