@@ -15,6 +15,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
   // 遷移の排他制御には同期的に更新できるrefを使う。
   const navigationLockedRef = useRef(false);
   const targetHrefRef = useRef<string | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
   const currentSearch = searchParams.toString();
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
       setStalled(false);
       setTargetPath(null);
     }, settleMs);
+    settleTimerRef.current = timer;
     return () => window.clearTimeout(timer);
   }, [pathname, currentSearch]);
   useEffect(() => {
@@ -47,6 +49,8 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
         return next.hash && next.hash !== location.hash ? "in-page" : "same";
       }
       if (lockEnabled && navigationLockedRef.current) return "blocked";
+      // 初期表示や直前の遷移の解除タイマーが、新しい遷移のロックを外さないようにする。
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
       navigationLockedRef.current = true;
       targetHrefRef.current = next.href;
       setStalled(false);
@@ -54,6 +58,14 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
       return "started";
     };
     const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+      // オーバーレイ描画前の連打と、キーボードによるボタン操作も同期的に止める。
+      const target = event.target as Element | null;
+      if (lockEnabled && navigationLockedRef.current && !target?.closest("[data-navigation-recovery]")) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const link = (event.target as Element | null)?.closest("a[href]") as HTMLAnchorElement | null;
       if (!link || link.target === "_blank" || link.download || link.origin !== window.location.origin) return;
@@ -64,6 +76,12 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
       }
     };
     const onSubmit = (event: SubmitEvent) => {
+      if (event.defaultPrevented) return;
+      if (lockEnabled && navigationLockedRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const form = event.target as HTMLFormElement | null;
       if (!form || form.method.toLowerCase() !== "get") return;
       const next = new URL(form.action || window.location.href, window.location.origin);
@@ -101,6 +119,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
           <span className="min-w-0 text-muted-foreground">{dict.common.loadingSlow}</span>
           <button
             type="button"
+            data-navigation-recovery
             className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
             onClick={() => window.location.assign(targetHrefRef.current ?? window.location.href)}
           >
