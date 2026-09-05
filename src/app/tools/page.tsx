@@ -23,9 +23,9 @@ export default async function ToolsPage() {
   const sessions = (data ?? []) as ScheduleSession[];
 
   const toolGroups: { title: string; keys: FeatureFlagKey[] }[] = [
-    { title: locale === "ja" ? "日程調整・RAの予約" : "Scheduling & RA bookings", keys: ["availability_matching", "lets_chat_booking", "unit_room_sessions"] },
-    { title: locale === "ja" ? "寮生活・相談" : "Dorm life & advice", keys: ["ra_question_box", "ra_link_hub", "wish_knowledge"] },
     { title: locale === "ja" ? "仲間を募集" : "Meet up with others", keys: ["resident_events"] },
+    { title: locale === "ja" ? "日程調整・RAの予約" : "Scheduling & RA bookings", keys: ["availability_matching", "lets_chat_booking", "unit_room_sessions"] },
+    { title: locale === "ja" ? "寮生活・相談" : "Dorm life & advice", keys: ["ra_link_hub", "wish_knowledge"] },
   ];
   const showSchedules = sessions.length > 0 || visibleKeys.some((key) => ["availability_matching", "lets_chat_booking", "unit_room_sessions"].includes(key));
 

@@ -5,7 +5,7 @@ export const MANAGEMENT_MODULES = [
   { key: "announcements", group: "content", href: "/dashboard/new-announcement", ja: "お知らせ", en: "Announcements", detailJa: "お知らせの投稿・編集・削除", detailEn: "Post, edit and delete announcements" },
   { key: "notifications", group: "content", href: "/dashboard/notifications", ja: "通知の配信", en: "Broadcasts", detailJa: "対象を選んで寮生へ通知を送信", detailEn: "Send notifications to selected residents" },
   { key: "schedules", group: "community", href: "/dashboard/schedules", ja: "日程・予約", en: "Schedules & bookings", detailJa: "日程の作成・管理、予約・実施状況の確認", detailEn: "Create and manage schedules, bookings and completion status" },
-  { key: "questions", group: "community", href: "/dashboard/questions", ja: "質問箱", en: "Question box", detailJa: "非公開の質問の閲覧・回答、Q&Aの公開", detailEn: "Read private questions, reply and publish Q&A" },
+  { key: "questions", group: "community", href: "/dashboard/questions", ja: "知恵袋の管理", en: "Knowledge moderation", detailJa: "公開質問の確認・削除（RA限定の閲覧・回答はRA専用）", detailEn: "Review and delete public questions; RA-only viewing and answers stay exclusive to RAs" },
   { key: "links", group: "community", href: "/dashboard/link-hub", ja: "リンクページ", en: "Link pages", detailJa: "自分の共有リンクページを作成・編集", detailEn: "Create and edit your own shared link page" },
   { key: "badges", group: "community", href: "/dashboard/badges", ja: "バッジ", en: "Badges", detailJa: "バッジの追加・編集・削除、獲得条件の設定", detailEn: "Add, edit and delete badges and set criteria" },
   { key: "residents", group: "people", href: "/dashboard/residents", ja: "寮生情報", en: "Resident records", detailJa: "連絡先・学籍情報・部屋の閲覧、一般寮生の退寮処理", detailEn: "View contact, student and room details; release ordinary residents’ rooms" },

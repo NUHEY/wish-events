@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Settings2 } from "lucide-react";
+import { ChevronRight, Plus, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
@@ -352,8 +352,11 @@ export default async function HomePage() {
 
           return (
             <section key={s.id} className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <SectionHeading s={s} title={sectionTitle(s, dict.homeFeed.title)} />
+                <Link href="/announcements" className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-1 text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {dict.homeFeed.viewAllButton}<ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+                </Link>
                 {isRa && (
                   <Link
                     href="/announcements/new"
@@ -385,12 +388,7 @@ export default async function HomePage() {
                       <AnnouncementCard key={a.id} announcement={a} isRa={isRa} />
                     ))}
                   </div>
-                  <Link
-                    href="/announcements"
-                    className={buttonVariants({ variant: "outline", size: "sm", className: "w-full" })}
-                  >
-                    {dict.homeFeed.viewAllButton}
-                  </Link>
+
                 </>
               )}
             </section>

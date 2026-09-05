@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useRouter } from "next/navigation";
-import { CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, Sparkles, UserRound, Users } from "lucide-react";
+import { Settings2, CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, Sparkles, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -17,8 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
-import { LocaleToggle } from "@/components/layout/locale-toggle";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { UserAccountKind, UserRole } from "@/types/database";
 
 /**
@@ -103,10 +101,7 @@ export function UserMenu({
           </span>
         </Link>
         <DropdownMenuSeparator />
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-          <LocaleToggle />
-          <ThemeToggle />
-        </div>
+        <DropdownMenuItem asChild><Link href="/settings"><Settings2 className="h-4 w-4" />{locale === "en" ? "Your settings" : "自分の設定"}</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{locale === "ja" ? "プロフィール" : "Profile"}</DropdownMenuLabel>
         <DropdownMenuItem asChild>

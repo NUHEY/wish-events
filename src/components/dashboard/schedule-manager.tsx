@@ -1,29 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
 import { CalendarDays, ExternalLink, Lock, LockOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteScheduleSession, setScheduleStatus } from "@/actions/beta-tools";
 import { ShareLinkButton } from "@/components/tools/share-link-button";
 import { Button } from "@/components/ui/button";
+import { useScheduleOperation } from "@/components/tools/use-schedule-operation";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { SCHEDULE_COPY, type ScheduleSession } from "@/lib/beta-tools";
 
 export function ScheduleManager({ sessions }: { sessions: ScheduleSession[] }) {
-  const [pending, startTransition] = useTransition();
+  const { pending, run } = useScheduleOperation();
 
   function toggle(session: ScheduleSession) {
     const next = session.status === "open" ? "closed" : "open";
-    startTransition(async () => {
+    void run(async () => {
       const result = await setScheduleStatus(session.id, next);
       if (result.error) toast.error(result.error); else toast.success(next === "open" ? "受付を再開しました" : "受付を終了しました");
     });
   }
 
   function remove(session: ScheduleSession) {
+    if (pending) return;
     if (!window.confirm(`「${session.title}」を削除しますか？予約や入力済みの予定も削除されます。`)) return;
-    startTransition(async () => {
+    void run(async () => {
       const result = await deleteScheduleSession(session.id);
       if (result.error) toast.error(result.error); else toast.success("日程を削除しました");
     });

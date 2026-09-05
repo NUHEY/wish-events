@@ -13,6 +13,17 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+function validScheduleDate(value: string) {
+  if (!DATE_PATTERN.test(value)) return false;
+  const stamp = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(stamp) && new Date(stamp).toISOString().slice(0, 10) === value;
+}
+
+function scheduleMinutes(value: string) {
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
 async function featureAllowed(kind: ScheduleKind, role: "resident" | "ra") {
   if (role === "ra") return true;
   return (await getFeatureFlagState(SCHEDULE_COPY[kind].flag)) !== "hidden";
@@ -36,7 +47,7 @@ export async function createScheduleSession(input: CreateScheduleInput) {
   const profile = await getCurrentProfile();
   const managesSchedules = canManage(await getManagementAccess(), "schedules");
   if (profile.account_kind !== "resident" && !managesSchedules) return { error: "日程作成の権限がありません。" };
-  if (!(input.kind in SCHEDULE_COPY) || (!managesSchedules && !(await featureAllowed(input.kind, profile.role)))) {
+  if (!Object.prototype.hasOwnProperty.call(SCHEDULE_COPY, input.kind) || (!managesSchedules && !(await featureAllowed(input.kind, profile.role)))) {
     return { error: "この機能は現在公開されていません。" };
   }
   if ((input.kind === "lets_chat" || input.kind === "urs") && !managesSchedules) {
@@ -47,7 +58,7 @@ export async function createScheduleSession(input: CreateScheduleInput) {
   const description = input.description?.trim() || null;
   if (!title || title.length > 80) return { error: "タイトルは1〜80文字で入力してください。" };
   if (description && description.length > 500) return { error: "説明は500文字以内で入力してください。" };
-  if (!DATE_PATTERN.test(input.startDate) || !DATE_PATTERN.test(input.endDate)) return { error: "期間を正しく入力してください。" };
+  if (!validScheduleDate(input.startDate) || !validScheduleDate(input.endDate)) return { error: "期間を正しく入力してください。" };
   const start = new Date(`${input.startDate}T00:00:00+09:00`);
   const end = new Date(`${input.endDate}T00:00:00+09:00`);
   const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
@@ -57,6 +68,8 @@ export async function createScheduleSession(input: CreateScheduleInput) {
     return { error: "1日の開始・終了時刻を正しく入力してください。" };
   }
   if (![15, 30, 60].includes(input.slotMinutes)) return { error: "時間枠が正しくありません。" };
+  if (scheduleMinutes(input.dailyEndTime) - scheduleMinutes(input.dailyStartTime) < input.slotMinutes) return { error: "1枠以上の時間帯を設定してください。" };
+  if (!Array.isArray(input.participantIds) || !Array.isArray(input.raIds)) return { error: "参加者を正しく選択してください。" };
 
   const participantIds = [...new Set([
     ...(input.kind === "general" ? [profile.id] : []),
@@ -107,7 +120,9 @@ export async function createScheduleSession(input: CreateScheduleInput) {
 export async function saveScheduleAvailability(sessionId: string, slots: { startAt: string; endAt: string }[]) {
   await getCurrentProfile();
   if (!UUID_PATTERN.test(sessionId) || !Array.isArray(slots)) return { error: "空き時間の形式が正しくありません。" };
-  const safeSlots = slots.slice(0, 1000).filter((slot) => !Number.isNaN(Date.parse(slot.startAt)) && !Number.isNaN(Date.parse(slot.endAt)));
+  if (slots.length > 1000) return { error: "空き時間は1000枠以内に絞ってください。保存内容は変更されていません。" };
+  if (slots.some((slot) => !slot || typeof slot.startAt !== "string" || typeof slot.endAt !== "string" || !Number.isFinite(Date.parse(slot.startAt)) || !Number.isFinite(Date.parse(slot.endAt)) || Date.parse(slot.startAt) >= Date.parse(slot.endAt))) return { error: "空き時間の形式が正しくありません。保存内容は変更されていません。" };
+  const safeSlots = slots;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("save_schedule_availability", { p_session_id: sessionId, p_slots: safeSlots });
   if (error) return { error: `保存できませんでした: ${error.message}` };
@@ -162,7 +177,9 @@ export async function updateScheduleToolSettings(input: { startTime: string; end
   const profile = await requireManagement("settings");
   if (!TIME_PATTERN.test(input.startTime) || !TIME_PATTERN.test(input.endTime) || input.startTime >= input.endTime) return { error: "標準の時間帯を正しく設定してください。" };
   if (![15, 30, 60].includes(input.slotMinutes)) return { error: "標準の時間枠を選択してください。" };
-  const maxDays = Math.max(3, Math.min(31, Math.round(input.maxDays)));
+  if (!Number.isInteger(input.maxDays) || input.maxDays < 3 || input.maxDays > 31) return { error: "期間の上限は3〜31の整数で入力してください。" };
+  if (scheduleMinutes(input.endTime) - scheduleMinutes(input.startTime) < input.slotMinutes) return { error: "1枠以上の時間帯を設定してください。" };
+  const maxDays = input.maxDays;
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").update({ schedule_default_start_time: input.startTime, schedule_default_end_time: input.endTime, schedule_default_slot_minutes: input.slotMinutes, schedule_max_days: maxDays, updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
   if (error) return { error: "日程ツールの設定を保存できませんでした。最新のSQLを適用してください。" };
@@ -171,30 +188,14 @@ export async function updateScheduleToolSettings(input: { startTime: string; end
   return { success: true };
 }
 
-export async function submitRaQuestion(questionText: string, anonymous: boolean) {
-  const profile = await getCurrentProfile();
-  if ((await getFeatureFlagState("ra_question_box")) === "hidden") return { error: "質問箱は現在公開されていません。" };
-  const question = questionText.trim();
-  if (!question || question.length > 500) return { error: "質問は1〜500文字で入力してください。" };
-  const supabase = await createClient();
-  const { error } = await supabase.from("ra_questions").insert({ asked_by: profile.id, floor_number: profile.floor_number, question, is_anonymous: anonymous });
-  if (error) return { error: `質問を送れませんでした: ${error.message}` };
-  revalidatePath("/questions");
-  revalidatePath("/dashboard/questions");
-  return { success: true };
+export async function submitRaQuestion(_questionText: string, _anonymous: boolean): Promise<{error?:string;success?:boolean}> {
+  await getCurrentProfile();
+  return { error: "質問箱はWISH知恵袋に統合されました。ツールからWISH知恵袋を開いてください。" };
 }
 
-export async function answerRaQuestion(questionId: string, answerText: string, publish: boolean) {
-  const profile = await requireManagement("questions");
-  if (!UUID_PATTERN.test(questionId)) return { error: "質問IDが正しくありません。" };
-  const answer = answerText.trim();
-  if (!answer || answer.length > 1200) return { error: "回答は1〜1200文字で入力してください。" };
-  const supabase = await createClient();
-  const { error } = await supabase.from("ra_questions").update({ answer, answered_by: profile.id, answered_at: new Date().toISOString(), is_public: publish, updated_at: new Date().toISOString() }).eq("id", questionId);
-  if (error) return { error: `回答を保存できませんでした: ${error.message}` };
-  revalidatePath("/questions");
-  revalidatePath("/dashboard/questions");
-  return { success: true };
+export async function answerRaQuestion(_questionId: string, _answerText: string, _publish: boolean): Promise<{error?:string;success?:boolean}> {
+  await requireManagement("questions");
+  return { error: "質問箱はWISH知恵袋に統合されました。知恵袋の管理から回答してください。" };
 }
 
 export type LinkHubItemInput = { id?: string; title: string; url: string; description?: string; icon: "link" | "form" | "instagram" | "document" | "calendar" | "contact"; enabled: boolean };

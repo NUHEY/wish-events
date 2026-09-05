@@ -6,7 +6,7 @@ import { institutionalAccountKindForEmail } from "@/lib/institutional-accounts";
 
 const WASEDA_EMAIL_REGEX = /^[^@]+@([a-zA-Z0-9-]+\.)*waseda\.jp$/i;
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/auth/institutional-login"];
+const PUBLIC_PATHS = ["/settings", "/login", "/auth/callback", "/api/auth/institutional-login"];
 
 /**
  * middleware.ts から呼ばれる中核ロジック。
@@ -14,7 +14,7 @@ const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/auth/institutional-login
  * - waseda.jp ドメイン以外を弾く（DBトリガーに加えた二重チェック）
  * - 未ログイン → /login
  * - ログイン済みだがプロフィール未登録 → /profile/setup
- * - RA専用ページへの一般寮生アクセスを拒否
+ * - 機能別の管理権限は各ページ・アクションで検証
  */
 export async function updateSession(request: NextRequest) {
   try {
@@ -148,17 +148,9 @@ async function updateSessionInner(request: NextRequest) {
         return redirectTo(profile?.role === "ra" ? "/dashboard" : "/");
       }
 
-      const isRaOnlyPath =
-        path.startsWith("/events/new") ||
-        path.startsWith("/dashboard") ||
-        path.startsWith("/announcements/new") ||
-        /^\/events\/[^/]+\/edit/.test(path) ||
-        /^\/events\/[^/]+\/questions/.test(path) ||
-        /^\/announcements\/[^/]+\/edit/.test(path);
+      // Each management page/action checks its own delegated module. A blanket
+      // RA-only redirect here would reject authorized institutional accounts.
 
-      if (isRaOnlyPath && profile?.role !== "ra") {
-        return redirectTo("/");
-      }
     }
   }
 

@@ -27,12 +27,12 @@ function response(type, destination) {
 }
 const NextResponse = { next: () => response('next'), redirect: url => response('redirect', url) };
 
-function middleware(user = null) {
+function middleware(user = null, profile = null) {
   return load('src/lib/supabase/middleware.ts', {
     'next/server': { NextResponse },
     './bounded-fetch': { boundedFetch: () => {} },
     '@/lib/institutional-accounts': { institutionalAccountKindForEmail: () => null },
-    '@supabase/ssr': { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
+    '@supabase/ssr': { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user } }) }, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profile }) }) }) }) }) },
   }).updateSession;
 }
 function request(pathname) {
@@ -49,12 +49,12 @@ test('institutional login endpoint remains reachable for an existing session', a
   assert.equal(result.type, 'next');
 });
 test('public routes are exact and do not open similarly named protected routes', async () => {
-  for (const route of ['/dashboard', '/login-admin', '/auth/callback/private', '/api/auth/institutional-login/private']) {
+  for (const route of ['/dashboard', '/settings/private', '/login-admin', '/auth/callback/private', '/api/auth/institutional-login/private']) {
     assert.equal((await middleware()(request(route))).destination, 'https://wish.example/login');
   }
 });
 test('login and OAuth callback remain public', async () => {
-  for (const route of ['/login', '/auth/callback']) assert.equal((await middleware()(request(route))).type, 'next');
+  for (const route of ['/settings', '/login', '/auth/callback']) assert.equal((await middleware()(request(route))).type, 'next');
 });
 
 function callback(role = 'resident', error = null) {
@@ -92,4 +92,18 @@ test('callback keeps role-aware defaults and handles invalid authorization codes
   assert.equal((await callback()(callbackRequest(null))).destination, 'https://wish.example/');
   assert.equal((await callback('ra')(callbackRequest(null))).destination, 'https://wish.example/dashboard');
   assert.equal((await callback('ra', new Error('invalid code'))(callbackRequest('/dashboard'))).destination, 'https://wish.example/login?error=auth_failed');
+});
+
+
+test('delegated institutional management reaches module-specific authorization', async () => {
+  const user = { id: 'staff', email: 'internal@example.invalid', app_metadata: { account_kind: 'university_staff' } };
+  const profile = { account_kind: 'university_staff', role: 'resident', full_name: '大学関係者' };
+  for (const route of ['/dashboard', '/dashboard/questions', '/dashboard/permissions', '/events/new', '/announcements/new']) {
+    assert.equal((await middleware(user, profile)(request(route))).type, 'next', route);
+  }
+});
+test('resident completion and move-out redirects are preserved before page authorization', async () => {
+  const user = { id: 'resident', email: 'resident@waseda.jp' };
+  assert.equal((await middleware(user, { account_kind: 'resident', role: 'resident' })(request('/dashboard'))).destination, 'https://wish.example/profile/setup');
+  assert.equal((await middleware(user, { account_kind: 'resident', moved_out_at: '2026-09-01' })(request('/dashboard'))).destination, 'https://wish.example/move-out');
 });

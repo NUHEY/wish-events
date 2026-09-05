@@ -5,7 +5,7 @@ import { FEATURE_FLAG_KEYS, getFeatureFlagState, type FeatureFlagKey } from "@/l
 const groups: { id: string; title: string; keys: FeatureFlagKey[] }[] = [
   { id: "talks", title: "トーク", keys: ["friend_dm", "floor_group_chat"] },
   { id: "schedules", title: "日程調整・予約", keys: ["availability_matching", "lets_chat_booking", "unit_room_sessions"] },
-  { id: "dorm-life", title: "寮生活・相談", keys: ["ra_question_box", "ra_link_hub", "wish_knowledge"] },
+  { id: "dorm-life", title: "寮生活・相談", keys: ["ra_link_hub", "wish_knowledge"] },
   { id: "events", title: "イベント", keys: ["resident_events", "event_calendar_export"] },
 ];
 

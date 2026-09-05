@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarRange, Check, Search, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useScheduleOperation } from "@/components/tools/use-schedule-operation";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select } from "@/components/ui/select";
@@ -31,9 +32,9 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
   const [slotMinutes, setSlotMinutes] = useState<15 | 30 | 60>(defaults?.slotMinutes ?? 30);
   const [floorNumber, setFloorNumber] = useState(currentFloor ?? 3);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
-  const [raIds, setRaIds] = useState<string[]>(kind === "lets_chat" && isRa ? [currentUserId] : []);
+  const [raIds, setRaIds] = useState<string[]>(kind === "lets_chat" && isRa && profiles.some((person) => person.id === currentUserId && person.role === "ra" && person.floor_number === (currentFloor ?? 3)) ? [currentUserId] : []);
   const [query, setQuery] = useState("");
-  const [pending, startTransition] = useTransition();
+  const { pending, run } = useScheduleOperation();
 
   const residents = useMemo(() => profiles.filter((profile) => profile.id !== currentUserId && (kind === "general" || profile.role === "resident") && `${profile.full_name ?? ""} ${profile.room_number ?? ""}`.toLowerCase().includes(query.toLowerCase())), [currentUserId, kind, profiles, query]);
   const ras = useMemo(() => profiles.filter((profile) => profile.role === "ra" && (kind !== "lets_chat" || profile.floor_number === floorNumber) && `${profile.full_name ?? ""} ${profile.room_number ?? ""}`.toLowerCase().includes(query.toLowerCase())), [floorNumber, kind, profiles, query]);
@@ -47,8 +48,15 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
   }
 
   function submit() {
-    if (!startDate || !endDate) return toast.error("期間を入力してください");
-    startTransition(async () => {
+    if (!startDate || !endDate || startDate > endDate) return toast.error("開始日・終了日を正しく入力してください");
+    if (!dailyStartTime || !dailyEndTime || dailyStartTime >= dailyEndTime) return toast.error("開始時刻より後の終了時刻を選んでください");
+    const [startHour, startMinute] = dailyStartTime.split(":").map(Number);
+    const [endHour, endMinute] = dailyEndTime.split(":").map(Number);
+    if ((endHour - startHour) * 60 + endMinute - startMinute < slotMinutes) return toast.error("1枠以上の時間帯を設定してください");
+    if (kind === "general" && participantIds.length < 1) return toast.error("参加する寮生を1人以上選択してください");
+    if (kind === "lets_chat" && raIds.length === 0) return toast.error("担当RAを1人以上選択してください");
+    if (kind === "urs" && (raIds.length !== 1 || participantIds.length < 2 || participantIds.length > 4)) return toast.error("ルームメイト2〜4人と担当RA1人を選択してください");
+    void run(async () => {
       const result = await createScheduleSession({ kind, title, description, startDate, endDate, dailyStartTime, dailyEndTime, slotMinutes, floorNumber, participantIds, raIds });
       if (result.error || !result.token) {
         toast.error(result.error ?? "作成できませんでした");
@@ -64,7 +72,7 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <PendingFeedback active={pending} label="日程調整ページを作成しています…" />
-      <header className="rounded-3xl bg-gradient-to-br from-primary/[0.12] via-card to-accent/40 p-5 sm:p-7">
+      <header className="rounded-2xl bg-gradient-to-br from-primary/[0.12] via-card to-accent/40 p-5 sm:p-7">
         <div className="flex items-center gap-2"><BetaBadge /><span className="text-xs font-semibold text-muted-foreground">新しい調整を作成</span></div>
         <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">{copy.title}</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{copy.description}</p>

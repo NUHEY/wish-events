@@ -216,7 +216,11 @@ export interface FeatureFlagRow {
 
 export interface WishQuestionRow {
   id: string;
-  asked_by: string;
+  asked_by: string | null;
+  visibility: "public" | "ra_only";
+  answer_scope: "everyone" | "ra_only";
+  is_anonymous: boolean;
+  legacy_ra_question_id: string | null;
   title: string;
   body: string;
   category: "life" | "rules" | "study" | "food" | "local" | "other";
@@ -229,7 +233,7 @@ export interface WishQuestionRow {
 export interface WishAnswerRow {
   id: string;
   question_id: string;
-  answered_by: string;
+  answered_by: string | null;
   body: string;
   created_at: string;
   updated_at: string;
@@ -896,6 +900,14 @@ export interface Database {
       create_resident_event: {
         Args: { p_title: string; p_description: string; p_location: string; p_event_date: string; p_capacity: number | null; p_image_url: string };
         Returns: string;
+      };
+      wish_question_feed: {
+        Args: Record<string, never>;
+        Returns: WishQuestionRow[];
+      };
+      delete_wish_question: {
+        Args: { p_question_id: string };
+        Returns: undefined;
       };
       accept_wish_answer: {
         Args: { p_question_id: string; p_answer_id: string };

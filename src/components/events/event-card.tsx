@@ -71,10 +71,8 @@ export async function EventCard({
   ];
   const eventDate = formatEventDateTime(event.event_date, locale, isMuted, false);
   const eventTime = isMuted ? null : formatEventDateTime(event.event_date, locale, false, true).split(" ").at(-1);
-  const titleLineClass = settings.eventTitleLines === 1 ? "line-clamp-1 h-5 sm:h-6" : settings.eventTitleLines === 3 ? "line-clamp-3 h-[60px] sm:h-[66px]" : "line-clamp-2 h-10 sm:h-11";
-  const contentHeightClass = settings.eventCardDensity === "comfortable"
-    ? settings.eventTitleLines === 3 ? "min-h-[136px] sm:min-h-[138px]" : "min-h-[116px] sm:min-h-[118px]"
-    : settings.eventTitleLines === 3 ? "min-h-[124px] sm:min-h-[126px]" : "min-h-[100px] sm:min-h-[102px]";
+  const titleLineClass = settings.eventTitleLines === 1 ? "line-clamp-1" : settings.eventTitleLines === 3 ? "line-clamp-3" : "line-clamp-2";
+  const contentSpacingClass = settings.eventCardDensity === "comfortable" ? "gap-3 p-3 sm:p-4" : "gap-2 p-2.5 sm:p-3";
 
   return (
     <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -82,7 +80,7 @@ export async function EventCard({
         className={cn(
           // WebKitではfilter/transformを持つ子をoverflow-hiddenだけで丸めると
           // 角から描画が漏れるため、カード自身をstacking contextにして直接clipする。
-          "relative z-0 h-full w-full min-w-0 overflow-hidden rounded-xl transition-all duration-200",
+          "relative z-0 flex h-full w-full flex-col min-w-0 overflow-hidden rounded-xl transition-all duration-200",
           isMuted
             ? "opacity-70 grayscale-[0.35] [@media(hover:hover)]:hover:opacity-100 [@media(hover:hover)]:hover:grayscale-0"
             : "[@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:border-foreground/15 [@media(hover:hover)]:group-hover:shadow-card-hover"
@@ -115,8 +113,8 @@ export async function EventCard({
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
         </div>
-        {/* タイトルの行数をそろえ、日時は省略せず折り返せる余白を確保する。 */}
-        <CardContent className={cn("flex flex-col justify-between gap-1.5 p-2.5 sm:gap-2 sm:p-3.5", contentHeightClass, isMuted && "p-2.5 sm:p-3")}>
+        {/* タイトルの行数をそろえ、本文の高さは内容に合わせ、日時を省略せず折り返す。 */}
+        <CardContent className={cn("flex flex-1 flex-col", contentSpacingClass)}>
           <h3
             className={cn(
               "break-words text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:text-base",
@@ -126,7 +124,7 @@ export async function EventCard({
           >
             {title}
           </h3>
-          <div className="flex min-h-8 items-end justify-between gap-1.5">
+          <div className="mt-auto flex items-end justify-between gap-1.5">
             <time dateTime={event.event_date} className="flex min-w-0 flex-wrap gap-x-1.5 text-xs leading-4 text-muted-foreground sm:text-sm sm:leading-5">
               <span>{eventDate}</span>
               {eventTime && <span className="whitespace-nowrap">{eventTime}</span>}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getManagementAccess } from "@/lib/management-access";
-import { MANAGEMENT_MODULES, canManage } from "@/lib/management-permissions";
+import { canManage } from "@/lib/management-permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,13 +33,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const totalEvents = eventResult.count ?? 0;
   return (
     <div className="flex flex-col gap-6">
-        <section className="space-y-3"><h1 className="text-lg font-bold">{locale === "en" ? "What would you like to manage?" : "行いたいことを選ぶ"}</h1><div className="grid gap-2 sm:grid-cols-2">
-          {managesEvents && <Link href="/dashboard/new-event" className={buttonVariants({className:"justify-start"})}>{locale === "en" ? "Create an event" : "イベントを作成"}</Link>}
-          {MANAGEMENT_MODULES.filter(module => module.key !== "events" && canManage(access, module.key)).map(module => <Link key={module.key} href={module.href} prefetch={false} className={buttonVariants({variant:"outline",className:"h-auto min-h-11 justify-start whitespace-normal py-3 text-left"})}>{locale === "en" ? module.en : module.ja}</Link>)}
-          {access.isRa && <Link href="/dashboard/permissions" className={buttonVariants({variant:"outline",className:"justify-start"})}>{locale === "en" ? "Staff permissions" : "関係者の権限"}</Link>}
-        </div></section>
+        {!managesEvents && <p className="rounded-xl border border-border bg-card p-4 text-sm leading-relaxed text-muted-foreground">{locale === "en" ? "Your available management features are in the menu above." : "上の管理メニューに、利用できる機能が表示されています。"}</p>}
         {managesEvents && <>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className={`grid grid-cols-2 gap-3 ${residentCount !== null ? "sm:grid-cols-3" : ""}`}>
           {residentCount !== null && <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{residentCount ?? 0}</p>

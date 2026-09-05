@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, CalendarPlus, ChevronRight, Lightbulb, Link2, MessageCircleQuestion, MessagesSquare, UsersRound } from "lucide-react";
+import { CalendarClock, CalendarPlus, ChevronRight, Lightbulb, Link2, MessagesSquare, UsersRound } from "lucide-react";
 import { BetaBadge } from "@/components/tools/beta-badge";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import type { Locale } from "@/lib/i18n/locales";
@@ -19,13 +19,12 @@ export const RESIDENT_TOOLS: {
   accent: string;
   raCreates: boolean;
 }[] = [
+  { key: "resident_events", createHref: "/events/community", residentHref: "/events/community", title: "イベントを募集", titleEn: "Create a meetup", description: "ご飯や外出の仲間を気軽に募集", descriptionEn: "Invite others to dinner, outings, and more", icon: CalendarPlus, accent: "from-pink-400/15 to-violet-300/5 text-pink-700 dark:text-pink-300", raCreates: false },
   { key: "availability_matching", createHref: "/tools/schedule/new?mode=general", residentHref: "/tools/schedule/new?mode=general", title: "みんなの日程調整", titleEn: "Find a time together", description: "2人以上の空き時間を重ねて確認", descriptionEn: "Compare availability for two or more people", icon: CalendarClock, accent: "from-sky-500/15 to-cyan-400/5 text-sky-700 dark:text-sky-300", raCreates: false },
   { key: "lets_chat_booking", createHref: "/tools/schedule/new?mode=lets_chat", residentHref: "/tools#active-schedules", title: "Let's Chat!", titleEn: "Let's Chat!", description: "フロアRAの予約ページを作成", descriptionEn: "Create booking slots for your floor", residentDescription: "フロアRAが公開した時間から予約", residentDescriptionEn: "Book a time published by your floor RA", icon: MessagesSquare, accent: "from-rose-500/15 to-orange-400/5 text-rose-700 dark:text-rose-300", raCreates: true },
   { key: "unit_room_sessions", createHref: "/tools/schedule/new?mode=urs", residentHref: "/tools#active-schedules", title: "URS 日程調整", titleEn: "Schedule a URS", description: "ルームメイトとRAの日程ページを作成", descriptionEn: "Coordinate a room session with roommates and an RA", residentDescription: "RAが公開したページに予定を入力", residentDescriptionEn: "Enter your availability on the RA's page", icon: UsersRound, accent: "from-violet-500/15 to-fuchsia-400/5 text-violet-700 dark:text-violet-300", raCreates: true },
-  { key: "ra_question_box", createHref: "/questions", residentHref: "/questions", title: "RAへの質問箱", titleEn: "Ask an RA", description: "質問を送り、公開Q&Aを確認", descriptionEn: "Ask a question or browse public answers", icon: MessageCircleQuestion, accent: "from-amber-500/15 to-yellow-400/5 text-amber-700 dark:text-amber-300", raCreates: false },
   { key: "ra_link_hub", createHref: "/links", residentHref: "/links", title: "RAリンクページ", titleEn: "RA links", description: "外泊届・SNS・よく使うページ", descriptionEn: "Overnight forms, social accounts, and useful pages", icon: Link2, accent: "from-emerald-500/15 to-teal-400/5 text-emerald-700 dark:text-emerald-300", raCreates: false },
-  { key: "wish_knowledge", createHref: "/wisdom", residentHref: "/wisdom", title: "WISH知恵袋", titleEn: "WISH Knowledge", description: "寮生活の疑問をみんなで解決", descriptionEn: "Share answers to everyday dorm questions", icon: Lightbulb, accent: "from-amber-400/15 to-lime-300/5 text-amber-700 dark:text-amber-300", raCreates: false },
-  { key: "resident_events", createHref: "/events/community", residentHref: "/events/community", title: "イベントを募集", titleEn: "Create a meetup", description: "ご飯や外出の仲間を気軽に募集", descriptionEn: "Invite others to dinner, outings, and more", icon: CalendarPlus, accent: "from-pink-400/15 to-violet-300/5 text-pink-700 dark:text-pink-300", raCreates: false },
+  { key: "wish_knowledge", createHref: "/wisdom", residentHref: "/wisdom", title: "WISH知恵袋", titleEn: "WISH Knowledge", description: "寮生活の疑問を共有・RAだけへの相談も", descriptionEn: "Share dorm questions or ask RAs privately", icon: Lightbulb, accent: "from-amber-400/15 to-lime-300/5 text-amber-700 dark:text-amber-300", raCreates: false },
 ];
 
 export function ResidentToolGrid({

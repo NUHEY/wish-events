@@ -160,10 +160,7 @@ export default async function EventsPage({
           </div>
           <Button type="submit" className="h-11 shrink-0 rounded-full">{dict.common.search}</Button>
         </form>
-        <fieldset className="min-w-0 space-y-2">
-          <legend className="mb-2 text-xs font-semibold text-muted-foreground">{dict.eventForm.categoryLabel}</legend>
-          <EventFilter />
-        </fieldset>
+        <EventFilter />
         <fieldset className="min-w-0 space-y-2">
           <legend className="mb-2 text-xs font-semibold text-muted-foreground">{locale === "ja" ? "開催状況" : "Event status"}</legend>
           <EventStatusFilter />
@@ -196,7 +193,7 @@ export default async function EventsPage({
               <p className="text-sm text-muted-foreground">
                 {dict.home.dateResultsCount.replace("{count}", String(dateEvents.length))}
               </p>
-              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {dateEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -221,7 +218,7 @@ export default async function EventsPage({
 
           {hasUpcoming && (
             <section className="flex flex-col gap-3">
-              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -230,7 +227,7 @@ export default async function EventsPage({
           )}
 
           {hasPast && status === "past" && (
-            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {pastEvents.map((event) => (
                 <EventCard key={event.id} event={event} variant="muted" />
               ))}
@@ -243,7 +240,7 @@ export default async function EventsPage({
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
                 {dict.home.pastEventsToggle}（{pastEvents!.length}）
               </summary>
-              <div className="mt-4 grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} variant="muted" />
                 ))}

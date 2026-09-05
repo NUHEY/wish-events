@@ -74,7 +74,6 @@ export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnH
     "availability_matching",
     "lets_chat_booking",
     "unit_room_sessions",
-    "ra_question_box",
     "ra_link_hub",
     "wish_knowledge",
     "resident_events",
