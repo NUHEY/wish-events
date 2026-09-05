@@ -100,6 +100,8 @@ function actions(file, database = fakeSupabase()) {
   return loadTs(`src/actions/${file}.ts`, {
     'next/cache': { revalidatePath() {} },
     'next/headers': {},
+    '@/lib/management-access': { getManagementAccess: async () => ({ isRa: false, permissions: [] }) },
+    '@/lib/management-permissions': { canManage: () => false },
     '@/lib/supabase/server': { createClient: async () => database },
     '@/lib/auth': { getCurrentProfile: async () => ({ id: me, floor_number: 3, moved_out_at: null }) },
     '@/lib/feature-flags': { getFeatureFlagState: async () => 'enabled' },

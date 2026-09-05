@@ -120,7 +120,7 @@ export async function getMoveOutProfile(): Promise<UserRow> {
 /** RAでなければホームへリダイレクトする */
 export async function requireRa(): Promise<UserRow> {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") redirect("/");
+  if (profile.role !== "ra" || profile.account_kind !== "resident") redirect("/");
   return profile;
 }
 

@@ -491,6 +491,12 @@ export interface SiteSettingsRow {
 export interface Database {
   public: {
     Tables: {
+      institutional_permissions: {
+        Row: { account_kind: "service_desk" | "university_staff"; permissions: string[]; updated_by: string | null; updated_at: string };
+        Insert: { account_kind: "service_desk" | "university_staff"; permissions?: string[]; updated_by?: string | null; updated_at?: string };
+        Update: { permissions?: string[]; updated_by?: string | null; updated_at?: string };
+        Relationships: [];
+      };
       users: {
         Row: UserRow;
         Insert: Partial<UserRow> & { id: string; email: string };
@@ -748,6 +754,7 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      has_management_permission: { Args: { p_permission: string }; Returns: boolean };
       has_unread_event_talk: {
         Args: Record<string, never>;
         Returns: boolean;

@@ -1,11 +1,11 @@
+import { requireManagement } from "@/lib/management-access";
 import { QuestionManager } from "@/components/dashboard/question-manager";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { DirectoryProfileRow } from "@/types/database";
 import type { QuestionView } from "@/components/tools/question-box";
 
 export default async function DashboardQuestionsPage() {
-  await requireRa();
+  await requireManagement("questions");
   const supabase = await createClient();
   const [{ data: rows }, { data: profiles }] = await Promise.all([supabase.from("ra_questions").select("*").order("answer", { ascending: true, nullsFirst: true }).order("created_at", { ascending: false }).limit(500), supabase.rpc("directory_profiles")]);
   const people = new Map(((profiles ?? []) as DirectoryProfileRow[]).map((person) => [person.id, person]));

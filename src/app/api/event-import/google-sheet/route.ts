@@ -32,8 +32,8 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) return NextResponse.json({ error: "ログインが必要です。" }, { status: 401 });
-  const { data: profile } = await supabase.from("users").select("role").eq("id", authData.user.id).maybeSingle();
-  if (profile?.role !== "ra") return NextResponse.json({ error: "RAのみ利用できます。" }, { status: 403 });
+  const { data: allowed, error: permissionError } = await supabase.rpc("has_management_permission", { p_permission: "events" });
+  if (permissionError || !allowed) return NextResponse.json({ error: "イベント管理の権限が必要です。" }, { status: 403 });
 
   try {
     const body = (await request.json()) as { url?: unknown };

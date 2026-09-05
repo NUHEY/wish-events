@@ -1,8 +1,9 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 
 export type EventOptionActionResult = { error?: string; success?: boolean } | void;
 
@@ -25,7 +26,7 @@ async function addOption(
   _prev: EventOptionActionResult,
   formData: FormData
 ): Promise<EventOptionActionResult> {
-  await requireRa();
+  await requireManagement("event_options");
   const supabase = await createClient();
 
   const labelJa = String(formData.get("label_ja") ?? "").trim();
@@ -55,7 +56,7 @@ async function addOption(
 }
 
 async function removeOption(kind: OptionKind, id: string) {
-  await requireRa();
+  await requireManagement("event_options");
   const supabase = await createClient();
   const { error } = await supabase.from(tableFor(kind)).delete().eq("id", id);
   if (error) return { error: error.message };

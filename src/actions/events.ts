@@ -1,9 +1,10 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 import { eventSchema } from "@/lib/validations/event";
 import { jstWallClockToUtcIso } from "@/lib/utils";
 import { DEFAULT_EVENT_PRESETS } from "@/lib/media-defaults";
@@ -58,7 +59,7 @@ export async function createEvent(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const profile = await requireRa();
+  const profile = await requireManagement("events");
   const parsed = parseEventFormData(formData);
 
   if (!parsed.success) {
@@ -129,7 +130,7 @@ export async function updateEvent(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRa();
+  await requireManagement("events");
   const parsed = parseEventFormData(formData);
 
   if (!parsed.success) {
@@ -195,7 +196,7 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(eventId: string) {
-  await requireRa();
+  await requireManagement("events");
   const supabase = await createClient();
   const { error } = await supabase.from("events").delete().eq("id", eventId);
 
@@ -211,7 +212,7 @@ export async function deleteEvent(eventId: string) {
 
 /** 管理一覧のメニュー用。削除後に一覧へ留まり、クライアント側で行だけ更新する。 */
 export async function deleteEventFromDashboard(eventId: string): Promise<{ success?: boolean; error?: string }> {
-  await requireRa();
+  await requireManagement("events");
   const supabase = await createClient();
   const { error } = await supabase.from("events").delete().eq("id", eventId);
   if (error) return { error: `削除に失敗しました: ${error.message}` };

@@ -24,7 +24,7 @@ function NumberSetting({ name, label, note, value, min, max, step = 1, suffix }:
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={name}>{label}</Label>
-      <div className="flex items-center gap-2"><Input id={name} name={name} type="number" defaultValue={value} min={min} max={max} step={step} className="h-11 rounded-xl" /><span className="w-12 shrink-0 text-sm text-muted-foreground">{suffix}</span></div>
+      <div className="flex items-center gap-2"><Input id={name} name={name} type="number" defaultValue={value} min={min} max={max} step={step} className="h-11" /><span className="w-12 shrink-0 text-sm text-muted-foreground">{suffix}</span></div>
       <p className="text-xs leading-relaxed text-muted-foreground">{note}</p>
     </div>
   );
@@ -32,7 +32,7 @@ function NumberSetting({ name, label, note, value, min, max, step = 1, suffix }:
 
 function SaveButton() {
   const { pending } = useFormStatus();
-  return <Button type="submit" disabled={pending}>{pending ? "表示設定を保存中…" : "イベント表示を保存"}</Button>;
+  return <Button type="submit" disabled={pending} className="w-full sm:w-auto">{pending ? "表示設定を保存中…" : "イベント表示を保存"}</Button>;
 }
 
 export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings }) {
@@ -44,12 +44,12 @@ export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings 
 
   return (
     <form action={action} className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-      <div className="flex items-start gap-3 border-b border-border bg-secondary/30 p-5">
+      <div className="flex items-start gap-3 border-b border-border bg-secondary/30 p-4 sm:p-5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Tags className="h-5 w-5" /></span>
-        <div><h2 className="font-bold">イベントセルの表示</h2><p className="mt-1 text-sm text-muted-foreground">一覧カードのラベル、情報量、固定サイズを調整します。</p></div>
+        <div><h2 className="font-bold">イベント一覧の見え方</h2><p className="mt-1 text-sm text-muted-foreground">一覧カードに表示する情報を選び、最後に「イベント表示を保存」を押してください。</p></div>
       </div>
 
-      <div className="grid gap-6 p-5">
+      <div className="grid gap-6 p-4 sm:p-5">
         <section className="grid gap-3">
           <div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-primary" /><h3 className="text-sm font-bold">ラベルの切り替え</h3></div>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -57,9 +57,9 @@ export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings 
             <CheckSetting name="event_label_shuffle_enabled" label="イベントごとに順番を変える" note="毎回変わるのではなく、イベントごとに安定した順番です。" checked={settings.eventLabelShuffleEnabled} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <NumberSetting name="event_label_duration_ms" label="1件を表示する時間" note="短すぎる切り替えを避けるため1.8秒以上です。" value={settings.eventLabelDurationMs} min={1800} max={12000} step={100} suffix="ms" />
-            <NumberSetting name="event_label_jitter_percent" label="カードごとの速度の揺らぎ" note="開始位置も自動でずらし、一覧全体の同期を防ぎます。" value={settings.eventLabelJitterPercent} min={0} max={45} suffix="%" />
-            <NumberSetting name="event_label_limit" label="循環する最大件数" note="0は無制限。ラベルが増えても同じ仕組みで循環します。" value={settings.eventLabelLimit} min={0} max={50} suffix="件" />
+            <NumberSetting name="event_label_duration_ms" label="1件を表示する時間（ミリ秒）" note="1800ミリ秒＝1.8秒。短い切り替えを避けるための下限です。" value={settings.eventLabelDurationMs} min={1800} max={12000} step={100} suffix="ms" />
+            <NumberSetting name="event_label_jitter_percent" label="切り替え時間のばらつき" note="カードがすべて同時に切り替わらないように調整します。" value={settings.eventLabelJitterPercent} min={0} max={45} suffix="%" />
+            <NumberSetting name="event_label_limit" label="切り替えて表示する件数" note="0にするとすべてのラベルを順番に表示します。" value={settings.eventLabelLimit} min={0} max={50} suffix="件" />
             <div className="grid gap-1.5"><Label htmlFor="event_label_position">表示位置</Label><Select id="event_label_position" name="event_label_position" defaultValue={settings.eventLabelPosition}><option value="top-left">画像の左上</option><option value="top-right">画像の右上</option></Select><p className="text-xs text-muted-foreground">参加費タグは右下のままです。</p></div>
           </div>
         </section>
@@ -79,11 +79,11 @@ export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings 
         </section>
 
         <section className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-          <div className="grid gap-1.5"><Label htmlFor="event_title_lines">タイトルの行数</Label><Select id="event_title_lines" name="event_title_lines" defaultValue={String(settings.eventTitleLines)}><option value="1">1行</option><option value="2">2行（標準）</option><option value="3">3行</option></Select><p className="text-xs text-muted-foreground">長いタイトルは末尾を省略し、全セルを同じ高さに保ちます。</p></div>
-          <div className="grid gap-1.5"><Label htmlFor="event_card_density">セルの密度</Label><Select id="event_card_density" name="event_card_density" defaultValue={settings.eventCardDensity}><option value="compact">コンパクト</option><option value="comfortable">ゆったり</option></Select><p className="text-xs text-muted-foreground">どちらも縦横サイズは一覧内で統一されます。</p></div>
+          <div className="grid gap-1.5"><Label htmlFor="event_title_lines">タイトルの行数</Label><Select id="event_title_lines" name="event_title_lines" defaultValue={String(settings.eventTitleLines)}><option value="1">1行</option><option value="2">2行（標準）</option><option value="3">3行</option></Select><p className="text-xs text-muted-foreground">長いタイトルは末尾を省略し、一覧の見た目をそろえます。</p></div>
+          <div className="grid gap-1.5"><Label htmlFor="event_card_density">カード内の余白</Label><Select id="event_card_density" name="event_card_density" defaultValue={settings.eventCardDensity}><option value="compact">コンパクト</option><option value="comfortable">ゆったり</option></Select><p className="text-xs text-muted-foreground">日時は省略せず、必要に応じて折り返します。</p></div>
         </section>
 
-        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {state.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
         <div><SaveButton /></div>
       </div>
     </form>

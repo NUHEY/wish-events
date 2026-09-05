@@ -1,12 +1,13 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey, type FeatureFlagState } from "@/lib/feature-flags";
 
 export async function updateFeatureFlag(key: FeatureFlagKey, state: FeatureFlagState) {
-  const profile = await requireRa();
+  const profile = await requireManagement("features");
   if (!FEATURE_FLAG_KEYS.includes(key) || !["public", "beta", "hidden"].includes(state)) return { error: "設定値が正しくありません。" };
   const supabase = await createClient();
   const { error } = await supabase.from("feature_flags").upsert({ key, state, updated_by: profile.id, updated_at: new Date().toISOString() });

@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,6 +27,7 @@ export default async function AnnouncementDetailPage({
 }) {
   const { id } = await params;
   const profile = await getCurrentProfile();
+  const canManageModule = canManage(await getManagementAccess(), "announcements");
   const supabase = await createClient();
 
   const [{ data: announcement }, { data: allAnnouncements }, { data: commentRows }] = await Promise.all([
@@ -165,7 +168,7 @@ export default async function AnnouncementDetailPage({
           announcementId={id}
           comments={comments}
           currentUserId={profile.id}
-          isRa={profile.role === "ra"}
+          isRa={canManageModule}
         />
       </article>
 

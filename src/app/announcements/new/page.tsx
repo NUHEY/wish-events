@@ -1,11 +1,11 @@
-import { requireRa } from "@/lib/auth";
+import { requireManagement } from "@/lib/management-access";
 import { AnnouncementForm } from "@/components/announcements/announcement-form";
 import { createAnnouncement } from "@/actions/announcements";
 import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function NewAnnouncementPage() {
-  await requireRa();
+  await requireManagement("announcements");
   const locale = await getLocale();
   const dict = getDictionary(locale);
 

@@ -69,13 +69,15 @@ export async function EventCard({
     ...(settings.eventShowDeadlineLabel && isDeadlineSoon ? [{ text: dict.event.deadlineSoonTag, tone: "deadline" as const }] : []),
     ...(settings.eventShowNewLabel && isNew ? [{ text: dict.event.newTag, tone: "new" as const }] : []),
   ];
+  const eventDate = formatEventDateTime(event.event_date, locale, isMuted, false);
+  const eventTime = isMuted ? null : formatEventDateTime(event.event_date, locale, false, true).split(" ").at(-1);
   const titleLineClass = settings.eventTitleLines === 1 ? "line-clamp-1 h-5 sm:h-6" : settings.eventTitleLines === 3 ? "line-clamp-3 h-[60px] sm:h-[66px]" : "line-clamp-2 h-10 sm:h-11";
   const contentHeightClass = settings.eventCardDensity === "comfortable"
-    ? settings.eventTitleLines === 3 ? "h-[120px] sm:h-[138px]" : "h-[100px] sm:h-[118px]"
-    : settings.eventTitleLines === 3 ? "h-[108px] sm:h-[126px]" : "h-[84px] sm:h-[102px]";
+    ? settings.eventTitleLines === 3 ? "min-h-[136px] sm:min-h-[138px]" : "min-h-[116px] sm:min-h-[118px]"
+    : settings.eventTitleLines === 3 ? "min-h-[124px] sm:min-h-[126px]" : "min-h-[100px] sm:min-h-[102px]";
 
   return (
-    <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0">
+    <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
       <Card
         className={cn(
           // WebKitではfilter/transformを持つ子をoverflow-hiddenだけで丸めると
@@ -113,32 +115,23 @@ export async function EventCard({
           ) : null}
           {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
         </div>
-        {/*
-         * カードの高さを常に完全に同一にするため、min-h ではなく h（固定値）を使う。
-         * タイトルのh3も行数に関わらず常に同じ高さ（2行分）を確保し、1行で収まる
-         * タイトルでも余白として同じ高さを保つ。長いタイトルは line-clamp によって
-         * 2行目末尾に「…」で省略される。
-         */}
+        {/* タイトルの行数をそろえ、日時は省略せず折り返せる余白を確保する。 */}
         <CardContent className={cn("flex flex-col justify-between gap-1.5 p-2.5 sm:gap-2 sm:p-3.5", contentHeightClass, isMuted && "p-2.5 sm:p-3")}>
           <h3
             className={cn(
-              "text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:text-base",
+              "break-words text-sm font-semibold leading-snug transition-colors [@media(hover:hover)]:group-hover:text-primary sm:text-base",
               titleLineClass,
               isMuted && "text-sm"
             )}
           >
             {title}
           </h3>
-          <div className="flex h-4 items-center justify-between gap-2 sm:h-5">
-            {/*
-             * 直近のイベントは日時が気になる情報なので年を省き時刻まで収める。
-             * 過去のイベント（isMuted）は時刻の重要度が低いため省き、代わりに
-             * 年度の文脈を残す。
-             */}
-            <p className="truncate text-xs text-muted-foreground sm:text-sm">
-              {formatEventDateTime(event.event_date, locale, isMuted, !isMuted)}
-            </p>
-            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 [@media(hover:hover)]:group-hover:translate-x-0.5 [@media(hover:hover)]:group-hover:text-primary" />
+          <div className="flex min-h-8 items-end justify-between gap-1.5">
+            <time dateTime={event.event_date} className="flex min-w-0 flex-wrap gap-x-1.5 text-xs leading-4 text-muted-foreground sm:text-sm sm:leading-5">
+              <span>{eventDate}</span>
+              {eventTime && <span className="whitespace-nowrap">{eventTime}</span>}
+            </time>
+            <ArrowRight aria-hidden="true" className="hidden h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-all duration-200 sm:block [@media(hover:hover)]:group-hover:translate-x-0.5 [@media(hover:hover)]:group-hover:text-primary" />
           </div>
         </CardContent>
       </Card>

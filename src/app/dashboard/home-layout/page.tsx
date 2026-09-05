@@ -1,4 +1,5 @@
-import { requireRa } from "@/lib/auth";
+import { getManagementAccess, requireManagement } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { createClient } from "@/lib/supabase/server";
 import { HomeLayoutEditor } from "@/components/home/home-layout-editor";
 import { HomeToolEditor } from "@/components/home/home-tool-editor";
@@ -8,7 +9,9 @@ import { RESIDENT_TOOLS } from "@/components/tools/resident-tool-grid";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export default async function HomeLayoutPage() {
-  await requireRa();
+  await requireManagement("home");
+  const access = await getManagementAccess();
+  const canEditTools = canManage(access, "features") && canManage(access, "settings");
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -45,7 +48,7 @@ export default async function HomeLayoutPage() {
       </div>
 
       <HomeLayoutEditor initialSections={safeSections} />
-      <HomeToolEditor initialTools={homeTools} initialDensity={settings.homeToolDensity} />
+      {canEditTools ? <HomeToolEditor initialTools={homeTools} initialDensity={settings.homeToolDensity} /> : <p className="rounded-xl border border-border p-4 text-sm text-muted-foreground">{locale === "en" ? "Changing tool visibility and density also requires Feature visibility and Site appearance permissions." : "便利ツールの公開範囲・表示密度を変更するには、「機能の公開範囲」と「サイトの表示設定」の権限も必要です。"}</p>}
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { messageCursorFilter, type MessageCursor } from "@/lib/message-cursor";
 import { headers } from "next/headers";
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import type { EventMessageRow } from "@/types/database";
@@ -241,7 +243,7 @@ export async function getEventTalkParticipantsBatch(eventIds: string[], perEvent
  */
 export async function prepareEventSurveyToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  if (!canManage(await getManagementAccess(), "events")) return { error: "この操作の管理権限がありません" };
 
   const supabase = await createClient();
   const { data: event } = await supabase
@@ -264,7 +266,7 @@ export async function prepareEventSurveyToolDraft(eventId: string) {
  */
 export async function prepareEventDetailsToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  if (!canManage(await getManagementAccess(), "events")) return { error: "この操作の管理権限がありません" };
 
   const origin = await getRequestOrigin();
   const url = `${origin}/events/${eventId}`;
@@ -274,7 +276,7 @@ export async function prepareEventDetailsToolDraft(eventId: string) {
 /** RAツール「会場案内」の下書き文面を作る。 */
 export async function prepareEventLocationToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  if (!canManage(await getManagementAccess(), "events")) return { error: "この操作の管理権限がありません" };
 
   const supabase = await createClient();
   const { data: event } = await supabase.from("events").select("location, location_url").eq("id", eventId).maybeSingle();
@@ -291,7 +293,7 @@ export async function prepareEventLocationToolDraft(eventId: string) {
 /** RAツール「集金案内」の下書き文面を作る。 */
 export async function prepareEventPaymentToolDraft(eventId: string) {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") return { error: "RAのみ操作できます" };
+  if (!canManage(await getManagementAccess(), "events")) return { error: "この操作の管理権限がありません" };
 
   const supabase = await createClient();
   const { data: event } = await supabase
@@ -341,7 +343,7 @@ export async function toggleEventMessageReaction(
 
 export async function createEventPoll(eventId: string, question: string, rawOptions: string[]) {
   const profile = await getCurrentProfile();
-  if (profile.role !== "ra") return { error: "投票を作成できるのはRAのみです" };
+  if (!canManage(await getManagementAccess(), "events")) return { error: "投票の作成にはイベント管理の権限が必要です" };
 
   const options = rawOptions.map((option) => option.trim()).filter(Boolean).slice(0, 4);
   if (!question.trim() || options.length < 2) return { error: "質問と2つ以上の選択肢を入力してください" };
@@ -417,7 +419,7 @@ export async function deleteEventComment(commentId: string, eventId: string) {
     .eq("id", commentId)
     .maybeSingle();
   if (!comment || comment.event_id !== eventId) return { error: "コメントが見つかりませんでした" };
-  if (comment.user_id !== profile.id && profile.role !== "ra") {
+  if (comment.user_id !== profile.id && !canManage(await getManagementAccess(), "events")) {
     return { error: "このコメントを削除する権限がありません" };
   }
 

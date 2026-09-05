@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireManagement } from "@/lib/management-access";
 import { getCurrentProfile } from "@/lib/auth";
 import { getFeatureFlagState } from "@/lib/feature-flags";
 import { DEFAULT_EVENT_PRESETS } from "@/lib/media-defaults";
@@ -12,6 +13,7 @@ export type ResidentEventActionResult = { error?: string } | void;
 
 export async function createResidentEvent(_previous: ResidentEventActionResult, formData: FormData): Promise<ResidentEventActionResult> {
   const profile = await getCurrentProfile();
+  if (profile.account_kind !== "resident") await requireManagement("events");
   if (profile.role !== "ra" && (await getFeatureFlagState("resident_events")) === "hidden") return { error: "寮生イベント募集は現在公開されていません。" };
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -33,6 +35,7 @@ export async function createResidentEvent(_previous: ResidentEventActionResult, 
 
 export async function deleteOwnResidentEvent(eventId: string) {
   const profile = await getCurrentProfile();
+  if (profile.account_kind !== "resident") await requireManagement("events");
   const supabase = await createClient();
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("created_by", profile.id).eq("creator_type", "resident");
   if (error) return { error: `募集を削除できませんでした: ${error.message}` };

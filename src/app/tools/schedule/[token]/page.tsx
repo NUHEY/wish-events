@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { notFound } from "next/navigation";
 import { ScheduleRoom } from "@/components/tools/schedule-room";
 import { getCurrentProfile } from "@/lib/auth";
@@ -22,5 +24,5 @@ export default async function ScheduleRoomPage({ params }: { params: { token: st
   const personById = new Map(directory.map((person) => [person.id, person]));
   const participants = ((participantRows ?? []) as ScheduleParticipant[]).map((participant) => ({ ...participant, full_name: personById.get(participant.user_id)?.full_name, avatar_url: personById.get(participant.user_id)?.avatar_url, floor_number: personById.get(participant.user_id)?.floor_number, room_number: personById.get(participant.user_id)?.room_number, faculty: personById.get(participant.user_id)?.faculty, languages: personById.get(participant.user_id)?.languages, self_intro: personById.get(participant.user_id)?.self_intro }));
   const bookings = ((bookingRows ?? []) as ScheduleBooking[]).map((booking) => ({ ...booking, resident_name: personById.get(booking.resident_id)?.full_name, ra_name: personById.get(booking.ra_id)?.full_name }));
-  return <ScheduleRoom session={session} participants={participants} availability={(availabilityRows ?? []) as ScheduleAvailability[]} openLetsChatSlots={(openResult.data ?? []) as { ra_id: string; start_at: string; end_at: string }[]} bookings={bookings} currentUserId={profile.id} currentUserRole={profile.role} />;
+  return <ScheduleRoom session={session} participants={participants} availability={(availabilityRows ?? []) as ScheduleAvailability[]} openLetsChatSlots={(openResult.data ?? []) as { ra_id: string; start_at: string; end_at: string }[]} bookings={bookings} currentUserId={profile.id} canManageBookings={canManage(await getManagementAccess(), "schedules")} />;
 }

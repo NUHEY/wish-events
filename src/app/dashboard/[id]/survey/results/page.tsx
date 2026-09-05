@@ -1,11 +1,11 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
 import { SurveyResultsDashboard, type SurveyQuestionResult } from "@/components/surveys/survey-results-dashboard";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { SurveyAnswerRow, SurveyQuestionRow, SurveyResponseRow } from "@/types/database";
 
 export default async function SurveyResultsPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRa();
+  await requireManagement("events");
   const { id } = await params;
   const supabase = await createClient();
   const [{ data: event }, { data: survey }] = await Promise.all([

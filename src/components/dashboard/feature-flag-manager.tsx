@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Beaker, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useRef, useState } from "react";
+import { Beaker, Check, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { updateFeatureFlag } from "@/actions/feature-flags";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
@@ -23,28 +23,65 @@ const featureCopy: Record<FeatureFlagKey, { title: string; description: string }
 
 export function FeatureFlagManager({ featureKey, initialState }: { featureKey: FeatureFlagKey; initialState: FeatureFlagState }) {
   const [state, setState] = useState(initialState);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const saving = useRef(false);
   const copy = featureCopy[featureKey];
   const states: { value: FeatureFlagState; label: string; note: string; icon: typeof Eye }[] = [
     { value: "public", label: "公開する", note: "全寮生に通常機能として公開します", icon: Eye },
     { value: "beta", label: "ベータ版で公開", note: "BETA表記付きで全寮生に公開します", icon: Beaker },
-    { value: "hidden", label: "公開しない", note: "画面から非表示にします（初期値）", icon: EyeOff },
+    { value: "hidden", label: "公開しない", note: "寮生の画面から非表示にします", icon: EyeOff },
   ];
 
-  function change(next: FeatureFlagState) {
-    if (pending || next === state) return;
-    const previous = state;
-    setState(next);
-    startTransition(async () => {
+  async function change(next: FeatureFlagState) {
+    if (saving.current || next === state) return;
+    saving.current = true;
+    setPending(true);
+    try {
       const result = await updateFeatureFlag(featureKey, next);
       if (result.error) {
-        setState(previous);
         toast.error(result.error);
       } else {
+        setState(next);
         toast.success("公開設定を更新しました");
       }
-    });
+    } catch {
+      toast.error("保存できませんでした。通信状態を確認して、もう一度お試しください。");
+    } finally {
+      saving.current = false;
+      setPending(false);
+    }
   }
 
-  return <><PendingFeedback active={pending} label="公開設定を更新しています…" /><section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="flex items-start gap-3 border-b border-border bg-secondary/30 p-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span><div><h2 className="font-bold">{copy.title}</h2><p className="mt-1 text-sm text-muted-foreground">{copy.description} 初期値は「公開しない」です。</p></div></div><div className="grid gap-2 p-4 sm:grid-cols-3">{states.map((option) => { const active = state === option.value; return <button key={option.value} type="button" disabled={pending} onClick={() => change(option.value)} className={cn("flex min-h-32 flex-col items-start rounded-2xl border p-4 text-left transition-[border-color,background-color,transform] active:scale-[0.98] disabled:cursor-wait", active ? "border-primary/40 bg-primary/[0.07] shadow-sm" : "border-border sm:hover:border-primary/20 sm:hover:bg-secondary/35")}><span className={cn("mb-3 flex h-9 w-9 items-center justify-center rounded-xl", active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}><option.icon className="h-4 w-4" /></span><span className="text-sm font-semibold">{option.label}</span><span className="mt-1 text-xs leading-relaxed text-muted-foreground">{option.note}</span></button>; })}</div></section></>;
+  return (
+    <section aria-labelledby={`${featureKey}-title`} aria-busy={pending} className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <PendingFeedback active={pending} label="公開設定を更新しています…" />
+      <h3 id={`${featureKey}-title`} className="break-words font-bold leading-snug">{copy.title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy.description}</p>
+      <div role="group" aria-labelledby={`${featureKey}-title`} className="mt-3 grid gap-2 sm:grid-cols-3">
+        {states.map((option) => {
+          const active = state === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              disabled={pending}
+              onClick={() => change(option.value)}
+              className={cn(
+                "flex min-h-11 min-w-0 items-start gap-2.5 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60",
+                active ? "border-primary/50 bg-primary/[0.07]" : "border-border hover:bg-secondary/35"
+              )}
+            >
+              <option.icon aria-hidden="true" className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-snug">{option.label}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{option.note}</span>
+              </span>
+              {active && <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
 }

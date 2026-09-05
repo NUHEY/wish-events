@@ -18,7 +18,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={nextLabel}
       title={nextLabel}
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-[background-color,transform] active:scale-95",
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-[background-color,transform] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className
       )}
     >

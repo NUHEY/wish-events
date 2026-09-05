@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
@@ -14,7 +16,8 @@ export default async function ToolsPage() {
   const profile = await getCurrentProfile();
   const states = await Promise.all(RESIDENT_TOOLS.map((tool) => getFeatureFlagState(tool.key)));
   const stateByKey = Object.fromEntries(RESIDENT_TOOLS.map((tool, index) => [tool.key, states[index]])) as Partial<Record<FeatureFlagKey, "public" | "beta" | "hidden">>;
-  const visibleKeys = RESIDENT_TOOLS.filter((tool) => profile.role === "ra" || stateByKey[tool.key] !== "hidden").map((tool) => tool.key);
+  const access = await getManagementAccess();
+  const visibleKeys = RESIDENT_TOOLS.filter((tool) => (profile.role === "ra" || stateByKey[tool.key] !== "hidden") && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(access, "events")) && (tool.key !== "availability_matching" || canManage(access, "schedules")))).map((tool) => tool.key);
   const supabase = await createClient();
   const { data, error: schedulesError } = await supabase.from("schedule_sessions").select("*").order("created_at", { ascending: false }).limit(12);
   const sessions = (data ?? []) as ScheduleSession[];
@@ -63,7 +66,7 @@ export default async function ToolsPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               {sessions.map((session) => (
                 <Link key={session.id} href={`/tools/schedule/${session.share_token}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm active:scale-[0.99]">
-                  <span className="min-w-0"><span className="block truncate font-bold">{session.title}</span><span className="mt-1 block text-xs text-muted-foreground">{session.start_date} 〜 {session.end_date}</span></span>
+                  <span className="min-w-0"><span className="block break-words font-bold leading-snug">{session.title}</span><span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{session.start_date} 〜 {session.end_date}</span></span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>
               ))}

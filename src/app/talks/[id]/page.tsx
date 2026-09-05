@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -22,6 +24,7 @@ export default async function EventTalkPage({
   const { id } = await params;
   const { joined } = await searchParams;
   const profile = await getCurrentProfile();
+  const canManageModule = canManage(await getManagementAccess(), "events");
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const supabase = await createClient();
@@ -35,7 +38,7 @@ export default async function EventTalkPage({
       getRequestOrigin(),
     ]);
   if (!event) notFound();
-  if (profile.role !== "ra" && !registration) redirect(`/events/${id}`);
+  if (!canManageModule && !registration) redirect(`/events/${id}`);
 
   return (
     <MobileChatViewport>
@@ -65,7 +68,7 @@ export default async function EventTalkPage({
         votes={initial.votes}
         reactions={initial.reactions}
         hasMoreOlder={initial.hasMore}
-        isRa={profile.role === "ra"}
+        isRa={canManageModule}
         appOrigin={appOrigin}
         initialLastReadAt={initial.lastReadAt}
       />

@@ -62,7 +62,7 @@ function groupBy<T>(items: T[], keyFor: (item: T) => string) {
   return groups;
 }
 
-export function ScheduleRoom({ session, participants, availability, openLetsChatSlots, bookings, currentUserId, currentUserRole }: { session: ScheduleSession; participants: ScheduleParticipant[]; availability: ScheduleAvailability[]; openLetsChatSlots: OpenLetsChatSlot[]; bookings: NamedBooking[]; currentUserId: string; currentUserRole: "resident" | "ra" }) {
+export function ScheduleRoom({ session, participants, availability, openLetsChatSlots, bookings, currentUserId, canManageBookings }: { session: ScheduleSession; participants: ScheduleParticipant[]; availability: ScheduleAvailability[]; openLetsChatSlots: OpenLetsChatSlot[]; bookings: NamedBooking[]; currentUserId: string; canManageBookings: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState(() => new Set(availability.filter((item) => item.user_id === currentUserId).map((item) => item.start_at)));
   const [pending, startTransition] = useTransition();
@@ -150,7 +150,7 @@ export function ScheduleRoom({ session, participants, availability, openLetsChat
         </>
       )}
 
-      {currentUserRole === "ra" && session.kind === "lets_chat" && bookings.length > 0 && <section className="rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5"><h2 className="font-bold">予約・実施状況</h2><div className="mt-3 space-y-2">{bookings.filter((booking) => booking.status === "confirmed").map((booking) => <div key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/60 px-3 py-3"><span><span className="block text-sm font-semibold">{booking.resident_name ?? "寮生"}</span><span className="text-xs text-muted-foreground">担当: {booking.ra_name ?? "RA"}・{dateTimeLabel(booking.start_at)}</span></span><Button type="button" size="sm" variant={booking.completed_at ? "secondary" : "outline"} disabled={pending} onClick={() => toggleCompleted(booking)}><Check className="h-4 w-4" />{booking.completed_at ? "実施済み" : "実施済みにする"}</Button></div>)}</div></section>}
+      {canManageBookings && session.kind === "lets_chat" && bookings.length > 0 && <section className="rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5"><h2 className="font-bold">予約・実施状況</h2><div className="mt-3 space-y-2">{bookings.filter((booking) => booking.status === "confirmed").map((booking) => <div key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/60 px-3 py-3"><span><span className="block text-sm font-semibold">{booking.resident_name ?? "寮生"}</span><span className="text-xs text-muted-foreground">担当: {booking.ra_name ?? "RA"}・{dateTimeLabel(booking.start_at)}</span></span><Button type="button" size="sm" variant={booking.completed_at ? "secondary" : "outline"} disabled={pending} onClick={() => toggleCompleted(booking)}><Check className="h-4 w-4" />{booking.completed_at ? "実施済み" : "実施済みにする"}</Button></div>)}</div></section>}
     </div>
   );
 }

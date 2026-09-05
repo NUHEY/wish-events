@@ -52,8 +52,10 @@ export function LocaleToggle({ className }: { className?: string }) {
           key={l}
           type="button"
           onClick={() => switchTo(l)}
+          aria-pressed={locale === l}
+          disabled={pending}
           className={cn(
-            "rounded-full px-2.5 py-1 transition-colors",
+            "min-h-11 min-w-11 rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             locale === l
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"

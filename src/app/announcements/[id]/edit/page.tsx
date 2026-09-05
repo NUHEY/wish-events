@@ -1,5 +1,5 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementForm } from "@/components/announcements/announcement-form";
 import { updateAnnouncement } from "@/actions/announcements";
@@ -11,7 +11,7 @@ export default async function EditAnnouncementPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRa();
+  await requireManagement("announcements");
   const { id } = await params;
   const supabase = await createClient();
   const locale = await getLocale();

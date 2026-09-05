@@ -1,12 +1,11 @@
+import { getManagementAccess, requireManagement } from "@/lib/management-access";
 import Link from "next/link";
+import { canManage } from "@/lib/management-permissions";
 import { CalendarClock, MessagesSquare, Plus, UsersRound } from "lucide-react";
 import { ScheduleManager } from "@/components/dashboard/schedule-manager";
 import { Button } from "@/components/ui/button";
-import { requireRa } from "@/lib/auth";
 import type { ScheduleSession } from "@/lib/beta-tools";
 import { createClient } from "@/lib/supabase/server";
-import { getSiteSettings } from "@/lib/site-settings";
-import { ScheduleToolSettings } from "@/components/dashboard/schedule-tool-settings";
 
 const createOptions = [
   { mode: "lets_chat", title: "Let's Chat!", note: "RAの空き枠を公開して新寮生の予約を受け付ける", icon: MessagesSquare },
@@ -15,16 +14,16 @@ const createOptions = [
 ] as const;
 
 export default async function DashboardSchedulesPage() {
-  await requireRa();
+  await requireManagement("schedules");
   const supabase = await createClient();
-  const [{ data }, settings] = await Promise.all([supabase.from("schedule_sessions").select("*").order("created_at", { ascending: false }).limit(100), getSiteSettings()]);
+  const { data } = await supabase.from("schedule_sessions").select("*").order("created_at", { ascending: false }).limit(100);
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header><h1 className="text-2xl font-bold tracking-tight">日程・予約の管理</h1><p className="mt-1 text-sm text-muted-foreground">RAがページを作成し、寮生には入力・予約用URLを共有します。</p></header>
+      <header><h1 className="text-2xl font-bold tracking-tight">日程・予約の管理</h1><p className="mt-1 text-sm text-muted-foreground">担当者がページを作成し、寮生には入力・予約用URLを共有します。</p></header>
       <section className="grid gap-3 sm:grid-cols-3">
         {createOptions.map((option) => <Button key={option.mode} asChild variant="outline" className="h-auto justify-start rounded-2xl p-4 text-left"><Link href={`/tools/schedule/new?mode=${option.mode}`}><span className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><option.icon className="h-5 w-5" /></span><span><span className="flex items-center gap-1 font-bold"><Plus className="h-3.5 w-3.5" />{option.title}</span><span className="mt-1 block whitespace-normal text-xs font-normal text-muted-foreground">{option.note}</span></span></Link></Button>)}
       </section>
-      <ScheduleToolSettings initial={{ startTime: settings.scheduleDefaultStartTime, endTime: settings.scheduleDefaultEndTime, slotMinutes: settings.scheduleDefaultSlotMinutes, maxDays: settings.scheduleMaxDays }} />
+      {canManage(await getManagementAccess(), "settings") && <Link href="/dashboard/settings#schedule-defaults" className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4">日程作成の初期設定を変更</Link>}
       <section><h2 className="mb-3 text-lg font-bold">作成済みの日程</h2><ScheduleManager sessions={(data ?? []) as ScheduleSession[]} /></section>
     </div>
   );

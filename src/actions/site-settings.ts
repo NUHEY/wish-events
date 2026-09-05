@@ -1,7 +1,8 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export type SiteSettingsActionResult = { error?: string; success?: boolean };
@@ -25,7 +26,7 @@ export async function updateSiteSettings(
   _prev: SiteSettingsActionResult,
   formData: FormData
 ): Promise<SiteSettingsActionResult> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const ogTitle = String(formData.get("og_title") ?? "").trim();
   const ogDescription = String(formData.get("og_description") ?? "").trim();
   const accentColorRaw = String(formData.get("accent_color") ?? "").trim();
@@ -74,7 +75,7 @@ export async function updateEventDisplaySettings(
   _prev: SiteSettingsActionResult,
   formData: FormData
 ): Promise<SiteSettingsActionResult> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const positionRaw = String(formData.get("event_label_position") ?? "top-left");
   const densityRaw = String(formData.get("event_card_density") ?? "compact");
 
@@ -112,7 +113,7 @@ export async function updateEventDisplaySettings(
 
 /** OGP用のプレビュー画像（未設定時は自動生成デザインが使われる）。 */
 export async function uploadOgImage(formData: FormData): Promise<{ error?: string; url?: string }> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const file = formData.get("og_image");
   if (!(file instanceof File) || file.size === 0) {
     return { error: "画像を選択してください" };
@@ -150,7 +151,7 @@ export async function uploadOgImage(formData: FormData): Promise<{ error?: strin
 }
 
 export async function removeOgImage(): Promise<{ error?: string }> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const supabase = await createClient();
   await supabase.storage.from("site-assets").remove(["og/cover.png", "og/cover.jpg", "og/cover.webp"]);
 
@@ -166,7 +167,7 @@ export async function removeOgImage(): Promise<{ error?: string }> {
 }
 
 export async function uploadBrandIcon(formData: FormData): Promise<{ error?: string; url?: string; kind?: "favicon" | "apple" }> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const kind = formData.get("asset_kind") === "apple" ? "apple" : "favicon";
   const file = formData.get("brand_icon");
   if (!(file instanceof File) || file.size === 0) return { error: "画像を選択してください" };
@@ -190,7 +191,7 @@ export async function uploadBrandIcon(formData: FormData): Promise<{ error?: str
 }
 
 export async function removeBrandIcon(kind: "favicon" | "apple"): Promise<{ error?: string }> {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   const safeKind = kind === "apple" ? "apple" : "favicon";
   const folder = safeKind === "apple" ? "apple-touch-icon" : "favicon";
   const column = safeKind === "apple" ? "apple_touch_icon_url" : "favicon_url";

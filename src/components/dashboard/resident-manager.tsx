@@ -29,7 +29,7 @@ function isNewResident(entryMonth: string | null) {
   return elapsedMonths >= 0 && elapsedMonths < 6;
 }
 
-function ResidentTable({ residents }: { residents: UserRow[] }) {
+function ResidentTable({ residents, isRa }: { residents: UserRow[]; isRa: boolean }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const dict = useDict();
@@ -76,7 +76,7 @@ function ResidentTable({ residents }: { residents: UserRow[] }) {
               <div className="flex flex-wrap gap-1">{r.role === "ra" ? <Badge variant="default">RA</Badge> : <Badge variant="secondary">{dict.residents.resident}</Badge>}{isNewResident(r.wish_entry_month) && <Badge variant="outline">新寮生</Badge>}</div>{r.wish_entry_month && <p className="mt-1 text-[10px] text-muted-foreground">{r.wish_entry_month.slice(0, 7).replace("-", "年")}月入居</p>}
             </TableCell>
             <TableCell>
-              <Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>{dict.residents.releaseButton}</Button>
+              {(isRa || (r.role !== "ra" && r.account_kind === "resident")) && <Button size="sm" variant="ghost" disabled={pending} onClick={() => handleRelease(r)}>{dict.residents.releaseButton}</Button>}
             </TableCell>
           </TableRow>
         ))}
@@ -151,7 +151,7 @@ function BulkResetPanel() {
   );
 }
 
-export function ResidentManager({ residents }: { residents: UserRow[] }) {
+export function ResidentManager({ residents, isRa = false }: { residents: UserRow[]; isRa?: boolean }) {
   const dict = useDict();
   return (
     <div className="flex flex-col gap-6">
@@ -163,11 +163,11 @@ export function ResidentManager({ residents }: { residents: UserRow[] }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResidentTable residents={residents} />
+          <ResidentTable residents={residents} isRa={isRa} />
         </CardContent>
       </Card>
 
-      <BulkResetPanel />
+      {isRa && <BulkResetPanel />}
     </div>
   );
 }

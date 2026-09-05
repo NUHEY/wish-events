@@ -11,7 +11,7 @@ export function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
     <Link
       href="/notifications"
       aria-label={dict.common.notifications}
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Bell className="h-5 w-5" />
       {hasUnread && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-destructive" />}

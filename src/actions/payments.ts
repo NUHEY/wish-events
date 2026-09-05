@@ -1,11 +1,12 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 
 export async function setPaymentStatus(registrationId: string, eventId: string, status: "unpaid" | "paid" | "waived") {
-  const profile = await requireRa();
+  const profile = await requireManagement("events");
   const supabase = await createClient();
   const { error } = await supabase.from("registration_payments").upsert({
     registration_id: registrationId,

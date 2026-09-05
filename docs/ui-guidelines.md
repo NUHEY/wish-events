@@ -28,10 +28,10 @@ These guidelines describe the current interaction contract and checks for future
 ## Shared presentation and accessibility
 
 - Reuse existing theme variables, typography, buttons, cards, and spacing. Provide Japanese and English labels for added UI.
-- Prefer a single column for tool descriptions on mobile and the existing two-column event cards. Do not hide essential actions behind hover.
+- Prefer a single column for tool descriptions on mobile and two-column event cards with date/time allowed to wrap. Do not hide essential actions behind hover.
 - Use at least 44px height for primary controls, 16px mobile date input text, visible focus styles, named icon controls, and native form labels.
 - Confirmation dialogs contain keyboard focus, expose their title/message, close with Escape, and restore focus to their opener.
-- At widths 360, 390, and 430px, check Japanese and English, open menus, date/range/month modes, long text, empty states, and the bottom safe area. The page itself must not scroll horizontally.
+- At widths 320, 360, 390, and 430px, check Japanese and English, open menus, date/range/month modes, long text, empty states, and the bottom safe area. The page itself must not scroll horizontally.
 - Verify that canceled navigation leaves the current form editable and does not leave a loading overlay. Verify that a successful action is not repeated because its feedback failed.
 
 ## Rounded corners and text
@@ -40,3 +40,12 @@ These guidelines describe the current interaction contract and checks for future
 - Preserve the size hierarchy: nested blocks use `rounded-lg`, menus and compact cards use `rounded-xl`, and large feature panels use `rounded-2xl`. Small icons inside a panel have a smaller radius than their container. Avatars and status pills remain circular.
 - Keep short control labels and status badges on one line. Wrap groups of chips as whole items. A BETA badge may move to the next line without splitting the tab label.
 - Let descriptive headings and tool cards grow for longer Japanese or English text; do not force a fixed height that clips their content. Multi-line card headings need readable line spacing.
+
+## Mobile review baseline (September 2026)
+
+- Use 320, 360, 390, and 430 CSS px as the review widths. No page-level horizontal scroll; long descriptions, names, dates and schedule titles must remain readable. Event titles may use the configured line limit because the full title is available on the detail page.
+- Shared primary buttons, small buttons, inputs, notification controls and navigation targets are at least 44px high on mobile. This is the project usability standard; desktop compact controls may be smaller. Icon-only targets need an accessible name and visible focus.
+- Reserve 16px page gutters and use 16px inner panel padding on mobile, growing to 20px on larger screens. Adjacent controls share the existing 10px radius; nested panels use 14px and main cards use 20–26px.
+- Put common choices before advanced adjustments. Settings explain whether a choice saves immediately or requires the save button. Group feature visibility by purpose; keep each choice a compact row on mobile and expose the selected state with `aria-pressed`.
+- Use user-facing terms such as “カード内の余白” instead of “セルの密度”. Include the unit in numeric field labels and explain milliseconds where needed.
+- Distinguish visibility settings (what residents see) from institutional permissions (what staff can do). Neither a hidden link nor a hidden control replaces server authorization.

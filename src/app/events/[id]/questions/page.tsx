@@ -1,5 +1,5 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { RegistrationQuestionManager } from "@/components/events/registration-question-manager";
 import { saveRegistrationQuestions } from "@/actions/registration-questions";
@@ -12,7 +12,7 @@ export default async function RegistrationQuestionsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRa();
+  await requireManagement("events");
   const { id } = await params;
   const supabase = await createClient();
   const locale = await getLocale();

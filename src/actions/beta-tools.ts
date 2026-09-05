@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, requireRa } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/auth";
+import { getManagementAccess, requireManagement } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { getFeatureFlagState } from "@/lib/feature-flags";
 import { SCHEDULE_COPY, type ScheduleKind } from "@/lib/beta-tools";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -32,10 +34,12 @@ export type CreateScheduleInput = {
 
 export async function createScheduleSession(input: CreateScheduleInput) {
   const profile = await getCurrentProfile();
-  if (!(input.kind in SCHEDULE_COPY) || !(await featureAllowed(input.kind, profile.role))) {
+  const managesSchedules = canManage(await getManagementAccess(), "schedules");
+  if (profile.account_kind !== "resident" && !managesSchedules) return { error: "日程作成の権限がありません。" };
+  if (!(input.kind in SCHEDULE_COPY) || (!managesSchedules && !(await featureAllowed(input.kind, profile.role)))) {
     return { error: "この機能は現在公開されていません。" };
   }
-  if ((input.kind === "lets_chat" || input.kind === "urs") && profile.role !== "ra") {
+  if ((input.kind === "lets_chat" || input.kind === "urs") && !managesSchedules) {
     return { error: `${SCHEDULE_COPY[input.kind].shortTitle}の日程はRAが作成します。` };
   }
 
@@ -122,7 +126,7 @@ export async function bookLetsChatSlot(sessionId: string, raId: string, startAt:
 }
 
 export async function setScheduleStatus(sessionId: string, status: "open" | "closed") {
-  await requireRa();
+  await requireManagement("schedules");
   if (!UUID_PATTERN.test(sessionId) || !["open", "closed"].includes(status)) return { error: "日程の状態が正しくありません。" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_schedule_status", { p_session_id: sessionId, p_status: status });
@@ -133,7 +137,7 @@ export async function setScheduleStatus(sessionId: string, status: "open" | "clo
 }
 
 export async function deleteScheduleSession(sessionId: string) {
-  await requireRa();
+  await requireManagement("schedules");
   if (!UUID_PATTERN.test(sessionId)) return { error: "日程IDが正しくありません。" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_schedule_session", { p_session_id: sessionId });
@@ -144,7 +148,7 @@ export async function deleteScheduleSession(sessionId: string) {
 }
 
 export async function setLetsChatCompleted(bookingId: string, completed: boolean) {
-  await requireRa();
+  await requireManagement("schedules");
   if (!UUID_PATTERN.test(bookingId)) return { error: "予約IDが正しくありません。" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_lets_chat_completed", { p_booking_id: bookingId, p_completed: completed });
@@ -155,7 +159,7 @@ export async function setLetsChatCompleted(bookingId: string, completed: boolean
 }
 
 export async function updateScheduleToolSettings(input: { startTime: string; endTime: string; slotMinutes: number; maxDays: number }) {
-  const profile = await requireRa();
+  const profile = await requireManagement("settings");
   if (!TIME_PATTERN.test(input.startTime) || !TIME_PATTERN.test(input.endTime) || input.startTime >= input.endTime) return { error: "標準の時間帯を正しく設定してください。" };
   if (![15, 30, 60].includes(input.slotMinutes)) return { error: "標準の時間枠を選択してください。" };
   const maxDays = Math.max(3, Math.min(31, Math.round(input.maxDays)));
@@ -181,7 +185,7 @@ export async function submitRaQuestion(questionText: string, anonymous: boolean)
 }
 
 export async function answerRaQuestion(questionId: string, answerText: string, publish: boolean) {
-  const profile = await requireRa();
+  const profile = await requireManagement("questions");
   if (!UUID_PATTERN.test(questionId)) return { error: "質問IDが正しくありません。" };
   const answer = answerText.trim();
   if (!answer || answer.length > 1200) return { error: "回答は1〜1200文字で入力してください。" };
@@ -196,7 +200,7 @@ export async function answerRaQuestion(questionId: string, answerText: string, p
 export type LinkHubItemInput = { id?: string; title: string; url: string; description?: string; icon: "link" | "form" | "instagram" | "document" | "calendar" | "contact"; enabled: boolean };
 
 export async function saveRaLinkHub(input: { slug: string; title: string; bio?: string; published: boolean; items: LinkHubItemInput[] }) {
-  const profile = await requireRa();
+  const profile = await requireManagement("links");
   const slug = input.slug.trim().toLowerCase();
   const title = input.title.trim();
   const bio = input.bio?.trim() || null;

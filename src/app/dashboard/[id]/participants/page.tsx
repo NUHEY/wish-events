@@ -1,5 +1,5 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ParticipantTable } from "@/components/participants/participant-table";
 import { BackButton } from "@/components/layout/back-button";
@@ -10,7 +10,7 @@ export default async function ParticipantsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRa();
+  await requireManagement("events");
   const { id } = await params;
   const supabase = await createClient();
   const locale = await getLocale();

@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
@@ -11,10 +13,11 @@ import type { AnnouncementRow } from "@/types/database";
 /** ホームの「お知らせ」（直近3件のみ表示）から「すべて見る」で遷移する一覧ページ。 */
 export default async function AnnouncementsListPage() {
   const profile = await getCurrentProfile();
+  const canManageModule = canManage(await getManagementAccess(), "announcements");
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const supabase = await createClient();
-  const isRa = profile.role === "ra";
+  const isRa = canManageModule;
 
   const { data: announcements, error } = await supabase
     .from("announcements")

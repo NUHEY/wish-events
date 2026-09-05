@@ -36,7 +36,9 @@ export function UserMenu({
   roomNumber,
   avatarUrl,
   variant = "header",
+  canAccessManagement = false,
 }: {
+  canAccessManagement?: boolean;
   userId: string;
   fullName: string | null;
   role: UserRole;
@@ -138,7 +140,7 @@ export function UserMenu({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{locale === "ja" ? "アカウント・管理" : "Account & management"}</DropdownMenuLabel>
-        {role === "ra" && variant !== "tab" && (
+        {(role === "ra" || canAccessManagement) && (
           <DropdownMenuItem asChild>
             <Link href="/dashboard" className="cursor-pointer">
               <LayoutDashboard className="h-4 w-4" />

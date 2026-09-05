@@ -1,9 +1,9 @@
+import { requireManagement } from "@/lib/management-access";
 import { LinkHubEditor, type LinkHubInitial } from "@/components/dashboard/link-hub-editor";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardLinkHubPage() {
-  const profile = await requireRa();
+  const profile = await requireManagement("links");
   const supabase = await createClient();
   const { data: hub } = await supabase.from("ra_link_hubs").select("*").eq("owner_id", profile.id).maybeSingle();
   const { data: items } = hub ? await supabase.from("ra_link_items").select("*").eq("hub_id", hub.id).order("position") : { data: [] };

@@ -1,4 +1,4 @@
-import { requireRa } from "@/lib/auth";
+import { requireManagement } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { parseFullRoomNumber } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ export default async function ResidentsPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  await requireRa();
+  const profile = await requireManagement("residents");
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
   const supabase = await createClient();
@@ -62,6 +62,7 @@ export default async function ResidentsPage({
 
       <form className="flex gap-2">
         <Input
+          aria-label={dict.residents.searchPlaceholder}
           type="search"
           name="q"
           defaultValue={query}
@@ -79,7 +80,7 @@ export default async function ResidentsPage({
         </p>
       )}
 
-      <ResidentManager residents={residents} />
+      <ResidentManager residents={residents} isRa={profile.role === "ra" && profile.account_kind === "resident"} />
     </div>
   );
 }

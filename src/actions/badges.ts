@@ -1,8 +1,9 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 import type { BadgeCriteriaType } from "@/types/database";
 
 export type BadgeActionResult = { error?: string; success?: boolean } | void;
@@ -55,7 +56,7 @@ function parseBadgeForm(formData: FormData) {
 }
 
 export async function createBadge(_prev: BadgeActionResult, formData: FormData): Promise<BadgeActionResult> {
-  const profile = await requireRa();
+  const profile = await requireManagement("badges");
   const parsed = parseBadgeForm(formData);
   if (parsed.error) return { error: parsed.error };
 
@@ -69,7 +70,7 @@ export async function createBadge(_prev: BadgeActionResult, formData: FormData):
 }
 
 export async function updateBadge(badgeId: string, _prev: BadgeActionResult, formData: FormData): Promise<BadgeActionResult> {
-  await requireRa();
+  await requireManagement("badges");
   const parsed = parseBadgeForm(formData);
   if (parsed.error) return { error: parsed.error };
 
@@ -83,7 +84,7 @@ export async function updateBadge(badgeId: string, _prev: BadgeActionResult, for
 }
 
 export async function deleteBadge(badgeId: string) {
-  await requireRa();
+  await requireManagement("badges");
   const supabase = await createClient();
   const { error } = await supabase.from("badges").delete().eq("id", badgeId);
   if (error) return { error: error.message };
@@ -93,7 +94,7 @@ export async function deleteBadge(badgeId: string) {
 
 /** RA用: 登録されているバッジを全件削除する（学期の変わり目などにバッジ制度を作り直す用途）。 */
 export async function resetAllBadges() {
-  await requireRa();
+  await requireManagement("badges");
   const supabase = await createClient();
   // id は必ず存在するため、この条件で事実上「全件」を対象にする。
   const { error } = await supabase.from("badges").delete().not("id", "is", null);

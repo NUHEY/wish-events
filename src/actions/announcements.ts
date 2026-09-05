@@ -1,9 +1,13 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa, getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/auth";
 import { announcementSchema } from "@/lib/validations/announcement";
 
 export type ActionResult = { error?: string } | void;
@@ -27,7 +31,7 @@ export async function createAnnouncement(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const profile = await requireRa();
+  const profile = await requireManagement("announcements");
   const parsed = parseAnnouncementFormData(formData);
 
   if (!parsed.success) {
@@ -63,7 +67,7 @@ export async function updateAnnouncement(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRa();
+  await requireManagement("announcements");
   const parsed = parseAnnouncementFormData(formData);
 
   if (!parsed.success) {
@@ -94,7 +98,7 @@ export async function updateAnnouncement(
 }
 
 export async function deleteAnnouncement(announcementId: string) {
-  await requireRa();
+  await requireManagement("announcements");
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").delete().eq("id", announcementId);
 
@@ -146,7 +150,7 @@ export async function deleteAnnouncementComment(commentId: string, announcementI
     .eq("id", commentId)
     .maybeSingle();
   if (!comment || comment.announcement_id !== announcementId) return { error: "コメントが見つかりませんでした" };
-  if (comment.user_id !== profile.id && profile.role !== "ra") {
+  if (comment.user_id !== profile.id && !canManage(await getManagementAccess(), "announcements")) {
     return { error: "このコメントを削除する権限がありません" };
   }
 

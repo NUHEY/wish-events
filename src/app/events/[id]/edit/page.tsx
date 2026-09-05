@@ -1,5 +1,5 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EventForm } from "@/components/events/event-form";
 import { updateEvent } from "@/actions/events";
@@ -12,7 +12,7 @@ export default async function EditEventPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRa();
+  await requireManagement("events");
   const { id } = await params;
   const supabase = await createClient();
   const locale = await getLocale();

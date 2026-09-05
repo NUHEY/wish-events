@@ -1,8 +1,9 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 import { homeLayoutSchema } from "@/lib/validations/home-layout";
 import { HOME_SECTION_KEYS } from "@/lib/constants";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/feature-flags";
@@ -19,7 +20,7 @@ export async function saveHomeLayout(
   _prev: HomeLayoutActionResult,
   formData: FormData
 ): Promise<HomeLayoutActionResult> {
-  await requireRa();
+  await requireManagement("home");
 
   const orderedKeys = formData.getAll("section_key").map(String);
   const sections = orderedKeys.map((key, index) => ({
@@ -66,7 +67,9 @@ export async function saveHomeLayout(
 }
 
 export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnHome: boolean; position: number }[], density: "minimal" | "compact") {
-  const profile = await requireRa();
+  const profile = await requireManagement("home");
+  await requireManagement("features");
+  await requireManagement("settings");
   const allowed = new Set<FeatureFlagKey>([
     "availability_matching",
     "lets_chat_booking",

@@ -1,11 +1,11 @@
-import { requireRa } from "@/lib/auth";
+import { requireManagement } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { BadgeManager } from "@/components/dashboard/badge-manager";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import type { BadgeRow } from "@/types/database";
 
 export default async function BadgesAdminPage() {
-  await requireRa();
+  await requireManagement("badges");
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);

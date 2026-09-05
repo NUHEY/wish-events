@@ -1,8 +1,10 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, requireRa } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/auth";
 import { FLOORS } from "@/lib/constants";
 
 export type BroadcastTarget =
@@ -25,7 +27,7 @@ export type BroadcastInput = {
 };
 
 export async function sendRaBroadcastNotification(input: BroadcastInput) {
-  await requireRa();
+  await requireManagement("notifications");
   const message = input.message.trim();
   const link = input.link?.trim() || "/";
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.broadcastId)) {

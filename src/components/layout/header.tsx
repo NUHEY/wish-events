@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getManagementAccess } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -41,6 +42,7 @@ export async function Header() {
     getFriendDmThreads(),
     supabase.rpc("has_unread_notifications"),
   ]);
+  const access = await getManagementAccess();
   const hasUnreadTalk = !!hasUnreadEventTalk || friendThreads.some((t) => t.unread);
 
   return (
@@ -69,6 +71,7 @@ export async function Header() {
               fullName={fullName}
               role={profile.role}
               accountKind={accountKind}
+              canAccessManagement={access.isRa || access.permissions.length > 0}
               floorNumber={profile.floor_number}
               roomNumber={profile.room_number}
               avatarUrl={avatarUrl}

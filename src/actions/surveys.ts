@@ -1,9 +1,11 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, requireRa } from "@/lib/auth";
+import { getCurrentProfile } from "@/lib/auth";
 import { surveySchema } from "@/lib/validations/survey";
 
 export type ActionResult = { error?: string } | void;
@@ -18,7 +20,7 @@ export async function saveSurvey(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRa();
+  await requireManagement("events");
 
   const questionsRaw = formData.get("questions_json");
   let questionsParsed: unknown;
@@ -52,7 +54,7 @@ export async function saveSurvey(
 }
 
 export async function toggleSurveyActive(surveyId: string, isActive: boolean) {
-  await requireRa();
+  await requireManagement("events");
   const supabase = await createClient();
   const { error } = await supabase
     .from("surveys")

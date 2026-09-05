@@ -1,4 +1,4 @@
-import { requireRa } from "@/lib/auth";
+import { requireManagement } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { EventForm } from "@/components/events/event-form";
 import { createEvent } from "@/actions/events";
@@ -7,7 +7,7 @@ import { BackButton } from "@/components/layout/back-button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 
 export default async function NewEventPage() {
-  await requireRa();
+  await requireManagement("events");
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);

@@ -1,9 +1,10 @@
 "use server";
 
+import { requireManagement } from "@/lib/management-access";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireRa } from "@/lib/auth";
 import { registrationQuestionsSchema } from "@/lib/validations/registration-questions";
 
 export type ActionResult = { error?: string } | void;
@@ -18,7 +19,7 @@ export async function saveRegistrationQuestions(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRa();
+  await requireManagement("events");
 
   const questionsRaw = formData.get("questions_json");
   let questionsParsed: unknown;

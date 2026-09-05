@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
 import { CalendarPlus, ChevronRight, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -110,6 +112,7 @@ export default async function EventsPage({
   const allUpcomingEvents = (upcomingEventsRaw as EventCardData[] | null) ?? [];
   const allPastEvents = (pastEventsRaw as EventCardData[] | null) ?? [];
   const allDateEvents = (dateEventsRaw as EventCardData[] | null) ?? [];
+  const mayCreateEvents = profile.account_kind === "resident" || canManage(await getManagementAccess(), "events");
   const canShowResidentEvents = profile.role === "ra" || residentEventState !== "hidden";
   const canShowEvent = (event: EventCardData) =>
     event.creator_type === "ra" || canShowResidentEvents;
@@ -133,7 +136,7 @@ export default async function EventsPage({
       <div className="flex flex-col gap-3.5 border-b border-border pb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1.5"><h1 className="text-3xl font-bold tracking-tight">{dict.home.title}</h1><p className="text-sm text-muted-foreground">{dict.home.subtitle}</p></div>
-          {(profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">{dict.home.createCommunityEvent}</span><span className="sm:hidden">{dict.home.createCommunityEventShort}</span></Link>}
+          {mayCreateEvents && (profile.role === "ra" || residentEventState !== "hidden") && <Link href="/events/community" className={buttonVariants({ size: "sm", variant: "outline", className: "shrink-0 rounded-full" })}><CalendarPlus className="h-4 w-4" /><span className="hidden sm:inline">{dict.home.createCommunityEvent}</span><span className="sm:hidden">{dict.home.createCommunityEventShort}</span></Link>}
         </div>
         <form action="/events" method="get" role="search" aria-label={dict.home.searchPlaceholder} className="flex max-w-md items-center gap-2">
           {category && <input type="hidden" name="category" value={category} />}
@@ -193,7 +196,7 @@ export default async function EventsPage({
               <p className="text-sm text-muted-foreground">
                 {dict.home.dateResultsCount.replace("{count}", String(dateEvents.length))}
               </p>
-              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {dateEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -218,7 +221,7 @@ export default async function EventsPage({
 
           {hasUpcoming && (
             <section className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -227,7 +230,7 @@ export default async function EventsPage({
           )}
 
           {hasPast && status === "past" && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {pastEvents.map((event) => (
                 <EventCard key={event.id} event={event} variant="muted" />
               ))}
@@ -240,7 +243,7 @@ export default async function EventsPage({
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
                 {dict.home.pastEventsToggle}（{pastEvents!.length}）
               </summary>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="mt-4 grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} variant="muted" />
                 ))}

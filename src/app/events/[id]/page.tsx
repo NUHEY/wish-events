@@ -1,3 +1,5 @@
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -48,6 +50,7 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params;
   const profile = await getCurrentProfile();
+  const canManageModule = canManage(await getManagementAccess(), "events");
   const supabase = await createClient();
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -150,7 +153,7 @@ export default async function EventDetailPage({
               {dict.event.limitedFloors}
             </Badge>
           )}
-          {profile.role === "ra" && isUnpublished && (
+          {canManageModule && isUnpublished && (
             <Badge variant="destructive">{dict.event.unpublishedBadge}</Badge>
           )}
           {event.is_pinned && (
@@ -291,10 +294,10 @@ export default async function EventDetailPage({
         eventId={event.id}
         comments={comments}
         currentUserId={profile.id}
-        isRa={profile.role === "ra"}
+        isRa={canManageModule}
       />
 
-      {profile.role === "ra" && (
+      {canManageModule && (
         <div className="hidden flex-wrap gap-2 border-t border-border pt-4 sm:flex">
           <Link href={`/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             {dict.event.editButton}

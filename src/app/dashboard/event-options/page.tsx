@@ -1,4 +1,4 @@
-import { requireRa } from "@/lib/auth";
+import { requireManagement } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { EventOptionManager } from "@/components/dashboard/event-option-manager";
 import {
@@ -12,7 +12,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { EventDisplaySettingsForm } from "@/components/dashboard/event-display-settings-form";
 
 export default async function EventOptionsPage() {
-  await requireRa();
+  await requireManagement("event_options");
   const supabase = await createClient();
   const [locale, settings] = await Promise.all([getLocale(), getSiteSettings()]);
   const dict = getDictionary(locale);

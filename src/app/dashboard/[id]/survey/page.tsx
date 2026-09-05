@@ -1,7 +1,7 @@
+import { requireManagement } from "@/lib/management-access";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
-import { requireRa } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SurveyBuilder } from "@/components/surveys/survey-builder";
 import { SurveyActiveToggle } from "@/components/surveys/survey-active-toggle";
@@ -17,7 +17,7 @@ export default async function ManageSurveyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRa();
+  await requireManagement("events");
   const { id } = await params;
   const supabase = await createClient();
   const locale = await getLocale();
