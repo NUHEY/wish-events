@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn, toJstDateKey } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { signalNavigation } from "@/lib/navigation-signal";
@@ -270,25 +271,25 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
           )}
 
           {mode === "range" && (
-            <div className="flex flex-col gap-2.5">
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            <div className="grid min-w-0 gap-3">
+              <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted-foreground">
                 {dict.home.dateRangeFrom}
-                <input
+                <Input
                   type="date"
                   value={rangeDraft.from}
                   max={rangeDraft.to || undefined}
                   onChange={(e) => setRangeDraft((v) => ({ ...v, from: e.target.value }))}
-                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
+                  className="rounded-lg text-foreground sm:h-11"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted-foreground">
                 {dict.home.dateRangeTo}
-                <input
+                <Input
                   type="date"
                   value={rangeDraft.to}
                   min={rangeDraft.from || undefined}
                   onChange={(e) => setRangeDraft((v) => ({ ...v, to: e.target.value }))}
-                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
+                  className="rounded-lg text-foreground sm:h-11"
                 />
               </label>
               {invalidRange && <p role="alert" className="text-xs text-destructive">{locale === "ja" ? "終了日は開始日以降にしてください。" : "The end date must be on or after the start date."}</p>}
@@ -299,17 +300,17 @@ export function EventCalendar({ eventDates }: { eventDates: string[] }) {
           )}
 
           {mode === "month" && (
-            <div className="flex flex-col gap-2.5">
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            <div className="grid min-w-0 gap-3">
+              <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted-foreground">
                 {dict.home.dateModeMonth}
-                <input
+                <Input
                   type="month"
                   value={monthDraft}
                   onChange={(e) => setMonthDraft(e.target.value)}
-                  className="h-11 min-w-0 w-full rounded-lg border border-input bg-background px-2.5 text-base text-foreground"
+                  className="rounded-lg text-foreground sm:h-11"
                 />
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => applyMonth(thisMonthKey())}

@@ -29,6 +29,7 @@ function mount(component, search) {
     '@/lib/navigation-signal': { signalNavigation: () => true },
     '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' '), toJstDateKey: (v) => v.slice(0, 10) },
     '@/components/ui/button': { Button: 'button' },
+    '@/components/ui/input': { Input: 'input' },
     'lucide-react': new Proxy({}, { get: (_, key) => key }),
   };
   const file = path.join(__dirname, '..', 'src/components/events', `${component}.tsx`);

@@ -10,6 +10,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       className={cn(
         "flex h-11 min-w-0 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:h-10 sm:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        // Keep native date/time controls within their field on mobile WebKit.
+        ["date", "time", "month", "datetime-local"].includes(type ?? "") &&
+          "block max-w-full appearance-none [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit]:p-0",
         className
       )}
       {...props}

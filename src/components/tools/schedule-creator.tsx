@@ -70,7 +70,7 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
   const selectedCount = kind === "lets_chat" ? raIds.length : participantIds.length + (kind === "general" ? 1 : raIds.length);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
       <PendingFeedback active={pending} label="日程調整ページを作成しています…" />
       <header className="rounded-2xl bg-gradient-to-br from-primary/[0.12] via-card to-accent/40 p-5 sm:p-7">
         <div className="flex items-center gap-2"><BetaBadge /><span className="text-xs font-semibold text-muted-foreground">新しい調整を作成</span></div>
@@ -80,15 +80,15 @@ export function ScheduleCreator({ kind, profiles, currentUserId, currentFloor, i
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5">
         <div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4 text-primary" />基本情報</div>
-        <div className="grid gap-2"><Label htmlFor="schedule-title">タイトル</Label><Input id="schedule-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={80} placeholder="例: 夏休み旅行の打ち合わせ" /></div>
-        <div className="grid gap-2"><Label htmlFor="schedule-description">説明（任意）</Label><Textarea id="schedule-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} rows={3} placeholder="集合場所や、入力してほしい期限など" /></div>
-        {kind === "lets_chat" && <div className="grid gap-2"><Label htmlFor="schedule-floor">対象フロア</Label><Select id="schedule-floor" value={floorNumber} onChange={(event) => { setFloorNumber(Number(event.target.value)); setRaIds([]); }}>{FLOORS.map((floor) => <option key={floor} value={floor}>{floor}階</option>)}</Select></div>}
+        <div className="grid min-w-0 gap-2"><Label htmlFor="schedule-title">タイトル</Label><Input id="schedule-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={80} placeholder="例: 夏休み旅行の打ち合わせ" /></div>
+        <div className="grid min-w-0 gap-2"><Label htmlFor="schedule-description">説明（任意）</Label><Textarea id="schedule-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} rows={3} placeholder="集合場所や、入力してほしい期限など" /></div>
+        {kind === "lets_chat" && <div className="grid min-w-0 gap-2"><Label htmlFor="schedule-floor">対象フロア</Label><Select id="schedule-floor" value={floorNumber} onChange={(event) => { setFloorNumber(Number(event.target.value)); setRaIds([]); }}>{FLOORS.map((floor) => <option key={floor} value={floor}>{floor}階</option>)}</Select></div>}
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5">
         <div className="flex items-center gap-2 font-bold"><CalendarRange className="h-4 w-4 text-primary" />候補期間</div>
-        <div className="grid gap-2"><Label>開始日・終了日</Label><DateRangePicker startValue={startDate} endValue={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} maxDays={defaults?.maxDays ?? 31} /></div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3"><div className="grid gap-2"><Label htmlFor="daily-start">開始時刻</Label><Input id="daily-start" type="time" value={dailyStartTime} onChange={(event) => setDailyStartTime(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor="daily-end">終了時刻</Label><Input id="daily-end" type="time" value={dailyEndTime} onChange={(event) => setDailyEndTime(event.target.value)} /></div><div className="col-span-2 grid gap-2 sm:col-span-1"><Label htmlFor="slot-minutes">1枠</Label><Select id="slot-minutes" value={slotMinutes} onChange={(event) => setSlotMinutes(Number(event.target.value) as 15 | 30 | 60)}><option value={15}>15分</option><option value={30}>30分</option><option value={60}>60分</option></Select></div></div>
+        <div className="grid min-w-0 gap-2"><Label>開始日・終了日</Label><DateRangePicker startValue={startDate} endValue={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} maxDays={defaults?.maxDays ?? 31} /></div>
+        <div className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-3"><div className="grid min-w-0 gap-2"><Label htmlFor="daily-start">開始時刻</Label><Input id="daily-start" type="time" value={dailyStartTime} onChange={(event) => setDailyStartTime(event.target.value)} /></div><div className="grid min-w-0 gap-2"><Label htmlFor="daily-end">終了時刻</Label><Input id="daily-end" type="time" value={dailyEndTime} onChange={(event) => setDailyEndTime(event.target.value)} /></div><div className="grid min-w-0 gap-2 min-[400px]:col-span-2 sm:col-span-1"><Label htmlFor="slot-minutes">1枠</Label><Select id="slot-minutes" value={slotMinutes} onChange={(event) => setSlotMinutes(Number(event.target.value) as 15 | 30 | 60)}><option value={15}>15分</option><option value={30}>30分</option><option value={60}>60分</option></Select></div></div>
         <p className="text-xs text-muted-foreground">期間は最大{defaults?.maxDays ?? 31}日。表示する時間帯を絞ると、スマホでも入力しやすくなります。</p>
       </section>
 
