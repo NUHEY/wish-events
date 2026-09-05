@@ -1,6 +1,7 @@
 import { getManagementAccess } from "@/lib/management-access";
 import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
+import { ToolCard } from "@/components/tools/tool-card";
 import { QrCode, ChevronRight } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
 import { getFeatureFlagState, type FeatureFlagKey } from "@/lib/feature-flags";
@@ -51,7 +52,7 @@ export default async function ToolsPage() {
           </section>
         );
       })}
-      <section className="space-y-3"><h2 className="text-lg font-bold">{locale === "ja" ? "共有・案内" : "Share & invite"}</h2><Link href="/tools/share" className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"><QrCode className="h-6 w-6 shrink-0 text-primary"/><span className="min-w-0 flex-1"><span className="block font-bold">{locale === "ja" ? "共有QRコード" : "Share a QR code"}</span><span className="mt-1 block text-xs text-muted-foreground">{locale === "ja" ? "イベントや予約のリンクを掲示物に" : "Turn event and booking links into a poster-ready image"}</span></span><ChevronRight className="h-4 w-4 shrink-0"/></Link></section>
+      <section className="space-y-3"><h2 className="text-lg font-bold">{locale === "ja" ? "共有・案内" : "Share & invite"}</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><ToolCard href="/tools/share" title={locale === "ja" ? "共有QRコード" : "Share a QR code"} description={locale === "ja" ? "イベントや予約のリンクを掲示物に" : "Turn event and booking links into a poster-ready image"} icon={QrCode} accent="from-indigo-500/15 to-blue-400/5 text-indigo-700 dark:text-indigo-300" /></div></section>
       {showSchedules && (
         <section id="active-schedules" className="scroll-mt-24 space-y-3">
           <h2 className="text-lg font-bold">{dict.residentTools.activeSchedules}</h2>

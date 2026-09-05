@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
 import { getManagementAccess } from "@/lib/management-access";
 import { canManage } from "@/lib/management-permissions";
 import { buttonVariants } from "@/components/ui/button";
@@ -57,7 +58,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
         </div>
 
         <div id="managed-events" className="scroll-mt-24 flex flex-col gap-3">
-          <h2 className="text-lg font-bold">{dict.dashboard.eventListTitle}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="min-w-0 break-words text-lg font-bold">{dict.dashboard.eventListTitle}</h2>
+            <Link href="/events/new" className={buttonVariants({ className: "min-h-11 shrink-0" })}><CalendarPlus aria-hidden="true" className="h-4 w-4" />{locale === "en" ? "Create event" : "イベント作成"}</Link>
+          </div>
           {events?.map((event: any) => {
             const count = event.registrations?.[0]?.count ?? 0;
             const title = (locale === "en" && event.title_en) || event.title;

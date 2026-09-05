@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarClock, CalendarPlus, ChevronRight, Lightbulb, Link2, MessagesSquare, UsersRound } from "lucide-react";
+import { ToolCard } from "@/components/tools/tool-card";
 import { BetaBadge } from "@/components/tools/beta-badge";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 import type { Locale } from "@/lib/i18n/locales";
@@ -45,7 +46,7 @@ export function ResidentToolGrid({
   const tools = RESIDENT_TOOLS.filter((tool) => !includedKeys || includedKeys.includes(tool.key));
   if (compact) {
     return (
-      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none pb-1 pr-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible sm:pr-0 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-3">
         {tools.map((tool) => {
           const state = stateByKey[tool.key] ?? "hidden";
           const href = profileRole === "ra" ? tool.createHref : tool.residentHref;
@@ -58,22 +59,21 @@ export function ResidentToolGrid({
               key={tool.key}
               href={href}
               className={cn(
-                "flex shrink-0 snap-start flex-col items-start justify-between gap-3 rounded-xl border border-border bg-gradient-to-br p-3.5 shadow-sm transition-transform active:scale-[0.98] sm:min-h-24 sm:w-auto sm:flex-row sm:items-center",
-                density === "minimal" ? "min-h-44 w-40" : "min-h-48 w-44",
+                "flex min-h-24 min-w-0 flex-col items-start justify-center gap-2 sm:flex-row sm:items-center rounded-xl border border-border bg-gradient-to-br p-3 shadow-sm transition-transform active:scale-[0.98] sm:gap-3 sm:p-3.5",
                 tool.accent
               )}
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card/85 shadow-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card/85 shadow-sm sm:h-10 sm:w-10">
                 <tool.icon className="h-5 w-5" />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 w-full sm:w-auto sm:flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-balance break-words text-sm font-extrabold text-foreground">{title}</span>
+                  <span className="break-words text-xs font-bold sm:text-sm text-foreground">{title}</span>
                   {state === "beta" && <BetaBadge />}
                 </span>
-                <span className={cn("mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground", density === "minimal" && "sm:hidden")}>{description}</span>
+                {density === "compact" && <span className="mt-1 hidden text-[11px] leading-relaxed text-muted-foreground sm:line-clamp-2">{description}</span>}
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 self-end sm:self-auto" />
+              <ChevronRight aria-hidden="true" className="hidden h-4 w-4 shrink-0 sm:block" />
             </Link>
           );
         })}
@@ -90,18 +90,8 @@ export function ResidentToolGrid({
           ? profileRole === "resident" && tool.residentDescriptionEn ? tool.residentDescriptionEn : tool.descriptionEn
           : profileRole === "resident" && tool.residentDescription ? tool.residentDescription : tool.description;
         return (
-          <Link key={tool.key} href={href} className={cn("group rounded-2xl border border-border bg-gradient-to-br p-4 shadow-card transition-transform active:scale-[0.98]", tool.accent)}>
-            <div className="flex items-start justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-card/80 shadow-sm"><tool.icon className="h-5 w-5" /></span>
-              <div className="flex items-center gap-2">
-                {state === "beta" && <BetaBadge />}
-                {state === "hidden" && profileRole === "ra" && <span className="rounded-full bg-secondary px-2 py-1 text-[9px] font-bold text-muted-foreground">{locale === "en" ? "Private preview" : "非公開プレビュー"}</span>}
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            </div>
-            <h3 className="mt-4 font-extrabold text-foreground">{title}</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
-          </Link>
+          <ToolCard key={tool.key} href={href} title={title} description={description} icon={tool.icon} accent={tool.accent}
+            badges={<>{state === "beta" && <BetaBadge />}{state === "hidden" && profileRole === "ra" && <span className="rounded-full bg-secondary px-2 py-1 text-[9px] font-bold text-muted-foreground">{locale === "en" ? "Private preview" : "非公開プレビュー"}</span>}</>} />
         );
       })}
     </div>

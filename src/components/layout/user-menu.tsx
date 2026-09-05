@@ -77,10 +77,10 @@ export function UserMenu({
         ) : (
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-sm font-semibold text-secondary-foreground shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={fullName ?? "menu"}
           >
-            <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-full w-full object-cover" />
+            <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={32} height={32} className="h-8 w-8 rounded-full border border-border object-cover" />
           </button>
         )}
       </DropdownMenuTrigger>

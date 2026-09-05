@@ -75,7 +75,7 @@ export function HomeToolEditor({ initialTools, initialDensity }: { initialTools:
         })}
       </div>
       <div className="grid gap-1.5 border-t border-border pt-4 sm:grid-cols-[1fr_12rem] sm:items-center">
-        <div><p className="text-sm font-semibold">ホームでの大きさ</p><p className="text-xs text-muted-foreground">最小はタイトルだけ、コンパクトは短い説明も表示します。</p></div>
+        <div><p className="text-sm font-semibold">ホームでの大きさ</p><p className="text-xs text-muted-foreground">スマホはアイコンと名前だけで表示します。大きな画面ではコンパクトにすると説明も表示します。</p></div>
         <Select aria-label={en ? "Home tool size" : "ホームでのツールの大きさ"} value={density} onChange={(event) => setDensity(event.target.value as "minimal" | "compact")}><option value="minimal">最小（推奨）</option><option value="compact">コンパクト</option></Select>
       </div>
       </fieldset>
