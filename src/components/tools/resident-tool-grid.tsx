@@ -59,8 +59,8 @@ export function ResidentToolGrid({
               key={tool.key}
               href={href}
               className={cn(
-                "flex shrink-0 snap-start flex-col items-start justify-between gap-3 rounded-xl border border-border bg-gradient-to-br p-3.5 shadow-sm transition-transform active:scale-[0.98] sm:h-24 sm:w-auto sm:flex-row sm:items-center",
-                density === "minimal" ? "h-40 w-40" : "h-48 w-44",
+                "flex shrink-0 snap-start flex-col items-start justify-between gap-3 rounded-xl border border-border bg-gradient-to-br p-3.5 shadow-sm transition-transform active:scale-[0.98] sm:min-h-24 sm:w-auto sm:flex-row sm:items-center",
+                density === "minimal" ? "min-h-44 w-40" : "min-h-48 w-44",
                 tool.accent
               )}
             >
@@ -68,8 +68,8 @@ export function ResidentToolGrid({
                 <tool.icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="line-clamp-2 text-sm font-extrabold text-foreground">{title}</span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-balance break-words text-sm font-extrabold text-foreground">{title}</span>
                   {state === "beta" && <BetaBadge />}
                 </span>
                 <span className={cn("mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground", density === "minimal" && "sm:hidden")}>{description}</span>
@@ -93,7 +93,7 @@ export function ResidentToolGrid({
         return (
           <Link key={tool.key} href={href} className={cn("group rounded-2xl border border-border bg-gradient-to-br p-4 shadow-card transition-transform active:scale-[0.98]", tool.accent)}>
             <div className="flex items-start justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card/80 shadow-sm"><tool.icon className="h-5 w-5" /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-card/80 shadow-sm"><tool.icon className="h-5 w-5" /></span>
               <div className="flex items-center gap-2">
                 {state === "beta" && <BetaBadge />}
                 {state === "hidden" && profileRole === "ra" && <span className="rounded-full bg-secondary px-2 py-1 text-[9px] font-bold text-muted-foreground">{locale === "en" ? "Private preview" : "非公開プレビュー"}</span>}

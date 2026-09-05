@@ -13,7 +13,7 @@ import {
 
 export type { InstitutionalAccountKind } from "@/lib/institutional-accounts";
 export type InstitutionalLoginResult =
-  | { success: true; accessToken: string; refreshToken: string }
+  | { success: true }
   | {
       success: false;
       error: string;
@@ -228,7 +228,5 @@ export async function signInInstitutionalAccount(kind: string, password: string)
 
   return {
     success: true,
-    accessToken: data.session.access_token,
-    refreshToken: data.session.refresh_token,
   };
 }

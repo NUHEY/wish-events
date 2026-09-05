@@ -97,6 +97,11 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
         event.stopPropagation();
         return;
       }
+    };
+    // ReactのonSubmitが処理したフォームはここで触らない。
+    // capture側は連打防止だけ、通常のGET遷移はバブル後に判定する。
+    const onGetSubmit = (event: SubmitEvent) => {
+      if (event.defaultPrevented) return;
       const form = event.target as HTMLFormElement | null;
       if (!form || form.method.toLowerCase() !== "get") return;
       const next = new URL(form.action || window.location.href, window.location.origin);
@@ -124,12 +129,14 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
     const onPageShow = (event: PageTransitionEvent) => { if (event.persisted) onEnd(); };
     document.addEventListener("click", onClick, true);
     document.addEventListener("submit", onSubmit, true);
+    document.addEventListener("submit", onGetSubmit);
     window.addEventListener(NAVIGATION_START_EVENT, onSignal);
     window.addEventListener(NAVIGATION_END_EVENT, onEnd);
     window.addEventListener("pageshow", onPageShow);
     return () => {
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("submit", onSubmit, true);
+      document.removeEventListener("submit", onGetSubmit);
       window.removeEventListener(NAVIGATION_START_EVENT, onSignal);
       window.removeEventListener(NAVIGATION_END_EVENT, onEnd);
       window.removeEventListener("pageshow", onPageShow);

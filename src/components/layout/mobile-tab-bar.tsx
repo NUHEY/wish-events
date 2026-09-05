@@ -24,7 +24,7 @@ function TabLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-full flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors active:scale-[0.97] disabled:pointer-events-none",
+        "flex h-full min-w-0 flex-1 whitespace-nowrap touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors active:scale-[0.97] disabled:pointer-events-none",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >

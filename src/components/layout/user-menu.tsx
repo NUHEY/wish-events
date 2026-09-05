@@ -88,14 +88,16 @@ export function UserMenu({
         <Link href={`/directory/${userId}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-accent">
           <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
           <span className="flex min-w-0 flex-col">
-            <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
+            <span className="break-words text-sm font-semibold leading-relaxed text-foreground">
               {fullName ?? dict.common.notRegistered}
+            </span>
+            <span className="mt-1 flex flex-wrap items-center gap-1.5">
               {role === "ra" && <Badge variant="default">RA</Badge>}
               {accountKind !== "resident" && <Badge variant="secondary">{dict.common.institutionalAccount}</Badge>}
             </span>
-            <span className="text-xs text-muted-foreground">
+            {accountKind === "resident" && <span className="text-xs text-muted-foreground">
               {formatRoomNumber(floorNumber, roomNumber)}
-            </span>
+            </span>}
           </span>
         </Link>
         <DropdownMenuSeparator />

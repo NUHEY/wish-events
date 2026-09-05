@@ -33,3 +33,10 @@ These guidelines describe the current interaction contract and checks for future
 - Confirmation dialogs contain keyboard focus, expose their title/message, close with Escape, and restore focus to their opener.
 - At widths 360, 390, and 430px, check Japanese and English, open menus, date/range/month modes, long text, empty states, and the bottom safe area. The page itself must not scroll horizontally.
 - Verify that canceled navigation leaves the current form editable and does not leave a loading overlay. Verify that a successful action is not repeated because its feedback failed.
+
+## Rounded corners and text
+
+- Standard buttons and text/select fields use `rounded-md` (10px). Keep selects aligned with the adjacent input style.
+- Preserve the size hierarchy: nested blocks use `rounded-lg`, menus and compact cards use `rounded-xl`, and large feature panels use `rounded-2xl`. Small icons inside a panel have a smaller radius than their container. Avatars and status pills remain circular.
+- Keep short control labels and status badges on one line. Wrap groups of chips as whole items. A BETA badge may move to the next line without splitting the tab label.
+- Let descriptive headings and tool cards grow for longer Japanese or English text; do not force a fixed height that clips their content. Multi-line card headings need readable line spacing.

@@ -9,7 +9,8 @@ import {
 } from "@/lib/institutional-accounts";
 
 function withInstitutionalIdentity(profile: UserRow, email: string | null | undefined): UserRow {
-  const accountKind = institutionalAccountKindForEmail(email);
+  const accountKind = profile.account_kind === "service_desk" || profile.account_kind === "university_staff"
+    ? profile.account_kind : institutionalAccountKindForEmail(email);
   if (!accountKind) return profile;
   return {
     ...profile,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useTransition, type FormEvent } from "react";
+import { Suspense, useState, useRef, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { useDict } from "@/lib/i18n/locale-provider";
+import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import type { InstitutionalAccountKind } from "@/lib/institutional-accounts";
 
 type InstitutionalLoginResponse =
-  | { success: true; accessToken: string; refreshToken: string }
+  | { success: true }
   | { success: false; code: string; error: string };
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
@@ -43,10 +43,15 @@ function LoginContent() {
   const error = searchParams.get("error");
   const supabase = createClient();
   const dict = useDict();
+  const locale = useLocale();
+  const universityLabel = locale === "en"
+    ? <><span className="inline-block">Waseda University</span>{" "}<span className="inline-block">Student Affairs Division</span></>
+    : dict.login.universityStaffLogin;
   const [institutionalError, setInstitutionalError] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<InstitutionalAccountKind | null>(null);
   const [institutionalPassword, setInstitutionalPassword] = useState("");
-  const [institutionalPending, startInstitutionalTransition] = useTransition();
+  const [institutionalPending, setInstitutionalPending] = useState(false);
+  const loginInFlight = useRef(false);
 
   async function handleLogin() {
     await supabase.auth.signInWithOAuth({
@@ -71,64 +76,54 @@ function LoginContent() {
     setInstitutionalPassword("");
   }
 
-  function handleInstitutionalLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleInstitutionalLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (institutionalPending || !selectedAccount || !institutionalPassword) return;
-    const kind = selectedAccount;
-    startInstitutionalTransition(async () => {
-      try {
-        const response = await fetch("/api/auth/institutional-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({ kind, password: institutionalPassword }),
-        });
-        const result = await response.json() as InstitutionalLoginResponse;
-        if (!result.success) {
-          setInstitutionalError(result.error);
-          return;
-        }
-
-        // 検証済みセッションをブラウザへ保存し終えてからホームへ移動する。
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: result.accessToken,
-          refresh_token: result.refreshToken,
-        });
-        if (sessionError) {
-          setInstitutionalError(dict.login.authFailed);
-          return;
-        }
-
-        // Cookieへの保存まで完了したことを確認してから移動する。
-        // ここを待たずに遷移すると、低速回線でmiddlewareが未ログインと判定することがある。
-        const { data: verifiedUser, error: verifyError } = await supabase.auth.getUser();
-        if (verifyError || !verifiedUser.user) {
-          setInstitutionalError(dict.login.authFailed);
-          return;
-        }
-
-        setInstitutionalPassword("");
-        // Server ActionのSet-Cookieを受け取った後に文書単位で遷移する。
-        // router.replace()とrouter.refresh()を同時に走らせると、低速回線では
-        // 未認証のRSC取得と認証済み取得が競合してログイン画面へ戻ることがある。
-        window.location.replace("/");
-      } catch (error) {
-        console.error("Institutional sign-in failed", error);
-        setInstitutionalError(dict.login.authFailed);
+    if (loginInFlight.current || !selectedAccount || !institutionalPassword) return;
+    loginInFlight.current = true;
+    setInstitutionalPending(true);
+    setInstitutionalError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    let navigating = false;
+    try {
+      const response = await fetch("/api/auth/institutional-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller.signal,
+        body: JSON.stringify({ kind: selectedAccount, password: institutionalPassword }),
+      });
+      const result = await response.json() as InstitutionalLoginResponse;
+      if (!response.ok || !result.success) {
+        setInstitutionalError(!result.success ? result.error : dict.login.authFailed);
+        return;
       }
-    });
+      // APIのSet-Cookieで認証は完了済み。ブラウザでの再認証を待たずに移動する。
+      setInstitutionalPassword("");
+      window.location.replace("/");
+      navigating = true;
+    } catch {
+      setInstitutionalError(controller.signal.aborted ? dict.login.institutionalTimeout : dict.login.authFailed);
+    } finally {
+      window.clearTimeout(timeout);
+      if (!navigating) {
+        loginInFlight.current = false;
+        setInstitutionalPending(false);
+      }
+    }
   }
 
   return (
-    <div className="relative flex min-h-[85vh] items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-[85vh] items-center justify-center pb-6 pt-16">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-hero-radial" />
       <div className="absolute right-0 top-0 flex items-center gap-2 p-2">
         <LocaleToggle />
         <ThemeToggle />
       </div>
-      <Card className="relative w-full max-w-sm rounded-2xl shadow-elevated">
+      <Card className="relative w-full max-w-sm shadow-elevated">
         <CardHeader className="items-center gap-3 pt-8 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-glow">
+          <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground shadow-glow">
             W
           </span>
           <div className="flex flex-col gap-1">
@@ -138,23 +133,23 @@ function LoginContent() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pb-8">
           {error === "invalid_domain" && (
-            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
+            <p role="alert" className="break-words rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm leading-relaxed text-destructive">
               {dict.login.invalidDomain}
             </p>
           )}
           {error === "auth_failed" && (
-            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
+            <p role="alert" className="break-words rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm leading-relaxed text-destructive">
               {dict.login.authFailed}
             </p>
           )}
           {institutionalError && (
-            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive">
+            <p role="alert" className="break-words rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm leading-relaxed text-destructive">
               {institutionalError}
             </p>
           )}
-          <Button onClick={handleLogin} variant="outline" className="h-auto w-full gap-2.5 py-3">
+          <Button disabled={institutionalPending} onClick={handleLogin} variant="outline" className="h-auto w-full gap-2.5 py-3">
             <GoogleIcon />
-            <span className="flex flex-col items-start leading-tight">
+            <span className="flex min-w-0 flex-col items-start whitespace-normal text-left leading-tight">
               <span className="text-sm font-semibold">{dict.login.googleButton}</span>
               <span className="text-[11px] font-normal text-muted-foreground">{dict.login.googleButtonSub}</span>
             </span>
@@ -162,12 +157,13 @@ function LoginContent() {
           <p className="text-center text-xs text-muted-foreground">{dict.login.domainNote}</p>
           <div className="border-t border-border pt-4 text-center">
             <p className="text-xs leading-relaxed text-muted-foreground">{dict.login.institutionalPrompt}</p>
-            <p className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm leading-relaxed">
+            <p className="mt-3 grid gap-2 text-sm leading-relaxed">
               <button
                 type="button"
                 disabled={institutionalPending}
                 onClick={() => selectInstitutionalAccount("service_desk")}
-                className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
+                aria-pressed={selectedAccount === "service_desk"}
+                className="min-h-11 rounded-md border border-border px-3 py-2 font-semibold text-primary transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-50"
               >
                 {dict.login.serviceDeskLogin}
               </button>
@@ -175,15 +171,16 @@ function LoginContent() {
                 type="button"
                 disabled={institutionalPending}
                 onClick={() => selectInstitutionalAccount("university_staff")}
-                className="font-semibold text-primary underline decoration-primary/35 underline-offset-4 transition-opacity active:opacity-60 disabled:cursor-wait disabled:opacity-50"
+                aria-pressed={selectedAccount === "university_staff"}
+                className="min-h-11 rounded-md border border-border px-3 py-2 font-semibold text-primary transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-50"
               >
-                {dict.login.universityStaffLogin}
+                {universityLabel}
               </button>
             </p>
             {selectedAccount && (
-              <form onSubmit={handleInstitutionalLogin} className="mt-3 rounded-xl border border-border bg-secondary/35 p-3 text-left">
+              <form method="post" aria-busy={institutionalPending} onSubmit={handleInstitutionalLogin} className="mt-3 rounded-xl border border-border bg-secondary/35 p-3 text-left">
                 <p className="mb-2 text-center text-xs font-semibold text-foreground">
-                  {selectedAccount === "service_desk" ? dict.login.serviceDeskLogin : dict.login.universityStaffLogin}
+                  {selectedAccount === "service_desk" ? dict.login.serviceDeskLogin : universityLabel}
                 </p>
                 <label htmlFor="institutional-password" className="text-xs font-medium text-muted-foreground">
                   {dict.login.institutionalPasswordLabel}
@@ -198,19 +195,20 @@ function LoginContent() {
                   autoFocus
                   maxLength={256}
                   disabled={institutionalPending}
-                  className="mt-1.5 h-11 rounded-xl bg-background text-base"
+                  className="mt-1.5 h-11 bg-background text-base"
                 />
+                {institutionalPending && <p role="status" className="mt-2 text-sm text-muted-foreground">{dict.login.institutionalLoggingIn}</p>}
                 <div className="mt-3 flex gap-2">
                   <Button
                     type="button"
                     variant="ghost"
-                    className="flex-1"
+                    className="min-h-11 flex-1"
                     disabled={institutionalPending}
                     onClick={() => { setSelectedAccount(null); setInstitutionalPassword(""); setInstitutionalError(null); }}
                   >
                     {dict.login.institutionalCancel}
                   </Button>
-                  <Button type="submit" className="flex-1" disabled={institutionalPending || !institutionalPassword}>
+                  <Button type="submit" className="min-h-11 flex-1" disabled={institutionalPending || !institutionalPassword}>
                     {institutionalPending ? dict.login.institutionalLoggingIn : dict.login.institutionalSubmit}
                   </Button>
                 </div>

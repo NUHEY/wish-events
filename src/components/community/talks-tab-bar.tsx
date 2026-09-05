@@ -72,13 +72,13 @@ export function TalksTabBar({
           disabled={pending}
           onClick={() => setTab(tab)}
           className={cn(
-            "relative min-w-0 rounded-lg px-3 py-2 text-[13px] font-semibold transition-all disabled:cursor-wait",
+            "relative min-h-11 min-w-0 rounded-lg px-1.5 py-2 text-xs sm:px-3 sm:text-[13px] font-semibold transition-all disabled:cursor-wait",
             active === tab
               ? "bg-primary text-primary-foreground shadow-[var(--chat-shadow-sm)]"
               : "text-[var(--chat-text-secondary)] active:bg-[var(--chat-accent-soft)] sm:hover:bg-[var(--chat-bg-main)] sm:hover:text-[var(--chat-text-primary)]"
           )}
         >
-          <span className="inline-flex items-center gap-1">{dict.talks.tabs[tab]}{((tab === "floor" && floorGroupState === "beta") || (tab === "friends" && friendDmState === "beta")) && <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>
+          <span className="inline-flex flex-wrap items-center justify-center gap-1"><span className="whitespace-nowrap">{dict.talks.tabs[tab]}</span>{((tab === "floor" && floorGroupState === "beta") || (tab === "friends" && friendDmState === "beta")) && <span className={cn("shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-bold tracking-wide", active === tab ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary")}>BETA</span>}</span>
           {tab === "floor" && hasUnreadFloor && active !== tab && (
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive" />
           )}

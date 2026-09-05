@@ -31,7 +31,8 @@ export async function Header() {
   if (profile.account_kind === "resident" && profile.moved_out_at) {
     return <header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><span className="font-bold">WISH Events</span><SignOutButton /></div></header>;
   }
-  const configuredAccountKind = institutionalAccountKindForEmail(user.email);
+  const configuredAccountKind = profile.account_kind === "service_desk" || profile.account_kind === "university_staff"
+    ? profile.account_kind : institutionalAccountKindForEmail(user.email);
   const accountKind = configuredAccountKind ?? profile.account_kind;
   const fullName = configuredAccountKind ? institutionalDisplayName(configuredAccountKind) : profile.full_name;
   const avatarUrl = configuredAccountKind ? institutionalAvatarUrl(configuredAccountKind) : profile.avatar_url;

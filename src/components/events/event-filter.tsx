@@ -43,7 +43,7 @@ export function EventFilter() {
         aria-pressed={!active}
         onClick={() => setCategory(null)}
         className={cn(
-          "min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+          "min-h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
           !active
             ? "bg-primary text-primary-foreground shadow-sm"
             : "bg-secondary text-secondary-foreground hover:bg-accent"
@@ -59,7 +59,7 @@ export function EventFilter() {
           aria-pressed={active === c}
           onClick={() => setCategory(c)}
           className={cn(
-            "min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+            "min-h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
             active === c
               ? "bg-primary text-primary-foreground shadow-sm"
               : "bg-secondary text-secondary-foreground hover:bg-accent"

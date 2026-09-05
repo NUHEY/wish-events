@@ -66,3 +66,24 @@ test('pre-provisioned accounts without an admin key keep their supplied password
  assert.equal((await h.login('service_desk','shared-password')).success,true);
  assert.equal(h.calls.find(([name])=>name==='signIn')[1].password,'shared-password');
 });
+
+
+test('successful login relies on server cookies and does not return session secrets', async () => {
+ const h = setup({INSTITUTIONAL_SHARED_PASSWORD:'test-password'});
+ const result = await h.login('service_desk','test-password');
+ assert.equal(result.success,true);
+ assert.equal(result.accessToken,undefined);
+ assert.equal(result.refreshToken,undefined);
+});
+
+
+test('internal account identity does not require a configured email address', () => {
+ for (const configured of [undefined, '', '２階生活窓口']) {
+  const exports={};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/institutional-accounts.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,
+   {exports,process:{env:{INSTITUTIONAL_SERVICE_DESK_EMAIL:configured}}});
+  assert.equal(exports.institutionalAccountEmail('service_desk'),'service-desk@wish-events.local');
+  assert.equal(exports.institutionalDisplayName('service_desk'),'２階生活窓口');
+  assert.equal(exports.institutionalDisplayName('university_staff'),'早稲田大学学生生活課');
+ }
+});

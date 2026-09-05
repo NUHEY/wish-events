@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // 高さが揃わないことがあるため（例: 「RR」と「新規」を並べた時に高さがずれる
 // バグ）、行の高さに依存せず箱の高さそのものを固定して常に揃うようにする。
 const badgeVariants = cva(
-  "inline-flex h-5 items-center rounded-full border px-2.5 text-xs font-semibold leading-none transition-colors",
+  "inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 text-xs font-semibold leading-none transition-colors",
   {
     variants: {
       variant: {

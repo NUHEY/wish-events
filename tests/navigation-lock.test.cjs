@@ -16,7 +16,7 @@ function mount(lockEnabled = true) {
     matchMedia: () => ({ matches: true }),
     setTimeout(fn, delay) { const id = ++timerId; timers.set(id, { fn, delay }); return id; },
     clearTimeout(id) { timers.delete(id); },
-    addEventListener(name, fn) { handlers.set(name, fn); },
+    addEventListener(name, fn, capture = false) { handlers.set(`${name}:${capture}`, fn); },
     removeEventListener() {},
   };
   const document = { body: {}, querySelector: () => loading ? {} : null, addEventListener: window.addEventListener, removeEventListener() {} };
@@ -32,17 +32,19 @@ function mount(lockEnabled = true) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(source, { exports, URL, window, document, location, FormData, MutationObserver, require(name) {
+  vm.runInNewContext(source, { exports, URL, window, document, location, FormData: class { constructor(form) { this.values = form.values || []; } forEach(fn) { this.values.forEach(([k,v]) => fn(v,k)); } }, MutationObserver, require(name) {
     assert.ok(name in mocks, `Unexpected dependency: ${name}`);
     return mocks[name];
   } }, { filename });
   exports.NavigationFeedback({ lockEnabled });
   effects.forEach(fn => fn());
   return {
-    send(name, extra = {}) {
+    send(name, extra = {}, reactHandler) {
       const event = { defaultPrevented: false, button: 0, target: { closest: () => null },
         preventDefault() { this.defaultPrevented = true; }, stopPropagation() { this.stopped = true; }, ...extra };
-      handlers.get(name)(event);
+      handlers.get(`${name}:true`)?.(event);
+      if (!event.stopped) reactHandler?.(event);
+      if (!event.stopped) handlers.get(`${name}:false`)?.(event);
       return event;
     },
     finishRoute: () => effects[0](),
@@ -118,4 +120,28 @@ test('ordinary pageshow cannot clear a navigation started before load completes'
   app.send('wish:navigation-start', { detail: { href: '/talks' } });
   app.send('pageshow', {persisted:false});
   assert.equal(app.send('click').defaultPrevented, true);
+});
+
+
+test('client-handled login POST reaches React and does not start navigation', () => {
+  const app = mount(); let submitted = 0;
+  const event = app.send('submit', { target: { method: 'post' } }, e => { e.preventDefault(); submitted++; });
+  assert.equal(submitted, 1);
+  assert.notEqual(event.stopped, true);
+  assert.equal(app.send('wish:navigation-start', { detail: { href: '/' } }).defaultPrevented, false);
+});
+test('client forms with default GET can handle submit before navigation detection', () => {
+  const app = mount(); let submitted = 0;
+  const event = app.send('submit', { target: { method: 'get', action: 'https://wish.test/events' } }, e => { e.preventDefault(); submitted++; });
+  assert.equal(submitted, 1);
+  assert.notEqual(event.stopped, true);
+  assert.equal(app.send('wish:navigation-start', { detail: { href: '/' } }).defaultPrevented, false);
+});
+test('native GET search still locks navigation and stops a following submission', () => {
+  const app = mount();
+  assert.equal(app.send('submit', { target: { method: 'get', action: 'https://wish.test/events', values: [['q','test']] } }).defaultPrevented, false);
+  let submitted = 0;
+  const event = app.send('submit', { target: { method: 'post' } }, () => submitted++);
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(submitted, 0);
 });

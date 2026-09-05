@@ -21,7 +21,9 @@ export function institutionalAccountEmail(kind: InstitutionalAccountKind) {
   const configured = kind === "service_desk"
     ? process.env.INSTITUTIONAL_SERVICE_DESK_EMAIL?.trim()
     : process.env.INSTITUTIONAL_UNIVERSITY_STAFF_EMAIL?.trim();
-  return configured || DEFAULT_AUTH_EMAILS[kind];
+  // メール設定は任意。名前などが誤入力されていても専用の内部IDを使う。
+  return configured && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(configured)
+    ? configured : DEFAULT_AUTH_EMAILS[kind];
 }
 
 export function institutionalDisplayName(kind: InstitutionalAccountKind) {
