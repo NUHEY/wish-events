@@ -8,7 +8,6 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { getFriendDmThreads } from "@/actions/direct-messages";
 import {
   institutionalAccountKindForEmail,
   institutionalAvatarUrl,
@@ -39,14 +38,14 @@ export async function Header() {
   const accountKind = configuredAccountKind ?? profile.account_kind;
   const fullName = configuredAccountKind ? institutionalDisplayName(configuredAccountKind) : profile.full_name;
   const avatarUrl = configuredAccountKind ? institutionalAvatarUrl(configuredAccountKind) : profile.avatar_url;
-  const [{ data: hasUnreadEventTalk }, friendThreads, { data: hasUnreadNotifications }, settings] = await Promise.all([
+  const [{ data: hasUnreadEventTalk }, { data: hasUnreadFriends }, { data: hasUnreadNotifications }, settings] = await Promise.all([
     supabase.rpc("has_unread_event_talk"),
-    getFriendDmThreads(),
+    supabase.rpc("has_unread_direct_messages"),
     supabase.rpc("has_unread_notifications"),
     getSiteSettings(),
   ]);
   const access = await getManagementAccess();
-  const hasUnreadTalk = !!hasUnreadEventTalk || friendThreads.some((t) => t.unread);
+  const hasUnreadTalk = !!hasUnreadEventTalk || !!hasUnreadFriends;
 
   return (
     <>

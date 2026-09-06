@@ -1,10 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
-import { Building2, MessageCircle, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFriendDmThreads } from "@/actions/direct-messages";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { getFeatureFlagState } from "@/lib/feature-flags";
+import { TalkList, type TalkItem } from "@/components/community/talk-list";
 import { getDictionary, getLocale } from "@/lib/i18n";
 
 type EventThread = {
@@ -29,29 +29,21 @@ function compactTime(value: string | null, locale: "ja" | "en") {
   return date.toLocaleDateString(formatLocale, { month: "numeric", day: "numeric" });
 }
 
-type TalkItem = {
-  href: string;
-  title: string;
-  image: string | null;
-  floor?: boolean;
-  preview: string;
-  lastMessageAt: string | null;
-  unread: boolean;
-};
-
 export default async function TalksPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const [supabase, friendDmState, floorGroupState] = await Promise.all([
+  const [supabase, friendDmState, floorGroupState, directoryState] = await Promise.all([
     createClient(),
     getFeatureFlagState("friend_dm"),
     getFeatureFlagState("floor_group_chat"),
+    getFeatureFlagState("resident_directory"),
   ]);
-  const [{ data: eventRows }, friendThreads, { data: floorRows }] = await Promise.all([
+  const [{ data: eventRows, error: eventError }, friendThreads, { data: floorRows, error: floorError }] = await Promise.all([
     supabase.rpc("event_talk_threads"),
     friendDmState === "hidden" ? Promise.resolve([]) : getFriendDmThreads(),
-    floorGroupState === "hidden" ? Promise.resolve({ data: [] as FloorThread[] }) : supabase.rpc("floor_group_thread"),
+    floorGroupState === "hidden" ? Promise.resolve({ data: [] as FloorThread[], error: null }) : supabase.rpc("floor_group_thread"),
   ]);
+  if (eventError || floorError) throw new Error(locale === "en" ? "Could not load conversations. Please retry." : "トークを読み込めませんでした。再読み込みしてください。");
   const threads: TalkItem[] = ((eventRows ?? []) as EventThread[]).map(event => ({
     href: `/talks/${event.event_id}`,
     title: locale === "en" && event.title_en ? event.title_en : event.title,
@@ -91,26 +83,9 @@ export default async function TalksPage() {
     <div className="mx-auto w-full max-w-3xl">
       <header className="mb-3 flex items-center justify-between gap-3 px-1">
         <h1 className="text-2xl font-bold tracking-tight">{dict.talks.title}</h1>
-        {friendDmState !== "hidden" && <Link href="/directory" aria-label={dict.talks.viewDirectory} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"><UserPlus aria-hidden="true" className="h-5 w-5" /></Link>}
+        {friendDmState !== "hidden" && directoryState !== "hidden" && <Link href="/directory" aria-label={dict.talks.viewDirectory} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"><UserPlus aria-hidden="true" className="h-5 w-5" /></Link>}
       </header>
-      <ul aria-label={dict.talks.title}>
-        {threads.map(thread => (
-          <li key={thread.href}>
-            <Link href={thread.href} className="flex min-w-0 items-center gap-3 rounded-xl px-1 py-3 transition-colors hover:bg-secondary/50 active:bg-secondary sm:px-3">
-              {thread.image ? <Image src={thread.image} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover" /> : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">{thread.floor ? <Building2 aria-hidden="true" className="h-6 w-6" /> : <MessageCircle aria-hidden="true" className="h-6 w-6" />}</span>}
-              <span className="min-w-0 flex-1">
-                <span className={`block truncate text-[15px] ${thread.unread ? "font-bold" : "font-medium"}`}>{thread.title}</span>
-                <span className="mt-1 flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground">
-                  <span className={`min-w-0 flex-1 truncate ${thread.unread ? "font-medium text-foreground" : ""}`}>{thread.preview}</span>
-                  {thread.lastMessageAt && <time dateTime={thread.lastMessageAt} className="shrink-0 text-xs">{compactTime(thread.lastMessageAt, locale)}</time>}
-                </span>
-              </span>
-              {thread.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-primary"><span className="sr-only">{locale === "en" ? "Unread" : "未読"}</span></span>}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {threads.length === 0 && <p className="py-16 text-center text-sm text-muted-foreground">{locale === "en" ? "No conversations yet." : "まだトークはありません。"}</p>}
+      <TalkList threads={threads.map(thread => ({ ...thread, timeLabel: compactTime(thread.lastMessageAt, locale) }))} locale={locale} />
     </div>
   );
 }

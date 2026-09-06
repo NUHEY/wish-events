@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BetaBadge } from "@/components/tools/beta-badge";
 import { RESIDENT_TOOLS, ResidentToolGrid } from "@/components/tools/resident-tool-grid";
 import type { ToolKey } from "@/lib/resident-tools";
-import type { ScheduleSession } from "@/lib/beta-tools";
+import { SCHEDULE_COPY, type ScheduleKind, type ScheduleSession } from "@/lib/beta-tools";
 import { getDictionary, getLocale } from "@/lib/i18n";
 
 export default async function ToolsPage() {
@@ -18,10 +18,13 @@ export default async function ToolsPage() {
   const states = await Promise.all(RESIDENT_TOOLS.map((tool) => tool.featureKey ? getFeatureFlagState(tool.featureKey) : Promise.resolve("public" as const)));
   const stateByKey = Object.fromEntries(RESIDENT_TOOLS.map((tool, index) => [tool.key, states[index]])) as Partial<Record<ToolKey, "public" | "beta" | "hidden">>;
   const access = await getManagementAccess();
-  const visibleKeys = RESIDENT_TOOLS.filter((tool) => (profile.role === "ra" || stateByKey[tool.key] !== "hidden") && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(access, "events")) && (tool.key !== "availability_matching" || canManage(access, "schedules")))).map((tool) => tool.key);
+  const visibleKeys = RESIDENT_TOOLS.filter((tool) => (stateByKey[tool.key] !== "hidden") && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(access, "events")) && (tool.key !== "availability_matching" || canManage(access, "schedules")))).map((tool) => tool.key);
   const supabase = await createClient();
-  const { data, error: schedulesError } = await supabase.from("schedule_sessions").select("*").order("created_at", { ascending: false }).limit(12);
-  const sessions = (data ?? []) as ScheduleSession[];
+  const visibleKinds = (Object.keys(SCHEDULE_COPY) as ScheduleKind[]).filter(kind => visibleKeys.includes(SCHEDULE_COPY[kind].flag));
+  const { data, error: schedulesError } = visibleKinds.length
+    ? await supabase.from("schedule_sessions").select("id,share_token,kind,title,start_date,end_date").in("kind", visibleKinds).order("created_at", { ascending: false }).limit(12)
+    : { data: [], error: null };
+  const sessions = (data ?? []) as Pick<ScheduleSession, "id" | "share_token" | "kind" | "title" | "start_date" | "end_date">[];
 
   const toolGroups: { title: string; keys: ToolKey[] }[] = [
     { title: locale === "ja" ? "仲間を見つける" : "Meet people", keys: ["resident_events", "resident_directory"] },
@@ -29,7 +32,7 @@ export default async function ToolsPage() {
     { title: locale === "ja" ? "寮生活・相談" : "Dorm life & advice", keys: ["ra_link_hub", "wish_knowledge"] },
     { title: locale === "ja" ? "便利な道具・共有" : "Everyday tools & sharing", keys: ["share_qr", "split_bill", "group_shuffle", "world_clock"] },
   ];
-  const showSchedules = sessions.length > 0 || visibleKeys.some((key) => ["availability_matching", "lets_chat_booking", "unit_room_sessions"].includes(key));
+  const showSchedules = visibleKinds.length > 0;
 
   return (
     <div className="space-y-8">

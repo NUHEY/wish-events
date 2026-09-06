@@ -40,7 +40,7 @@ async function hydrateDirectMessages(supabase: Awaited<ReturnType<typeof createC
  */
 export async function getFriendDmThreads() {
   const supabase = await createClient();
-  const { data: threads } = await supabase.rpc("friend_dm_threads").returns<
+  const { data: threads, error: threadsError } = await supabase.rpc("friend_dm_threads").returns<
     {
       friend_id: string;
       last_message_body: string | null;
@@ -50,12 +50,14 @@ export async function getFriendDmThreads() {
       unread: boolean;
     }[]
   >();
+  if (threadsError) throw new Error("トークを読み込めませんでした。再読み込みしてください。");
   const rows = threads ?? [];
   if (rows.length === 0) return [];
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .rpc("event_community_profiles_v3", { profile_ids: rows.map((r) => r.friend_id) })
     .returns<CommunityProfile[]>();
+  if (profilesError) throw new Error("トークの参加者を読み込めませんでした。再読み込みしてください。");
   const profilesById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   return rows

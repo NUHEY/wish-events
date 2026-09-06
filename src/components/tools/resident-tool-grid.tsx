@@ -27,7 +27,7 @@ export function ResidentToolGrid({
   const candidates = includedKeys
     ? includedKeys.flatMap(key => RESIDENT_TOOLS.filter(tool => tool.key === key))
     : RESIDENT_TOOLS;
-  const tools = candidates.filter(tool => profileRole === "ra" || !tool.featureKey || (stateByKey[tool.key] ?? "hidden") !== "hidden");
+  const tools = candidates.filter(tool => !tool.featureKey || (stateByKey[tool.key] ?? "hidden") !== "hidden");
   if (compact) {
     return (
       <div className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-3">
@@ -75,7 +75,7 @@ export function ResidentToolGrid({
           : profileRole === "resident" && tool.residentDescription ? tool.residentDescription : tool.description;
         return (
           <ToolCard key={tool.key} href={href} title={title} description={description} icon={tool.icon} accent={tool.accent}
-            badges={<>{state === "beta" && <BetaBadge />}{state === "hidden" && profileRole === "ra" && <span className="rounded-full bg-secondary px-2 py-1 text-[9px] font-bold text-muted-foreground">{locale === "en" ? "Private preview" : "非公開プレビュー"}</span>}</>} />
+            badges={<>{state === "beta" && <BetaBadge />}</>} />
         );
       })}
     </div>

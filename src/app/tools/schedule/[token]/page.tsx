@@ -1,5 +1,7 @@
 import { getManagementAccess } from "@/lib/management-access";
 import { canManage } from "@/lib/management-permissions";
+import { getFeatureFlagState } from "@/lib/feature-flags";
+import { SCHEDULE_COPY } from "@/lib/beta-tools";
 import { notFound } from "next/navigation";
 import { ScheduleRoom } from "@/components/tools/schedule-room";
 import { getCurrentProfile } from "@/lib/auth";
@@ -14,6 +16,7 @@ export default async function ScheduleRoomPage({ params }: { params: { token: st
   if (sessionError) throw new Error("日程を読み込めませんでした。再読み込みしてください。");
   if (!sessionData) notFound();
   const session = sessionData as ScheduleSession;
+  if ((await getFeatureFlagState(SCHEDULE_COPY[session.kind].flag)) === "hidden" && !canManage(await getManagementAccess(), "schedules")) notFound();
   const isBookingResident = session.kind === "lets_chat" && session.status === "open" && profile.account_kind === "resident" && profile.role === "resident" && profile.floor_number === session.floor_number;
   const [{ data: participantRows, error: participantError }, { data: availabilityRows, error: availabilityError }, { data: bookingRows, error: bookingError }, { data: profiles, error: profilesError }, openResult, eligibilityResult] = await Promise.all([
     supabase.from("schedule_participants").select("*").eq("session_id", session.id),
