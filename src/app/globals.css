@@ -388,3 +388,10 @@ html[data-motion="reduce"] .wish-brand-title::after { animation: none !important
 @media (prefers-reduced-motion: reduce) {
   .wish-brand-title, .wish-brand-title::after { animation: none !important; }
 }
+
+/* Press feedback never changes message layout or interferes with scrolling. */
+.event-message-press { transition: transform 220ms cubic-bezier(.2,.8,.2,1.2); -webkit-touch-callout: none; }
+.event-message-press[data-pressed="true"] { transform: scale(.965); }
+.event-message-press:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+html[data-motion="reduce"] .event-message-press { transition: none; transform: none; }
+@media (prefers-reduced-motion: reduce) { .event-message-press { transition: none; transform: none !important; } }

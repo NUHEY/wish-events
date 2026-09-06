@@ -1,9 +1,10 @@
 "use client";
 
 import { shouldReduceMotion } from "@/lib/motion";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type PointerEvent } from "react";
 import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
 import {
+  ArrowDown,
   BarChart3,
   Check,
   Copy,
@@ -145,6 +146,13 @@ export function EventTalk({
   const [voteState, setVoteState] = useState(votes);
   const [pollsState, setPollsState] = useState(polls);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [pressedId, setPressedId] = useState<string | null>(null);
+  const pressRef = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
+  const suppressTapRef = useRef<string | null>(null);
+  const nearBottomRef = useRef(true);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const reactingRef = useRef(new Set<string>());
   const [heartPulseId, setHeartPulseId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -217,7 +225,8 @@ export function EventTalk({
               const { data: poll } = await supabase2.from("event_polls").select("*").eq("id", row.poll_id).maybeSingle();
               if (poll) setPollsState((current) => (current.some((p) => p.id === poll.id) ? current : [...current, poll]));
             }
-            scrollToBottom();
+            if (nearBottomRef.current) requestAnimationFrame(() => scrollToBottom());
+            else setHasNewMessages(true);
           })();
         }
       )
@@ -274,6 +283,7 @@ export function EventTalk({
   useEffect(() => {
     const tapTimers = tapTimerRef.current;
     return () => {
+      if (pressRef.current) window.clearTimeout(pressRef.current.timer);
       if (heartTimerRef.current) window.clearTimeout(heartTimerRef.current);
       tapTimers.forEach((timer) => window.clearTimeout(timer));
     };
@@ -320,6 +330,10 @@ export function EventTalk({
   }, []);
 
   function react(messageId: string, emoji: Reaction["emoji"]) {
+    if (messageId.startsWith("pending-")) return;
+    const key = `${messageId}:${emoji}`;
+    if (reactingRef.current.has(key)) return;
+    reactingRef.current.add(key);
     const active = reactionState.some(
       (reaction) => reaction.message_id === messageId && reaction.user_id === currentUserId && reaction.emoji === emoji
     );
@@ -330,9 +344,17 @@ export function EventTalk({
           )
         : [...current, { message_id: messageId, user_id: currentUserId, emoji }]
     );
-    void toggleEventMessageReaction(messageId, emoji, active).then((result) => {
-      if (result?.error) setError(result.error);
-    });
+    const rollback = (message: string) => {
+      setError(message);
+      setReactionState(current => [
+        ...current.filter(reaction => !(reaction.message_id === messageId && reaction.user_id === currentUserId && reaction.emoji === emoji)),
+        ...(active ? [{ message_id: messageId, user_id: currentUserId, emoji }] : []),
+      ]);
+    };
+    void toggleEventMessageReaction(messageId, emoji, active)
+      .then(result => { if (result?.error) rollback(result.error); })
+      .catch(() => rollback(dict.toast.error))
+      .finally(() => reactingRef.current.delete(key));
   }
 
   function quickReact(messageId: string) {
@@ -350,6 +372,8 @@ export function EventTalk({
    * ダブルタップ→即❤️リアクション（Instagram DM風）。
    */
   function handleBubbleTap(message: Message, kind: "text" | "image") {
+    if (suppressTapRef.current === message.id) { suppressTapRef.current = null; return; }
+    if (message.id.startsWith("pending-")) return;
     const pendingTimer = tapTimerRef.current.get(message.id);
     if (pendingTimer) {
       window.clearTimeout(pendingTimer);
@@ -366,6 +390,57 @@ export function EventTalk({
       }
     }, TAP_WINDOW_MS);
     tapTimerRef.current.set(message.id, timer);
+  }
+
+  function cancelPress() {
+    if (pressRef.current) window.clearTimeout(pressRef.current.timer);
+    pressRef.current = null;
+    setPressedId(null);
+  }
+
+  function bubbleControls(message: Message) {
+    const open = () => {
+      const tap = tapTimerRef.current.get(message.id);
+      if (tap) window.clearTimeout(tap);
+      tapTimerRef.current.delete(message.id);
+      cancelPress();
+      setOpenMenuId(message.id);
+    };
+    return {
+      tabIndex: 0,
+      "aria-label": locale === "en" ? "Message actions" : "メッセージの操作",
+      "aria-expanded": openMenuId === message.id,
+      "data-pressed": pressedId === message.id,
+      onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+        if (!event.isPrimary || event.button !== 0 || message.id.startsWith("pending-") || (event.target as HTMLElement).closest("a,button")) return;
+        cancelPress();
+        suppressTapRef.current = null;
+        setPressedId(message.id);
+        pressRef.current = { id: message.id, x: event.clientX, y: event.clientY, timer: window.setTimeout(() => {
+          suppressTapRef.current = message.id;
+          open();
+        }, 420) };
+      },
+      onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+        const press = pressRef.current;
+        if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) {
+          suppressTapRef.current = message.id;
+          cancelPress();
+        }
+      },
+      onPointerUp: cancelPress,
+      onPointerCancel: cancelPress,
+      onPointerLeave: cancelPress,
+      onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => {
+        if ((event.target as HTMLElement).closest("a,button") || message.id.startsWith("pending-")) return;
+        event.preventDefault();
+        suppressTapRef.current = message.id;
+        open();
+      },
+      onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); open(); }
+      },
+    };
   }
 
   async function copyMessageText(message: Message) {
@@ -404,6 +479,15 @@ export function EventTalk({
       <div
         ref={setMessagesScrollRef}
         className="chat-messages flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto bg-[linear-gradient(180deg,var(--chat-bg-sidebar),var(--chat-bg-main)_10rem)] px-3.5 py-5 sm:min-h-[20rem] sm:px-5"
+        onScroll={() => {
+          const node = scrollRef.current;
+          if (!node) return;
+          const near = node.scrollHeight - node.scrollTop - node.clientHeight < 100;
+          nearBottomRef.current = near;
+          setAwayFromBottom(!near);
+          if (near) setHasNewMessages(false);
+          cancelPress();
+        }}
       >
         {hasMoreOlderState && (
           <button
@@ -448,6 +532,7 @@ export function EventTalk({
 
           return (
             <Fragment key={message.id}>
+              {(!prev || new Date(prev.created_at).toDateString() !== new Date(message.created_at).toDateString()) && <div className="my-4 self-center text-[11px] font-medium text-muted-foreground"><time dateTime={message.created_at}>{new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(message.created_at))}</time></div>}
               {message.id === firstUnreadId && (
                 <div ref={unreadMarkerRef} className="my-3 flex w-full items-center gap-2" role="separator" aria-label={dict.talks.unreadFromHere}>
                   <span className="h-px flex-1 bg-destructive/35" />
@@ -492,7 +577,8 @@ export function EventTalk({
                 {message.mediaUrl ? (
                   // 写真メッセージは吹き出しの背景色を持たず、画像そのものを浮かせて表示する（Instagram DM風）。
                   <div
-                      className="relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-2xl border border-[var(--chat-border)] shadow-[var(--chat-shadow-md)]"
+                      {...bubbleControls(message)}
+                      className="event-message-press relative w-fit max-w-full cursor-pointer select-none overflow-hidden rounded-2xl border border-[var(--chat-border)] shadow-[var(--chat-shadow-md)]"
                     onClick={() => handleBubbleTap(message, "image")}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -535,7 +621,7 @@ export function EventTalk({
                     <PollCard poll={poll} votes={voteState.filter((vote) => vote.poll_id === poll.id)} currentUserId={currentUserId} onVote={castVote} />
                   </div>
                 ) : (
-                  <div className={`relative ${bubbleBase}`} onClick={() => handleBubbleTap(message, "text")}>
+                  <div {...bubbleControls(message)} className={`event-message-press relative ${bubbleBase}`} onClick={() => handleBubbleTap(message, "text")}>
                     <p className="cursor-pointer select-none whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                       {linkifyText(normalizeBody(message.body), `${message.id}-body`, appOrigin, internalLabels)}
                     </p>
@@ -576,6 +662,9 @@ export function EventTalk({
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
                     <div
+                      role="toolbar"
+                      aria-label={locale === "en" ? "Message actions" : "メッセージの操作"}
+                      onKeyDown={event => { if (event.key === "Escape") setOpenMenuId(null); }}
                       className={`absolute bottom-full z-50 mb-2 flex items-center gap-0.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] px-2 py-1.5 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
                         mine ? "right-0" : "left-0"
                       }`}
@@ -604,7 +693,7 @@ export function EventTalk({
                             react(message.id, emoji);
                             setOpenMenuId(null);
                           }}
-                          className="rounded-full p-1 text-lg leading-none transition-transform hover:scale-125 active:scale-90"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-110 active:scale-90"
                         >
                           {emoji}
                         </button>
@@ -619,6 +708,7 @@ export function EventTalk({
         })}
         <div ref={endRef} />
       </div>
+      {awayFromBottom && <div className="flex shrink-0 justify-center bg-[var(--chat-bg-main)] py-1"><Button type="button" variant="secondary" size="sm" className="gap-1.5 rounded-full text-xs" onClick={() => scrollToBottom()}><ArrowDown aria-hidden="true" className="h-3.5 w-3.5" />{hasNewMessages ? (locale === "en" ? "New messages" : "新しいメッセージ") : (locale === "en" ? "Jump to latest" : "最新へ")}</Button></div>}
       <Composer
         eventId={eventId}
         currentUserId={currentUserId}
