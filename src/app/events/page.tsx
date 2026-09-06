@@ -6,8 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
 import { EventFilter } from "@/components/events/event-filter";
-import { EventStatusFilter } from "@/components/events/event-status-filter";
-import { EventCalendar } from "@/components/events/event-calendar";
 import { PendingSurveyBanner } from "@/components/surveys/pending-survey-banner";
 import { Input } from "@/components/ui/input";
 import { getLocale, getDictionary } from "@/lib/i18n";
@@ -46,7 +44,7 @@ export default async function EventsPage({
   const isMonthKey = (v: string | undefined): v is string => !!v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v);
 
   // 日付系の絞り込みは「単日」「期間（いつからいつ）」「月指定（何月中）」の
-  // いずれか1つが有効という前提でURLが組み立てられる（event-calendar.tsx側で排他制御）。
+  // いずれか1つが有効という前提でURLが組み立てられる（event-filter-state.ts側で排他制御）。
   // ここでは優先順位: 単日 > 期間 > 月 の順で解決し、開催状況に関わらずその範囲だけに絞り込む。
   let dateRange: { start: string | null; end: string | null } | null = null;
   if (isDateKey(date)) {
@@ -120,12 +118,10 @@ export default async function EventsPage({
   const upcomingEvents = allUpcomingEvents.filter(canShowEvent);
   const pastEvents = allPastEvents.filter(canShowEvent);
   const dateEvents = allDateEvents.filter(canShowEvent);
-  const calendarDates = [...upcomingEvents, ...pastEvents, ...dateEvents].map((event) => event.event_date);
 
   const hasUpcoming = !!upcomingEvents && upcomingEvents.length > 0;
   const hasPast = !!pastEvents && pastEvents.length > 0;
   const hasDateResults = !!dateEvents && dateEvents.length > 0;
-  const hasFilters = !!(query || category || (status && status !== "all") || date || from || to || month);
 
   return (
     <div className="relative flex flex-col gap-6">
@@ -161,17 +157,6 @@ export default async function EventsPage({
           <Button type="submit" className="h-11 shrink-0 rounded-full">{dict.common.search}</Button>
         </form>
         <EventFilter />
-        <fieldset className="min-w-0 space-y-2">
-          <legend className="mb-2 text-xs font-semibold text-muted-foreground">{locale === "ja" ? "開催状況" : "Event status"}</legend>
-          <EventStatusFilter />
-          {showDateOnly && <p className="text-xs text-muted-foreground">{locale === "ja" ? "指定した日付のイベントを表示しています。開催状況を選ぶと日付指定が解除されます。" : "Showing events for your selected dates. Choosing a status clears the date filter."}</p>}
-        </fieldset>
-        <EventCalendar eventDates={calendarDates} />
-        {hasFilters && (
-          <Link href="/events" className={buttonVariants({ variant: "outline", className: "min-h-11 w-fit rounded-full" })}>
-            {dict.home.clearFilters}
-          </Link>
-        )}
       </div>
 
       {error && (

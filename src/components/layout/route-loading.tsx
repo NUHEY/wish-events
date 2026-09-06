@@ -36,7 +36,7 @@ function Content({ variant }: { variant: LoadingVariant }) {
     case "home":
       return <><Heading /><Block className="h-5 w-36" /><EventCards compact /><Block className="h-5 w-28" /><Rows /></>;
     case "events":
-      return <><Heading /><Block className="h-11 w-full" /><div className="flex gap-2"><Block className="h-9 w-24" /><Block className="h-9 w-32" /></div><EventCards /></>;
+      return <><Heading /><Block className="h-11 w-full" /><Block className="h-11 w-32" /><EventCards /></>;
     case "event":
       return <div className="mx-auto max-w-3xl space-y-4"><Block className="h-5 w-28" /><Block className={cn("mx-auto w-full max-w-[min(100%,49.5vh)]", EVENT_POSTER_RATIO_CLASS)} /><Heading /><Rows /></div>;
     case "tools":
