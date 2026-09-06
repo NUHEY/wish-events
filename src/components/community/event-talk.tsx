@@ -10,6 +10,9 @@ import {
   Copy,
   Heart,
   ImagePlus,
+  Link2,
+  Plus,
+  Reply,
   Loader2,
   Send,
   X,
@@ -24,7 +27,7 @@ import {
   toggleEventMessageReaction,
   voteEventPoll,
 } from "@/actions/event-community";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarRing } from "@/components/profile/avatar-ring";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
@@ -61,20 +64,31 @@ const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
 
 /** 自サイト内のURLかどうか判定する（appOriginはサーバーから渡された絶対URLの起点）。 */
 function internalPath(url: string, appOrigin: string): string | null {
-  if (!appOrigin) return null;
-  if (url === appOrigin) return "/";
-  if (url.startsWith(`${appOrigin}/`)) return url.slice(appOrigin.length);
-  return null;
+  try {
+    const target = new URL(url);
+    if (!appOrigin || target.origin !== new URL(appOrigin).origin) return null;
+    if (target.pathname.startsWith("//")) return null;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch { return null; }
 }
 
-function internalLinkLabel(path: string, labels: { survey: string; event: string; open: string }): string {
+function internalLinkLabel(path: string, labels: { survey: string; event: string; open: string; schedule: string; profile: string; wisdom: string; tools: string }): string {
   if (path.includes("/survey")) return labels.survey;
   if (path.startsWith("/events/")) return labels.event;
+  if (path.startsWith("/tools/schedule/")) return labels.schedule;
+  if (path.startsWith("/directory/")) return labels.profile;
+  if (path.startsWith("/wisdom")) return labels.wisdom;
+  if (path.startsWith("/tools")) return labels.tools;
   return labels.open;
 }
 
 /** メッセージ本文中のURLを、自サイト内なら綺麗なボタンに、それ以外は通常のリンクに変換する。 */
-function linkifyText(text: string, keyPrefix: string, appOrigin: string, labels: { survey: string; event: string; open: string }) {
+function linkifyText(text: string, keyPrefix: string, appOrigin: string, labels: { survey: string; event: string; open: string; schedule: string; profile: string; wisdom: string; tools: string }): React.ReactNode {
+  if (text.startsWith("> ")) {
+    const end = text.indexOf("\n");
+    const quote = end < 0 ? text.slice(2) : text.slice(2, end);
+    return <><span className="mb-2 block border-l-2 border-current/30 bg-black/5 px-2 py-1 text-xs leading-relaxed opacity-80">{quote}</span>{end >= 0 && linkifyText(text.slice(end + 1).trimStart(), `${keyPrefix}-reply`, appOrigin, labels)}</>;
+  }
   return text.split(URL_PATTERN).map((part, index) => {
     if (!/^https?:\/\//.test(part)) return <span key={`${keyPrefix}-${index}`}>{part}</span>;
     const path = internalPath(part, appOrigin);
@@ -84,9 +98,10 @@ function linkifyText(text: string, keyPrefix: string, appOrigin: string, labels:
           key={`${keyPrefix}-${index}`}
           href={path}
           onClick={(e) => e.stopPropagation()}
-          className="mt-1 inline-flex items-center gap-1 rounded-xl bg-primary/12 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+          className={`${buttonVariants({ variant: "outline", size: "sm" })} my-1 max-w-full whitespace-normal text-left text-xs text-foreground`}
+          prefetch={false}
         >
-          {internalLinkLabel(path, labels)}
+          <Link2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />{internalLinkLabel(path, labels)}
         </Link>
       );
     }
@@ -146,6 +161,7 @@ export function EventTalk({
   const [voteState, setVoteState] = useState(votes);
   const [pollsState, setPollsState] = useState(polls);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pressedId, setPressedId] = useState<string | null>(null);
   const pressRef = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
   const suppressTapRef = useRef<string | null>(null);
@@ -197,7 +213,19 @@ export function EventTalk({
     survey: dict.talks.internalSurvey,
     event: dict.talks.internalEvent,
     open: dict.talks.internalOpen,
-  }), [dict]);
+    schedule: locale === "en" ? "Open schedule / booking" : "日程・予約を開く",
+    profile: locale === "en" ? "View profile" : "プロフィールを見る",
+    wisdom: locale === "en" ? "Open WISH Knowledge" : "WISH知恵袋を開く",
+    tools: locale === "en" ? "Open tool" : "ツールを開く",
+  }), [dict, locale]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const preventSelection = (event: Event) => event.preventDefault();
+    node.addEventListener("selectstart", preventSelection);
+    return () => node.removeEventListener("selectstart", preventSelection);
+  }, []);
 
   function scrollToBottom(smooth = true) {
     endRef.current?.scrollIntoView({ behavior: smooth && !shouldReduceMotion() ? "smooth" : "instant", block: "end" });
@@ -368,7 +396,7 @@ export function EventTalk({
   }
 
   /**
-   * バブルのタップ操作: シングルタップ→メニュー（コピー・リアクション）or 画像なら拡大表示、
+   * バブルのタップ操作: 画像はシングルタップで拡大、テキストは長押しでメニュー、
    * ダブルタップ→即❤️リアクション（Instagram DM風）。
    */
   function handleBubbleTap(message: Message, kind: "text" | "image") {
@@ -385,8 +413,6 @@ export function EventTalk({
       tapTimerRef.current.delete(message.id);
       if (kind === "image" && message.mediaUrl) {
         setLightboxUrl(message.mediaUrl);
-      } else {
-        setOpenMenuId((current) => (current === message.id ? null : message.id));
       }
     }, TAP_WINDOW_MS);
     tapTimerRef.current.set(message.id, timer);
@@ -419,7 +445,7 @@ export function EventTalk({
         pressRef.current = { id: message.id, x: event.clientX, y: event.clientY, timer: window.setTimeout(() => {
           suppressTapRef.current = message.id;
           open();
-        }, 420) };
+        }, 650) };
       },
       onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
         const press = pressRef.current;
@@ -434,6 +460,8 @@ export function EventTalk({
       onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => {
         if ((event.target as HTMLElement).closest("a,button") || message.id.startsWith("pending-")) return;
         event.preventDefault();
+        // Native touch callouts can fire before our intentional long-press delay.
+        if (pressRef.current) return;
         suppressTapRef.current = message.id;
         open();
       },
@@ -474,7 +502,7 @@ export function EventTalk({
     new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(createdAt));
 
   return (
-    <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
+    <ChatProvider currentUser={chatCurrentUser} theme="aurora" className="event-chat-thread flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--chat-bg-main)] font-[var(--chat-font-sans)] sm:rounded-b-2xl sm:border-x sm:border-b sm:border-[var(--chat-border)] sm:shadow-sm">
       <ChatConnectionStatus state={connection} />
       <div
         ref={setMessagesScrollRef}
@@ -584,6 +612,7 @@ export function EventTalk({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={message.mediaUrl}
+                      draggable={false}
                       alt={dict.talks.eventImageAlt}
                       loading="lazy"
                       decoding="async"
@@ -665,11 +694,12 @@ export function EventTalk({
                       role="toolbar"
                       aria-label={locale === "en" ? "Message actions" : "メッセージの操作"}
                       onKeyDown={event => { if (event.key === "Escape") setOpenMenuId(null); }}
-                      className={`absolute bottom-full z-50 mb-2 flex items-center gap-0.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] px-2 py-1.5 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
+                      className={`absolute bottom-full z-50 mb-2 flex w-max max-w-[calc(100vw-4rem)] flex-wrap items-center justify-center gap-0.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] px-2 py-1.5 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
                         mine ? "right-0" : "left-0"
                       }`}
                     >
-                      {hasCaption && !message.mediaUrl && (
+                      <button type="button" aria-label={locale === "en" ? "Quote and reply" : "引用して返信"} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary" onClick={() => { setReplyTo(message); setOpenMenuId(null); }}><Reply aria-hidden="true" className="h-4 w-4" /></button>
+                      {hasCaption && (
                         <>
                           <button
                             type="button"
@@ -708,8 +738,11 @@ export function EventTalk({
         })}
         <div ref={endRef} />
       </div>
-      {awayFromBottom && <div className="flex shrink-0 justify-center bg-[var(--chat-bg-main)] py-1"><Button type="button" variant="secondary" size="sm" className="gap-1.5 rounded-full text-xs" onClick={() => scrollToBottom()}><ArrowDown aria-hidden="true" className="h-3.5 w-3.5" />{hasNewMessages ? (locale === "en" ? "New messages" : "新しいメッセージ") : (locale === "en" ? "Jump to latest" : "最新へ")}</Button></div>}
+      {awayFromBottom && <div className="pointer-events-none relative z-20 h-0 shrink-0"><div className="absolute inset-x-0 bottom-3 flex justify-center"><Button type="button" variant="secondary" size="sm" className="pointer-events-auto gap-1.5 rounded-full border border-border text-xs shadow-sm" onClick={() => scrollToBottom()}><ArrowDown aria-hidden="true" className="h-3.5 w-3.5" />{hasNewMessages ? (locale === "en" ? "New messages" : "新しいメッセージ") : (locale === "en" ? "Jump to latest" : "最新へ")}</Button></div></div>}
       <Composer
+        appOrigin={appOrigin}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
         eventId={eventId}
         currentUserId={currentUserId}
         onOptimisticAdd={addOptimisticMessages}
@@ -732,6 +765,9 @@ export function EventTalk({
 }
 
 function Composer({
+  appOrigin,
+  replyTo,
+  onCancelReply,
   eventId,
   currentUserId,
   onOptimisticAdd,
@@ -741,6 +777,9 @@ function Composer({
   onDismissExternalError,
   onFocus,
 }: {
+  appOrigin: string;
+  replyTo: Message | null;
+  onCancelReply: () => void;
   eventId: string;
   currentUserId: string;
   onOptimisticAdd: (rows: Message[]) => void;
@@ -753,6 +792,7 @@ function Composer({
   const dict = useDict();
   const locale = useLocale();
   const [body, setBody] = useState("");
+  const [showExtras, setShowExtras] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -785,8 +825,12 @@ function Composer({
   }
 
   function handleSend() {
-    const text = body.trim();
-    if (!text && stagedImages.length === 0) return;
+    if (pending || uploading || (!body.trim() && stagedImages.length === 0)) return;
+    const quote = replyTo ? `> ${(replyTo.sender?.full_name ?? dict.talks.residentFallback).replace(/\s+/g, " ")}: ${(replyTo.body || dict.talks.imageReceived).replace(/\s+/g, " ").slice(0, 180)}\n\n` : "";
+    const text = quote + body.trim();
+    if (text.length > 2000) { setError(locale === "en" ? "Keep the message and quote within 2,000 characters." : "引用を含めて2,000文字以内にしてください。"); return; }
+    onCancelReply();
+    setShowExtras(false);
     setError(null);
     onDismissExternalError();
 
@@ -840,6 +884,8 @@ function Composer({
         .map((path, index) => ({ path, index }))
         .filter((entry): entry is { path: string; index: number } => !!entry.path);
       if (okIndexes.length === 0) {
+        setBody(text);
+        setStagedImages(staged);
         setError(dict.talks.imageSendFailed);
         return;
       }
@@ -877,6 +923,14 @@ function Composer({
 
   return (
     <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
+      {replyTo && <div className="mb-2 flex items-center gap-2 rounded-lg border-l-2 border-primary bg-secondary/50 px-3 py-2 text-xs"><Reply aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 flex-1"><span className="block font-medium">{locale === "en" ? "Quote and reply" : "引用して返信"} · {replyTo.sender?.full_name ?? dict.talks.residentFallback}</span><span className="block truncate text-muted-foreground">{replyTo.body || dict.talks.imageReceived}</span></span><Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Cancel reply" : "返信を取り消す"} onClick={onCancelReply}><X className="h-4 w-4" /></Button></div>}
+      {showExtras && <div className="mb-2 flex flex-wrap gap-2">
+        {[
+          { label: locale === "en" ? "Share this event" : "このイベントを共有", text: `${appOrigin}/events/${eventId}` },
+          { label: locale === "en" ? "Share my profile" : "自分のプロフィールを共有", text: `${appOrigin}/directory/${currentUserId}` },
+          { label: locale === "en" ? "Checklist" : "持ち物・チェックリスト", text: locale === "en" ? "Checklist\n☐ \n☐ \n☐ " : "持ち物・確認事項\n☐ \n☐ \n☐ " },
+        ].map(item => <Button key={item.label} type="button" size="sm" variant="outline" disabled={pending || uploading} className="text-xs" onClick={() => { setBody(current => `${current}${current ? "\n" : ""}${item.text}`.slice(0, 2000)); setShowExtras(false); }}>{item.label}</Button>)}
+      </div>}
       {stagedImages.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {stagedImages.map((item) => (
@@ -897,6 +951,7 @@ function Composer({
       )}
 
       <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
+        <Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Sharing and templates" : "共有・テンプレート"} aria-expanded={showExtras} className="h-9 w-9 shrink-0 self-end rounded-full" onClick={() => setShowExtras(value => !value)}>{showExtras ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</Button>
         <label className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
           <ImagePlus className="h-5 w-5" />
           <input
@@ -913,12 +968,18 @@ function Composer({
           />
         </label>
         <Textarea
+          aria-label={locale === "en" ? "Message" : "メッセージ"}
+          onPaste={event => {
+            const images = Array.from(event.clipboardData.files).filter(file => file.type.startsWith("image/"));
+            if (images.length && !pending && !uploading) { event.preventDefault(); addStagedFiles(images); }
+          }}
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          title={locale === "en" ? "Enter: new line · Ctrl/⌘ + Enter: send" : "Enterで改行・Ctrl/⌘＋Enterで送信"}
           onKeyDown={(e) => {
             // IME変換確定のEnterまで送信してしまい、テキスト欄に変換途中の
             // 文字が残る不具合があったため、isComposing中は無視する。
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
               e.preventDefault();
               handleSend();
             }

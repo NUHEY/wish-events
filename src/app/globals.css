@@ -390,8 +390,9 @@ html[data-motion="reduce"] .wish-brand-title::after { animation: none !important
 }
 
 /* Press feedback never changes message layout or interferes with scrolling. */
-.event-message-press { transition: transform 220ms cubic-bezier(.2,.8,.2,1.2); -webkit-touch-callout: none; }
-.event-message-press[data-pressed="true"] { transform: scale(.965); }
+.event-chat-thread .chat-messages, .event-chat-thread .chat-messages * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.event-message-press { transition: transform 220ms cubic-bezier(.2,.8,.2,1.2); touch-action: pan-y pinch-zoom; }
+.event-message-press[data-pressed="true"] { transform: scale(.975); transition: transform 650ms cubic-bezier(.2,.6,.3,1); }
 .event-message-press:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 html[data-motion="reduce"] .event-message-press { transition: none; transform: none; }
 @media (prefers-reduced-motion: reduce) { .event-message-press { transition: none; transform: none !important; } }
