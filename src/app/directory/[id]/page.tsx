@@ -352,7 +352,7 @@ export default async function DirectoryProfilePage({
                       className="shrink-0"
                     />
                     <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
-                      <h4 className="line-clamp-2 break-words text-sm font-semibold leading-snug sm:text-base">{(locale === "en" && event.title_en) || event.title}</h4>
+                      <h4 className="line-clamp-2 min-h-[2.75em] break-words text-sm font-semibold leading-snug sm:text-base">{(locale === "en" && event.title_en) || event.title}</h4>
                       <time dateTime={event.event_date} className="mt-auto text-xs leading-4 text-muted-foreground sm:text-sm sm:leading-5">
                         {formatEventDateTime(event.event_date, locale, true, false)}
                       </time>

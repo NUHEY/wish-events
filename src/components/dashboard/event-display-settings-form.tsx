@@ -95,7 +95,7 @@ export function EventDisplaySettingsForm({ settings }: { settings: SiteSettings 
         </section>
 
         <section className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-          <div className="grid gap-1.5"><Label htmlFor="event_title_lines">タイトルの行数</Label><Select id="event_title_lines" name="event_title_lines" defaultValue={String(settings.eventTitleLines)}><option value="1">1行</option><option value="2">2行（標準）</option><option value="3">3行</option></Select><p className="text-xs text-muted-foreground">長いタイトルは末尾を省略し、一覧の見た目をそろえます。</p></div>
+          <div className="grid gap-1.5"><input type="hidden" name="event_title_lines" value="2" /><span className="text-sm font-medium">タイトルは最大2行</span><p className="text-xs text-muted-foreground">カードの余白を抑え、長いタイトルの続きは詳細画面に表示します。</p></div>
           <div className="grid gap-1.5"><Label htmlFor="event_card_density">カード内の余白</Label><Select id="event_card_density" name="event_card_density" defaultValue={settings.eventCardDensity}><option value="compact">コンパクト</option><option value="comfortable">ゆったり</option></Select><p className="text-xs text-muted-foreground">日時は省略せず、必要に応じて折り返します。</p></div>
         </section>
 

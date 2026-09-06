@@ -24,9 +24,10 @@ export function ResidentToolGrid({
   density?: "minimal" | "compact";
   locale?: Locale;
 }) {
-  const tools = includedKeys
+  const candidates = includedKeys
     ? includedKeys.flatMap(key => RESIDENT_TOOLS.filter(tool => tool.key === key))
     : RESIDENT_TOOLS;
+  const tools = candidates.filter(tool => profileRole === "ra" || !tool.featureKey || (stateByKey[tool.key] ?? "hidden") !== "hidden");
   if (compact) {
     return (
       <div className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-3">

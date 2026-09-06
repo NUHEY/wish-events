@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptFriendRequest, removeFriendRequest, type IncomingFriendRequest } from "@/actions/friends";
@@ -12,20 +12,33 @@ import { useDict } from "@/lib/i18n/locale-provider";
 export function IncomingFriendRequests({ requests }: { requests: IncomingFriendRequest[] }) {
   const dict = useDict();
   const [items, setItems] = useState(requests);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+  const busy = useRef(false);
+  useEffect(() => { setItems(requests); }, [requests]);
 
   if (items.length === 0) return null;
 
-  function respond(id: string, action: "accept" | "decline") {
-    setItems((current) => current.filter((r) => r.id !== id));
-    startTransition(async () => {
-      if (action === "accept") await acceptFriendRequest(id);
-      else await removeFriendRequest(id);
-    });
+  async function respond(id: string, action: "accept" | "decline") {
+    if (busy.current) return;
+    busy.current = true;
+    setPending(true);
+    setError(false);
+    try {
+      const result = action === "accept" ? await acceptFriendRequest(id) : await removeFriendRequest(id);
+      if (result.error || !result.success) setError(true);
+      else setItems((current) => current.filter((r) => r.id !== id));
+    } catch {
+      setError(true);
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
   return (
-    <div className="grid gap-2 border-t border-border pt-4">
+    <div className="grid gap-2 border-t border-border pt-4" aria-busy={pending}>
+      {error && <p role="alert" className="text-xs text-destructive">{dict.directory.friendActionError}</p>}
       <p className="text-xs text-muted-foreground">{dict.directory.incomingRequestsTitle}</p>
       <div className="flex flex-col gap-2">
         {items.map((r) => (

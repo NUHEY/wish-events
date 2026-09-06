@@ -80,7 +80,7 @@ export default async function HomePage() {
     { data: popularRowsDataRaw },
     { data: friendsRowsDataRaw },
     { data: residentEventsRaw },
-    { data: homeToolRowsRaw },
+    { data: homeToolRowsRaw, error: homeToolsError },
     { data: latestPublishedRaw },
     { data: latestImmediateRaw },
     homeSettings,
@@ -154,7 +154,7 @@ export default async function HomePage() {
   const homeToolRows = (homeToolRowsRaw ?? []) as { key: FeatureFlagKey; state: FeatureFlagState; show_on_home: boolean; home_position: number }[];
   const managementAccess = profile.account_kind === "resident" ? null : await getManagementAccess();
   const homeTools = resolveHomeTools(homeSettings.homeToolLayout, homeToolRows);
-  const visibleHomeToolKeys = homeTools.filter(tool => tool.showOnHome && tool.state !== "hidden" && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(managementAccess!, "events")) && (tool.key !== "availability_matching" || canManage(managementAccess!, "schedules")))).map(tool => tool.key);
+  const visibleHomeToolKeys = homeTools.filter(tool => !homeToolsError && tool.showOnHome && tool.state !== "hidden" && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(managementAccess!, "events")) && (tool.key !== "availability_matching" || canManage(managementAccess!, "schedules")))).map(tool => tool.key);
   const homeToolStates = Object.fromEntries(homeTools.map(tool => [tool.key, tool.state])) as Partial<Record<ToolKey, FeatureFlagState>>;
   const latestEvents = [...(latestPublishedRaw ?? []), ...(latestImmediateRaw ?? [])]
     .sort((a, b) => new Date(b.publish_at ?? b.created_at).getTime() - new Date(a.publish_at ?? a.created_at).getTime())

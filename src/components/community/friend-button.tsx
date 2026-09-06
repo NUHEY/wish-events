@@ -1,66 +1,55 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserCheck, UserPlus, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sendFriendRequest, acceptFriendRequest, removeFriendRequest } from "@/actions/friends";
-import type { FriendRelation, FriendRelationStatus } from "@/actions/friends";
+import type { FriendActionResult, FriendRelation } from "@/actions/friends";
 import { useDict } from "@/lib/i18n/locale-provider";
 
-/**
- * 他の寮生のプロフィールに表示する友達申請ボタン。
- * サーバーから渡された初期状態を楽観的にローカルで上書きし、体感速度を優先する。
- */
+/** 保存結果に合わせて状態を更新し、送信・承認・取り消しの重複操作を防ぐ。 */
 export function FriendButton({ targetId, initial }: { targetId: string; initial: FriendRelation }) {
   const dict = useDict();
   const [relation, setRelation] = useState<FriendRelation>(initial);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+  const busy = useRef(false);
 
-  function setStatus(status: FriendRelationStatus, requestId: string | null) {
-    setRelation({ status, requestId });
+  useEffect(() => { setRelation({ status: initial.status, requestId: initial.requestId }); }, [initial.status, initial.requestId, targetId]);
+
+  async function run(action: () => Promise<FriendActionResult>) {
+    if (busy.current) return;
+    busy.current = true;
+    setPending(true);
+    setError(false);
+    try {
+      const result = await action();
+      if (!result.success || !result.relation || result.error) setError(true);
+      else setRelation(result.relation);
+    } catch {
+      setError(true);
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
-  function handleSend() {
-    const prev = relation;
-    setStatus("pending_sent", relation.requestId);
-    startTransition(async () => {
-      const result = await sendFriendRequest(targetId);
-      if (result.error) {
-        setRelation(prev);
-        window.alert(dict.directory.friendActionError);
-      }
-    });
-  }
+  function handleSend() { void run(() => sendFriendRequest(targetId)); }
 
   function handleCancelOrRemove(confirmMessage?: string) {
-    if (!relation.requestId) return;
+    if (busy.current || !relation.requestId) return;
     if (confirmMessage && !window.confirm(confirmMessage)) return;
-    const prev = relation;
     const requestId = relation.requestId;
-    setStatus("none", null);
-    startTransition(async () => {
-      const result = await removeFriendRequest(requestId);
-      if (result.error) {
-        setRelation(prev);
-        window.alert(dict.directory.friendActionError);
-      }
-    });
+    void run(() => removeFriendRequest(requestId));
   }
 
   function handleAccept() {
     if (!relation.requestId) return;
-    const prev = relation;
     const requestId = relation.requestId;
-    setStatus("friends", requestId);
-    startTransition(async () => {
-      const result = await acceptFriendRequest(requestId);
-      if (result.error) {
-        setRelation(prev);
-        window.alert(dict.directory.friendActionError);
-      }
-    });
+    void run(() => acceptFriendRequest(requestId));
   }
 
+  function renderButton() {
   if (relation.status === "none") {
     return (
       <Button type="button" variant="outline" size="sm" disabled={pending} onClick={handleSend} className="gap-1.5">
@@ -120,4 +109,10 @@ export function FriendButton({ targetId, initial }: { targetId: string; initial:
       {dict.directory.friendStatusButton}
     </Button>
   );
+  }
+
+  return <div className="flex min-w-0 flex-col items-end gap-1.5" aria-busy={pending}>
+    {renderButton()}
+    {error && <p role="alert" className="max-w-64 text-xs text-destructive">{dict.directory.friendActionError}</p>}
+  </div>;
 }

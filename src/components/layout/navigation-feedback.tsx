@@ -22,7 +22,7 @@ export function NavigationFeedback({ lockEnabled = true, stallSeconds = 8 }: { l
   useEffect(() => {
     // スマホではpathnameが先に切り替わり、重いServer Componentの描画が直後まで
     // 続くことがある。短い描画安定時間まで入力を保持し、連続RSC取得を防ぐ。
-    const settleMs = window.matchMedia("(max-width: 639px)").matches ? 420 : 0;
+    const settleMs = window.matchMedia("(max-width: 639px)").matches ? 150 : 0;
     const settle = () => {
       if (document.querySelector("[data-route-loading]")) return;
       routeObserverRef.current?.disconnect();

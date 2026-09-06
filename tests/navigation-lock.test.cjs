@@ -48,6 +48,7 @@ function mount(lockEnabled = true) {
       return event;
     },
     finishRoute: () => effects[0](),
+    timerDelays: () => [...timers.values()].map(timer => timer.delay),
     setLoading(value) { loading = value; observer(); },
     tick() { for (const [id, timer] of [...timers]) { timers.delete(id); timer.fn(); } },
   };
@@ -144,4 +145,18 @@ test('native GET search still locks navigation and stops a following submission'
   const event = app.send('submit', { target: { method: 'post' } }, () => submitted++);
   assert.equal(event.defaultPrevented, true);
   assert.equal(submitted, 0);
+});
+
+
+test('mobile navigation uses a short settle window and still waits for late streamed content', () => {
+  const app = mount();
+  app.send('wish:navigation-start', { detail: { href: '/talks' } });
+  app.finishRoute();
+  assert.deepEqual(app.timerDelays(), [150]);
+  app.setLoading(true);
+  app.tick();
+  assert.equal(app.send('click').defaultPrevented, true);
+  app.setLoading(false);
+  app.tick();
+  assert.equal(app.send('click').defaultPrevented, false);
 });

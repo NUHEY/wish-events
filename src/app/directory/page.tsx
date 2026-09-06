@@ -1,4 +1,4 @@
-import { getCurrentProfile } from "@/lib/auth";
+import { requirePublishedTool } from "@/lib/tool-access";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { DirectoryList } from "@/components/directory/directory-list";
@@ -11,7 +11,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Re
     const value = searchParams[field];
     if (typeof value === "string") initialFilters[field] = value;
   }
-  const profile = await getCurrentProfile();
+  const profile = await requirePublishedTool("resident_directory");
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const supabase = await createClient();

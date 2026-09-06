@@ -74,7 +74,7 @@ export async function EventCard({
   ];
   const eventDate = formatEventDateTime(event.event_date, locale, isMuted, false);
   const eventTime = isMuted ? null : formatEventDateTime(event.event_date, locale, false, true).split(" ").at(-1);
-  const titleLineClass = settings.eventTitleLines === 1 ? "line-clamp-1" : settings.eventTitleLines === 3 ? "line-clamp-3" : "line-clamp-2";
+  const titleLineClass = "line-clamp-2 min-h-[2.75em]";
   const contentSpacingClass = settings.eventCardDensity === "comfortable" ? "gap-3 p-3 sm:p-4" : "gap-2 p-2.5 sm:p-3";
 
   return (

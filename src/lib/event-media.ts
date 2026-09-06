@@ -2,5 +2,5 @@
 export const EVENT_CARD_RATIO_CLASS = "aspect-[16/10]";
 export const EVENT_POSTER_RATIO_CLASS = "aspect-[210/297]";
 
-/** Keep the overall card portrait; content may grow for larger text. */
-export const EVENT_CARD_FRAME_CLASS = "aspect-[4/5] min-h-fit";
+/** Shared natural-height card frame; the image and two-line title define its size. */
+export const EVENT_CARD_FRAME_CLASS = "min-h-fit";

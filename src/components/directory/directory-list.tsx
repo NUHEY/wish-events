@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, SlidersHorizontal, Languages, UsersRound, ArrowUpRight, X } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowUpRight, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { cn, formatRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import { LANGUAGES, COUNTRIES, findLabel } from "@/lib/i18n/profile-options";
-import { DIRECTORY_FIELDS, matchesDirectoryFilters, sharesLanguage, type DirectoryField, type DirectoryFilters } from "./directory-filters";
+import { DIRECTORY_FIELDS, matchesDirectoryFilters, type DirectoryField, type DirectoryFilters } from "./directory-filters";
 import type { DirectoryProfileRow } from "@/types/database";
 
 /** Only the privacy-filtered directory RPC data is searched and displayed. */
@@ -27,10 +27,9 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
   const [query, setQuery] = React.useState("");
   const [filters, setFilters] = React.useState(initialFilters);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
-  const [sharedOnly, setSharedOnly] = React.useState(false);
   const viewer = profiles.find((p) => p.id === currentUserId);
   const initialKey = JSON.stringify(initialFilters);
-  React.useEffect(() => { setFilters(JSON.parse(initialKey)); setSharedOnly(false); }, [initialKey]);
+  React.useEffect(() => { setFilters(JSON.parse(initialKey)); }, [initialKey]);
 
   const labels: Record<DirectoryField, string> = {
     faculty: en ? "Faculty" : "学部",
@@ -53,7 +52,7 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
 
   const q = query.trim().toLocaleLowerCase(locale);
   const filtered = profiles.filter((p) => {
-    if (!matchesDirectoryFilters(p, filters) || (sharedOnly && !sharesLanguage(p, viewer))) return false;
+    if (!matchesDirectoryFilters(p, filters)) return false;
     if (!q) return true;
     return [p.full_name, p.self_intro, formatRoomNumber(p.floor_number, p.room_number),
       ...DIRECTORY_FIELDS.flatMap((field) => {
@@ -63,7 +62,7 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
     ].join(" ").toLocaleLowerCase(locale).includes(q);
   });
   const active = DIRECTORY_FIELDS.filter((field) => filters[field]);
-  function clear() { setQuery(""); setFilters({}); setSharedOnly(false); }
+  function clear() { setQuery(""); setFilters({}); }
 
   return <div className="flex min-w-0 flex-col gap-4">
     <section className="space-y-3 rounded-2xl border border-border bg-card p-3 sm:p-4" aria-label={en ? "Find residents" : "寮生を探す"}>
@@ -73,7 +72,6 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant={filtersOpen ? "secondary" : "outline"} className="gap-1.5" aria-expanded={filtersOpen} aria-controls="directory-filters" onClick={() => setFiltersOpen(!filtersOpen)}><SlidersHorizontal aria-hidden className="h-4 w-4" />{en ? "Filter" : "条件で探す"}{active.length > 0 && <span className="tabular-nums">({active.length})</span>}</Button>
-        {!!viewer?.languages?.length && <Button type="button" variant={sharedOnly ? "secondary" : "outline"} className="gap-1.5" aria-pressed={sharedOnly} onClick={() => setSharedOnly(!sharedOnly)}><Languages aria-hidden className="h-4 w-4" />{en ? "Shared language" : "同じ言語の人"}</Button>}
       </div>
       {filtersOpen && <div id="directory-filters" className="grid min-w-0 gap-3 border-t border-border pt-3 sm:grid-cols-2">
         {DIRECTORY_FIELDS.map((field) => <label key={field} className="grid min-w-0 gap-1.5 text-xs font-medium">{labels[field]}
@@ -83,16 +81,14 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
           </select>
         </label>)}
       </div>}
-      {(active.length > 0 || sharedOnly) && <div className="flex flex-wrap gap-2">
+      {active.length > 0 && <div className="flex flex-wrap gap-2">
         {active.map((field) => <button key={field} type="button" onClick={() => setFilters((prev) => ({ ...prev, [field]: "" }))} aria-label={`${labels[field]}: ${label(field, filters[field]!)} ${en ? "— remove filter" : "の条件を解除"}`} className="inline-flex min-h-10 max-w-full items-center gap-1 rounded-lg bg-secondary px-2.5 text-xs"><span className="min-w-0 break-words">{labels[field]}: {label(field, filters[field]!)}</span><X aria-hidden className="h-3.5 w-3.5 shrink-0" /></button>)}
-        {sharedOnly && <span className="inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 text-xs"><Languages aria-hidden className="h-3.5 w-3.5" />{en ? "Shared language" : "同じ言語の人"}</span>}
       </div>}
     </section>
 
-    <div className="flex min-h-10 items-center justify-between gap-2">
-      <p role="status" className="flex items-center gap-2 text-sm font-medium"><UsersRound aria-hidden className="h-4 w-4 text-primary" />{en ? `${filtered.length} residents` : `${filtered.length}人の寮生`}</p>
-      {(q || active.length > 0 || sharedOnly) && <Button type="button" variant="ghost" onClick={clear}>{en ? "Clear" : "条件をクリア"}</Button>}
-    </div>
+    {(q || active.length > 0) && <div className="flex justify-end">
+      <Button type="button" variant="ghost" onClick={clear}>{en ? "Clear" : "条件をクリア"}</Button>
+    </div>}
     <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       {filtered.map((p) => {
         const common = p.id !== currentUserId ? (p.languages ?? []).filter((code) => viewer?.languages?.includes(code)) : [];
@@ -106,7 +102,6 @@ export function DirectoryList({ profiles, currentUserId, initialFilters = {} }: 
           </div>
           <p className={cn("line-clamp-2 break-words text-sm leading-relaxed [overflow-wrap:anywhere]", !p.self_intro && "text-muted-foreground")}>{p.self_intro || dict.directory.noSelfIntro}</p>
           {!!p.languages?.length && <div className="flex flex-wrap gap-1.5">{p.languages.slice(0, 3).map((code) => <span key={code} className={cn("rounded-md px-2 py-1 text-xs", common.includes(code) ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground")}>{label("languages", code)}</span>)}{p.languages.length > 3 && <span className="py-1 text-xs text-muted-foreground">+{p.languages.length - 3}</span>}</div>}
-          {common.length > 0 && <p className="mt-auto flex items-center gap-1 text-xs text-muted-foreground"><Languages aria-hidden className="h-3.5 w-3.5 shrink-0" />{en ? "You share a language" : "同じ言語で話せます"}</p>}
         </Link>;
       })}
       {!filtered.length && <div className="col-span-full rounded-xl border border-dashed border-border px-4 py-8 text-center"><p className="text-sm">{dict.directory.noResults}</p><p className="mt-2 text-xs text-muted-foreground">{en ? "Try fewer filters or a different keyword." : "条件を減らすか、別のキーワードで探してみましょう。"}</p><Button type="button" variant="outline" className="mt-4" onClick={clear}>{en ? "Show everyone" : "すべての寮生を見る"}</Button></div>}

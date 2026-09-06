@@ -1,35 +1,19 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { defaultFeatureState, type FeatureFlagKey, type FeatureFlagState } from "@/lib/feature-flag-keys";
+export { FEATURE_FLAG_KEYS } from "@/lib/feature-flag-keys";
+export type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flag-keys";
 
-export type FeatureFlagState = "public" | "beta" | "hidden";
-export type FeatureFlagKey =
-  | "friend_dm"
-  | "floor_group_chat"
-  | "event_calendar_export"
-  | "availability_matching"
-  | "lets_chat_booking"
-  | "unit_room_sessions"
-  | "ra_question_box"
-  | "ra_link_hub"
-  | "wish_knowledge"
-  | "resident_events";
-
-export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = [
-  "friend_dm",
-  "floor_group_chat",
-  "event_calendar_export",
-  "availability_matching",
-  "lets_chat_booking",
-  "unit_room_sessions",
-  "ra_link_hub",
-  "wish_knowledge",
-  "resident_events",
-];
-
-/** 設定行が未作成・移行未実行・取得失敗なら、安全側の「非公開」に倒す。 */
-export const getFeatureFlagState = cache(async (key: FeatureFlagKey): Promise<FeatureFlagState> => {
+// One read per render, shared by every flag consumer in the request.
+const readFeatureFlags = cache(async () => {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("feature_flags").select("state").eq("key", key).maybeSingle();
-  if (error || !data || !["public", "beta", "hidden"].includes(data.state)) return "hidden";
-  return data.state as FeatureFlagState;
+  return supabase.from("feature_flags").select("key,state");
+});
+
+export const getFeatureFlagState = cache(async (key: FeatureFlagKey): Promise<FeatureFlagState> => {
+  const { data, error } = await readFeatureFlags();
+  if (error || !data) return "hidden";
+  const row = data.find(row => row.key === key);
+  if (!row) return defaultFeatureState(key);
+  return ["public", "beta", "hidden"].includes(row.state) ? row.state as FeatureFlagState : "hidden";
 });
