@@ -396,3 +396,19 @@ html[data-motion="reduce"] .wish-brand-title::after { animation: none !important
 .event-message-press:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 html[data-motion="reduce"] .event-message-press { transition: none; transform: none; }
 @media (prefers-reduced-motion: reduce) { .event-message-press { transition: none; transform: none !important; } }
+
+/* Apply before hydration as well as to headers and overlays while on /talks. */
+[data-talk-surface], [data-talk-surface] *,
+html[data-talk-selection-locked="true"], html[data-talk-selection-locked="true"] * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+[data-talk-surface] ::selection, html[data-talk-selection-locked="true"] ::selection { background: transparent; }
+[data-talk-surface] :is(input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]),
+html[data-talk-selection-locked="true"] :is(input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]) {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+html[data-talk-selection-locked="true"] :is(input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"])::selection { background: Highlight; color: HighlightText; }

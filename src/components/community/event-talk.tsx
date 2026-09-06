@@ -11,6 +11,9 @@ import {
   Heart,
   ImagePlus,
   Link2,
+  CalendarDays,
+  ListChecks,
+  UserRound,
   Plus,
   Reply,
   Loader2,
@@ -218,14 +221,6 @@ export function EventTalk({
     wisdom: locale === "en" ? "Open WISH Knowledge" : "WISH知恵袋を開く",
     tools: locale === "en" ? "Open tool" : "ツールを開く",
   }), [dict, locale]);
-
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (!node) return;
-    const preventSelection = (event: Event) => event.preventDefault();
-    node.addEventListener("selectstart", preventSelection);
-    return () => node.removeEventListener("selectstart", preventSelection);
-  }, []);
 
   function scrollToBottom(smooth = true) {
     endRef.current?.scrollIntoView({ behavior: smooth && !shouldReduceMotion() ? "smooth" : "instant", block: "end" });
@@ -694,40 +689,17 @@ export function EventTalk({
                       role="toolbar"
                       aria-label={locale === "en" ? "Message actions" : "メッセージの操作"}
                       onKeyDown={event => { if (event.key === "Escape") setOpenMenuId(null); }}
-                      className={`absolute bottom-full z-50 mb-2 flex w-max max-w-[calc(100vw-4rem)] flex-wrap items-center justify-center gap-0.5 rounded-xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] px-2 py-1.5 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
+                      className={`absolute bottom-full z-50 mb-2 w-64 max-w-[calc(100vw-4rem)] rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-header)] p-1 shadow-[var(--chat-shadow-toolbar)] backdrop-blur-xl motion-safe:animate-pop-in ${
                         mine ? "right-0" : "left-0"
                       }`}
                     >
-                      <button type="button" aria-label={locale === "en" ? "Quote and reply" : "引用して返信"} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary" onClick={() => { setReplyTo(message); setOpenMenuId(null); }}><Reply aria-hidden="true" className="h-4 w-4" /></button>
-                      {hasCaption && (
-                        <>
-                          <button
-                            type="button"
-                            aria-label={dict.talks.copy}
-                            onClick={() => {
-                              void copyMessageText(message);
-                            }}
-                            className="rounded-full p-1.5 text-muted-foreground transition-transform hover:scale-110 active:scale-90"
-                          >
-                            {copiedId === message.id ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                          </button>
-                          <span className="mx-0.5 h-4 w-px bg-border" />
-                        </>
-                      )}
-                      {EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          aria-label={dict.talks.reactWith.replace("{emoji}", emoji)}
-                          onClick={() => {
-                            react(message.id, emoji);
-                            setOpenMenuId(null);
-                          }}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-110 active:scale-90"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                      <div className="flex items-center justify-between gap-1 p-1">
+                        {EMOJIS.map(emoji => <button key={emoji} type="button" aria-label={dict.talks.reactWith.replace("{emoji}", emoji)} className="flex h-11 w-11 items-center justify-center rounded-full text-2xl transition-transform hover:bg-secondary active:scale-90" onClick={() => { react(message.id, emoji); setOpenMenuId(null); }}>{emoji}</button>)}
+                      </div>
+                      <div className="border-t border-border/50 p-1">
+                        <button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-sm hover:bg-secondary" onClick={() => { setReplyTo(message); setOpenMenuId(null); }}><span>{locale === "en" ? "Reply" : "返信"}</span><Reply aria-hidden="true" className="h-4 w-4" /></button>
+                        {hasCaption && <button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-sm hover:bg-secondary" onClick={() => void copyMessageText(message)}><span>{copiedId === message.id ? (locale === "en" ? "Copied" : "コピーしました") : dict.talks.copy}</span>{copiedId === message.id ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}</button>}
+                      </div>
                     </div>
                   </>
                 )}
@@ -793,6 +765,9 @@ function Composer({
   const locale = useLocale();
   const [body, setBody] = useState("");
   const [showExtras, setShowExtras] = useState(false);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (replyTo) draftRef.current?.focus({ preventScroll: true }); }, [replyTo]);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -923,14 +898,7 @@ function Composer({
 
   return (
     <div className="chat-composer max-h-[58%] shrink-0 overflow-y-auto overscroll-contain border-t border-[var(--chat-border)] bg-[var(--chat-bg-composer)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl sm:max-h-none sm:overflow-visible">
-      {replyTo && <div className="mb-2 flex items-center gap-2 rounded-lg border-l-2 border-primary bg-secondary/50 px-3 py-2 text-xs"><Reply aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 flex-1"><span className="block font-medium">{locale === "en" ? "Quote and reply" : "引用して返信"} · {replyTo.sender?.full_name ?? dict.talks.residentFallback}</span><span className="block truncate text-muted-foreground">{replyTo.body || dict.talks.imageReceived}</span></span><Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Cancel reply" : "返信を取り消す"} onClick={onCancelReply}><X className="h-4 w-4" /></Button></div>}
-      {showExtras && <div className="mb-2 flex flex-wrap gap-2">
-        {[
-          { label: locale === "en" ? "Share this event" : "このイベントを共有", text: `${appOrigin}/events/${eventId}` },
-          { label: locale === "en" ? "Share my profile" : "自分のプロフィールを共有", text: `${appOrigin}/directory/${currentUserId}` },
-          { label: locale === "en" ? "Checklist" : "持ち物・チェックリスト", text: locale === "en" ? "Checklist\n☐ \n☐ \n☐ " : "持ち物・確認事項\n☐ \n☐ \n☐ " },
-        ].map(item => <Button key={item.label} type="button" size="sm" variant="outline" disabled={pending || uploading} className="text-xs" onClick={() => { setBody(current => `${current}${current ? "\n" : ""}${item.text}`.slice(0, 2000)); setShowExtras(false); }}>{item.label}</Button>)}
-      </div>}
+      {replyTo && <div className="mb-2 flex items-center gap-3 border-t border-border/50 px-2 pt-3"><span className="min-w-0 flex-1 border-l-2 border-muted-foreground/40 pl-3"><span className="block truncate text-xs font-medium">{locale === "en" ? `Replying to ${replyTo.sender?.full_name ?? dict.talks.residentFallback}` : `${replyTo.sender?.full_name ?? dict.talks.residentFallback}に返信`}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{replyTo.body || dict.talks.imageReceived}</span></span><Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Cancel reply" : "返信を取り消す"} className="shrink-0 rounded-full" onClick={onCancelReply}><X className="h-4 w-4" /></Button></div>}
       {stagedImages.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {stagedImages.map((item) => (
@@ -950,24 +918,12 @@ function Composer({
         </div>
       )}
 
-      <div className="flex items-end gap-1.5 rounded-2xl border border-[var(--chat-border-strong)] bg-[var(--chat-bg-sidebar)] px-2 py-1.5 shadow-[var(--chat-shadow-sm)]">
-        <Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Sharing and templates" : "共有・テンプレート"} aria-expanded={showExtras} className="h-9 w-9 shrink-0 self-end rounded-full" onClick={() => setShowExtras(value => !value)}>{showExtras ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</Button>
-        <label className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background">
-          <ImagePlus className="h-5 w-5" />
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            multiple
-            className="hidden"
-            disabled={uploading || stagedImages.length >= 6}
-            onChange={(e) => {
-              const files = Array.from(e.target.files ?? []);
-              if (files.length) addStagedFiles(files);
-              e.target.value = "";
-            }}
-          />
-        </label>
+      <input ref={photoRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="hidden" disabled={pending || uploading || stagedImages.length >= 6} onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) addStagedFiles(files); event.target.value = ""; setShowExtras(false); }} />
+      <div className="flex items-end gap-2">
+        <Button type="button" variant="ghost" size="icon" aria-label={locale === "en" ? "Add to message" : "メッセージに追加"} aria-expanded={showExtras} aria-controls="event-message-extras" className="h-11 w-11 shrink-0 rounded-full bg-secondary/60" onClick={() => { setShowExtras(value => !value); draftRef.current?.blur(); }}><Plus className={`h-5 w-5 transition-transform motion-reduce:transition-none ${showExtras ? "rotate-45" : ""}`} /></Button>
+        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-3xl border border-border bg-secondary/30 py-1 pl-4 pr-1">
         <Textarea
+          ref={draftRef}
           aria-label={locale === "en" ? "Message" : "メッセージ"}
           onPaste={event => {
             const images = Array.from(event.clipboardData.files).filter(file => file.type.startsWith("image/"));
@@ -987,19 +943,28 @@ function Composer({
           rows={1}
           maxLength={2000}
           placeholder={uploading ? dict.talks.uploadingImage : dict.talks.composerPlaceholder}
-          onFocus={onFocus}
+          onFocus={() => { setShowExtras(false); onFocus(); }}
           className="min-w-0 min-h-10 max-h-28 border-0 bg-transparent py-2 text-[16px] shadow-none focus-visible:ring-0"
         />
         <Button
           size="icon"
           aria-label={locale === "ja" ? "メッセージを送信" : "Send message"}
-          className="h-11 w-11 shrink-0 rounded-full shadow-sm transition-transform active:scale-90"
+          className="h-10 w-10 shrink-0 rounded-full shadow-none transition-transform active:scale-90"
           disabled={pending || uploading || (!body.trim() && stagedImages.length === 0)}
           onClick={handleSend}
         >
           <Send className="h-4 w-4" />
         </Button>
+        </div>
       </div>
+      {showExtras && <div id="event-message-extras" className="mt-3 grid grid-cols-4 gap-1 border-t border-border/50 pt-3" aria-label={locale === "en" ? "Attachments and sharing" : "添付・共有"}>
+        <button type="button" disabled={pending || uploading || stagedImages.length >= 6} className="flex min-w-0 flex-col items-center gap-2 rounded-xl py-2 text-[11px] disabled:opacity-40" onClick={() => photoRef.current?.click()}><span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary"><ImagePlus aria-hidden="true" className="h-5 w-5" /></span>{locale === "en" ? "Photos" : "写真"}</button>
+        {[
+          { label: locale === "en" ? "Event" : "イベント", icon: CalendarDays, text: `${appOrigin}/events/${eventId}` },
+          { label: locale === "en" ? "Profile" : "プロフィール", icon: UserRound, text: `${appOrigin}/directory/${currentUserId}` },
+          { label: locale === "en" ? "Checklist" : "リスト", icon: ListChecks, text: locale === "en" ? "Checklist\n☐ \n☐ \n☐ " : "持ち物・確認事項\n☐ \n☐ \n☐ " },
+        ].map(item => <button key={item.label} type="button" disabled={pending || uploading} className="flex min-w-0 flex-col items-center gap-2 rounded-xl py-2 text-[11px] disabled:opacity-40" onClick={() => { setBody(current => `${current}${current ? "\n" : ""}${item.text}`.slice(0, 2000)); setShowExtras(false); draftRef.current?.focus({ preventScroll: true }); }}><span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary"><item.icon aria-hidden="true" className="h-5 w-5" /></span><span className="max-w-full truncate">{item.label}</span></button>)}
+      </div>}
       {shownError && <p className="mt-1.5 px-1 text-xs text-destructive">{shownError}</p>}
     </div>
   );
