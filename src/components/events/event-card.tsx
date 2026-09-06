@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,7 +92,7 @@ export async function EventCard({
             src={event.thumbnail_url ?? event.poster_url}
             alt={title}
             emptyLabel={dict.event.noImage}
-            ratioClassName="aspect-square"
+            ratioClassName={EVENT_CARD_RATIO_CLASS}
             roundedClassName="rounded-none"
             softenBackdrop={false}
             fit="cover"

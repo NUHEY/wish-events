@@ -12,6 +12,7 @@ import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { isSafeNotificationLink } from "@/lib/notification-links";
 import { FLOORS } from "@/lib/constants";
 import { cn, formatRoomNumber } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -28,6 +29,7 @@ export function BroadcastNotificationForm({ residents }: { residents: BroadcastR
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [link, setLink] = useState("/");
+  const [linkMode, setLinkMode] = useState("internal");
   const [senderMode, setSenderMode] = useState<SenderMode>("self");
   const [customSenderLabel, setCustomSenderLabel] = useState("");
   const [pending, startTransition] = useTransition();
@@ -65,6 +67,7 @@ export function BroadcastNotificationForm({ residents }: { residents: BroadcastR
 
   async function handleSend() {
     if (!message.trim() || recipients.length === 0) return;
+    if (!isSafeNotificationLink(link.trim())) return toast.error("開くページのURLを確認してください");
     const accepted = await confirm({ message: `${recipients.length}人に通知を送信します。よろしいですか？` });
     if (!accepted) return;
     const broadcastId = broadcastIdRef.current ?? crypto.randomUUID();
@@ -89,5 +92,5 @@ export function BroadcastNotificationForm({ residents }: { residents: BroadcastR
 
   <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/[0.08] px-3 py-2.5 text-sm font-semibold text-primary"><Users className="h-4 w-4" />送信対象: {recipients.length}人</div></section>
 
-  <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5"><div className="grid gap-2"><div className="flex items-center justify-between"><Label htmlFor="broadcast-message">通知本文</Label><span className={cn("text-xs", message.length > 180 ? "text-destructive" : "text-muted-foreground")}>{message.length}/180</span></div><Textarea id="broadcast-message" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={180} rows={5} placeholder="寮生へ伝える短い案内を入力してください" /></div><div className="grid gap-2"><Label htmlFor="broadcast-link">タップ後に開くサイト内ページ</Label><Input id="broadcast-link" value={link} onChange={(event) => setLink(event.target.value)} placeholder="例: /events/イベントID" /><p className="text-xs text-muted-foreground">`/`から始まるWISH Events内のパスを指定します。</p></div><Button type="button" onClick={handleSend} disabled={pending || !message.trim() || recipients.length === 0 || (senderMode === "custom" && !customSenderLabel.trim())} className="w-full"><Send className="h-4 w-4" />{pending ? "送信中…" : `${recipients.length}人に通知を送信`}</Button></section></div>;
+  <section className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5"><div className="grid gap-2"><div className="flex items-center justify-between"><Label htmlFor="broadcast-message">通知本文</Label><span className={cn("text-xs", message.length > 180 ? "text-destructive" : "text-muted-foreground")}>{message.length}/180</span></div><Textarea id="broadcast-message" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={180} rows={5} placeholder="寮生へ伝える短い案内を入力してください" /></div><div className="grid gap-2"><Label htmlFor="broadcast-link-mode">通知から開くページ</Label><Select id="broadcast-link-mode" value={linkMode} onChange={event => { setLinkMode(event.target.value); setLink(event.target.value === "internal" ? "/" : ""); }}><option value="internal">WISH Events内</option><option value="external">外部サイト</option></Select><Input id="broadcast-link" aria-label={linkMode === "internal" ? "サイト内のパス" : "外部URL"} type={linkMode === "external" ? "url" : "text"} value={link} onChange={(event) => setLink(event.target.value)} maxLength={500} placeholder={linkMode === "external" ? "https://example.com" : "例: /events/イベントID"} /><p className="text-xs text-muted-foreground">{linkMode === "external" ? "外部サイトは新しいタブで開きます。" : "ホーム /、イベント /events、ツール /tools などを指定できます。"}</p></div><Button type="button" onClick={handleSend} disabled={pending || !message.trim() || recipients.length === 0 || (senderMode === "custom" && !customSenderLabel.trim())} className="w-full"><Send className="h-4 w-4" />{pending ? "送信中…" : `${recipients.length}人に通知を送信`}</Button></section></div>;
 }

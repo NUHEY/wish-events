@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { EVENT_POSTER_RATIO_CLASS } from "@/lib/event-media";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_IMAGE_URL } from "@/lib/media-defaults";
 
@@ -17,7 +18,7 @@ export function EventPoster({
   emptyLabel,
   className,
   priority,
-  ratioClassName = "aspect-[3/4]",
+  ratioClassName = EVENT_POSTER_RATIO_CLASS,
   roundedClassName = "rounded-lg",
   softenBackdrop = true,
   fit = "contain",
@@ -29,8 +30,7 @@ export function EventPoster({
   priority?: boolean;
   /**
    * 縦横比を指定するTailwindユーティリティクラス（例: "aspect-[4/5]"）。
-   * 一覧のカードのようにスマホでの縦スクロール量を抑えたい場所ではデフォルトの
-   * 3/4より少し正方形に近い比率を渡す。動的なテンプレート文字列は
+   * 一覧カードでは共通の16:10、詳細ではA4縦を使用する。動的なテンプレート文字列は
    * Tailwindの静的解析で拾われないため、必ずリテラルの完全なクラス名を渡すこと。
    */
   ratioClassName?: string;

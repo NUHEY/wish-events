@@ -8,6 +8,8 @@ import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
 import { Award, CalendarDays, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, QrCode, Sparkles, SquarePen, UsersRound } from "lucide-react";
+import { EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
+import { directoryFilterHref, type DirectoryField } from "@/components/directory/directory-filters";
 import { EventPoster } from "@/components/events/event-poster";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,15 +53,15 @@ function countryFlag(code: string) {
   return String.fromCodePoint(...[...normalized].map((char) => 127397 + char.charCodeAt(0)));
 }
 
-function ChipList({ codes, list, locale, kind }: { codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en"; kind: "language" | "country" }) {
+function ChipList({ codes, list, locale, kind, field }: { field: DirectoryField; codes: string[] | null; list: typeof LANGUAGES; locale: "ja" | "en"; kind: "language" | "country" }) {
   if (!codes || codes.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {codes.map((code) => (
-        <span key={code} className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground">
+        <Link href={directoryFilterHref(field, code)} key={code} aria-label={locale === "en" ? `Find residents: ${findLabel(list, code, locale)}` : `${findLabel(list, code, locale)}の寮生を探す`} className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-lg bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {kind === "country" ? <span aria-hidden>{countryFlag(code)}</span> : <LanguagesIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
           <span className="min-w-0 break-words">{findLabel(list, code, locale)}</span>
-        </span>
+        </Link>
       ))}
     </div>
   );
@@ -248,23 +250,23 @@ export default async function DirectoryProfilePage({
             </p>
           </section>
 
-          {(target.faculty || target.grade_level || target.languages?.length || target.nationalities?.length || target.lived_countries?.length) ? <dl className="divide-y divide-border">
+          {(target.faculty || target.grade_level || target.languages?.length || target.nationalities?.length || target.lived_countries?.length) ? <div className="space-y-3"><p className="text-xs text-muted-foreground">{locale === "en" ? "Tap a detail to find residents with something in common." : "気になる項目を押すと、共通点のある寮生を探せます。"}</p><dl className="divide-y divide-border">
             {(target.faculty || target.grade_level) && <div className="grid gap-2 py-4 first:pt-0 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
               <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><GraduationCap aria-hidden="true" className="h-4 w-4 shrink-0" />{locale === "en" ? "Studies" : "学部・学年"}</dt>
-              <dd className="min-w-0 space-y-1 text-sm leading-relaxed">
-                {target.faculty && <p className="break-words">{dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}</p>}
-                {target.grade_level && <p className="text-muted-foreground">{dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}</p>}
+              <dd className="flex min-w-0 flex-wrap items-center gap-2 text-sm leading-relaxed">
+                {target.faculty && <Link className="inline-flex min-h-10 items-center rounded-lg bg-secondary/60 px-2.5 py-1.5 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={directoryFilterHref("faculty", target.faculty)}>{dict.faculties[target.faculty as keyof typeof dict.faculties] ?? target.faculty}</Link>}
+                {target.grade_level && <Link className="inline-flex min-h-10 items-center rounded-lg bg-secondary/60 px-2.5 py-1.5 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={directoryFilterHref("grade_level", target.grade_level)}>{dict.gradeLevels[target.grade_level as keyof typeof dict.gradeLevels] ?? target.grade_level}</Link>}
               </dd>
             </div>}
             {[
-              { label: dict.profile.languagesLabel, codes: target.languages, list: LANGUAGES, kind: "language" as const },
-              { label: dict.profile.nationalitiesLabel, codes: target.nationalities, list: COUNTRIES, kind: "country" as const },
-              { label: dict.profile.livedCountriesLabel, codes: target.lived_countries, list: COUNTRIES, kind: "country" as const },
+              { field: "languages" as const, label: dict.profile.languagesLabel, codes: target.languages, list: LANGUAGES, kind: "language" as const },
+              { field: "nationalities" as const, label: dict.profile.nationalitiesLabel, codes: target.nationalities, list: COUNTRIES, kind: "country" as const },
+              { field: "lived_countries" as const, label: locale === "en" ? "Places lived" : "暮らした国・地域", codes: target.lived_countries, list: COUNTRIES, kind: "country" as const },
             ].filter(row => row.codes?.length).map(row => <div key={row.label} className="grid gap-2 py-4 first:pt-0 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
-              <dt className="text-xs font-medium leading-6 text-muted-foreground">{row.label}</dt>
-              <dd className="min-w-0"><ChipList codes={row.codes} list={row.list} locale={locale} kind={row.kind} /></dd>
+              <dt className="whitespace-nowrap text-xs font-medium leading-6 text-muted-foreground">{row.label}</dt>
+              <dd className="min-w-0"><ChipList field={row.field} codes={row.codes} list={row.list} locale={locale} kind={row.kind} /></dd>
             </div>)}
-          </dl> : null}
+          </dl></div> : null}
 
           {(target.instagram_handle || target.x_handle || target.line_id) && (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
@@ -329,12 +331,12 @@ export default async function DirectoryProfilePage({
               <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarDays aria-hidden="true" className="h-4 w-4 text-rose-600 dark:text-rose-300" />{dict.directory.pastEventsTitle}</h3>
               <div role="region" aria-label={dict.directory.pastEventsTitle} tabIndex={0} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain p-1 pb-2 scroll-px-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {pastEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`} prefetch={false} className="group flex w-40 shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-colors hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-48">
+                  <Link key={event.id} href={`/events/${event.id}`} prefetch={false} className="group flex w-36 shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-colors hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40">
                     <EventPoster
                       src={event.thumbnail_url ?? event.poster_url}
                       alt={(locale === "en" && event.title_en) || event.title}
                       emptyLabel={dict.event.noImage}
-                      ratioClassName="aspect-square"
+                      ratioClassName={EVENT_CARD_RATIO_CLASS}
                       roundedClassName="rounded-none"
                       softenBackdrop={false}
                       fit="cover"

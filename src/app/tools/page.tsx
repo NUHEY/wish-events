@@ -1,13 +1,13 @@
 import { getManagementAccess } from "@/lib/management-access";
 import { canManage } from "@/lib/management-permissions";
 import Link from "next/link";
-import { ToolCard } from "@/components/tools/tool-card";
-import { QrCode, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
-import { getFeatureFlagState, type FeatureFlagKey } from "@/lib/feature-flags";
+import { getFeatureFlagState } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { BetaBadge } from "@/components/tools/beta-badge";
 import { RESIDENT_TOOLS, ResidentToolGrid } from "@/components/tools/resident-tool-grid";
+import type { ToolKey } from "@/lib/resident-tools";
 import type { ScheduleSession } from "@/lib/beta-tools";
 import { getDictionary, getLocale } from "@/lib/i18n";
 
@@ -15,18 +15,19 @@ export default async function ToolsPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const profile = await getCurrentProfile();
-  const states = await Promise.all(RESIDENT_TOOLS.map((tool) => getFeatureFlagState(tool.key)));
-  const stateByKey = Object.fromEntries(RESIDENT_TOOLS.map((tool, index) => [tool.key, states[index]])) as Partial<Record<FeatureFlagKey, "public" | "beta" | "hidden">>;
+  const states = await Promise.all(RESIDENT_TOOLS.map((tool) => tool.featureKey ? getFeatureFlagState(tool.featureKey) : Promise.resolve("public" as const)));
+  const stateByKey = Object.fromEntries(RESIDENT_TOOLS.map((tool, index) => [tool.key, states[index]])) as Partial<Record<ToolKey, "public" | "beta" | "hidden">>;
   const access = await getManagementAccess();
   const visibleKeys = RESIDENT_TOOLS.filter((tool) => (profile.role === "ra" || stateByKey[tool.key] !== "hidden") && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(access, "events")) && (tool.key !== "availability_matching" || canManage(access, "schedules")))).map((tool) => tool.key);
   const supabase = await createClient();
   const { data, error: schedulesError } = await supabase.from("schedule_sessions").select("*").order("created_at", { ascending: false }).limit(12);
   const sessions = (data ?? []) as ScheduleSession[];
 
-  const toolGroups: { title: string; keys: FeatureFlagKey[] }[] = [
+  const toolGroups: { title: string; keys: ToolKey[] }[] = [
     { title: locale === "ja" ? "仲間を募集" : "Meet up with others", keys: ["resident_events"] },
     { title: locale === "ja" ? "日程調整・RAの予約" : "Scheduling & RA bookings", keys: ["availability_matching", "lets_chat_booking", "unit_room_sessions"] },
     { title: locale === "ja" ? "寮生活・相談" : "Dorm life & advice", keys: ["ra_link_hub", "wish_knowledge"] },
+    { title: locale === "ja" ? "便利な道具・共有" : "Everyday tools & sharing", keys: ["share_qr", "split_bill", "group_shuffle", "world_clock"] },
   ];
   const showSchedules = sessions.length > 0 || visibleKeys.some((key) => ["availability_matching", "lets_chat_booking", "unit_room_sessions"].includes(key));
 
@@ -52,7 +53,7 @@ export default async function ToolsPage() {
           </section>
         );
       })}
-      <section className="space-y-3"><h2 className="text-lg font-bold">{locale === "ja" ? "共有・案内" : "Share & invite"}</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><ToolCard href="/tools/share" title={locale === "ja" ? "共有QRコード" : "Share a QR code"} description={locale === "ja" ? "イベントや予約のリンクを掲示物に" : "Turn event and booking links into a poster-ready image"} icon={QrCode} accent="from-indigo-500/15 to-blue-400/5 text-indigo-700 dark:text-indigo-300" /></div></section>
+
       {showSchedules && (
         <section id="active-schedules" className="scroll-mt-24 space-y-3">
           <h2 className="text-lg font-bold">{dict.residentTools.activeSchedules}</h2>

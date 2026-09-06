@@ -5,6 +5,7 @@ import { requireManagement } from "@/lib/management-access";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+import { isSafeNotificationLink } from "@/lib/notification-links";
 import { FLOORS } from "@/lib/constants";
 
 export type BroadcastTarget =
@@ -34,8 +35,8 @@ export async function sendRaBroadcastNotification(input: BroadcastInput) {
     return { error: "通知の送信IDが正しくありません" };
   }
   if (!message || message.length > 180) return { error: "本文は1〜180文字で入力してください" };
-  if (!link.startsWith("/") || link.startsWith("//") || link.length > 500) {
-    return { error: "リンクは / から始まるサイト内のパスで入力してください" };
+  if (!isSafeNotificationLink(link)) {
+    return { error: "サイト内のパス、または https:// から始まるURLを入力してください" };
   }
   const senderModes = ["self", "system", "front_desk", "ra_team", "custom"] as const;
   if (!senderModes.includes(input.sender.mode)) return { error: "送り主が正しくありません" };

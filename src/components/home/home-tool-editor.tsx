@@ -4,17 +4,17 @@ import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Save } from "lucide-react";
 import { toast } from "sonner";
 import { saveHomeToolSettings } from "@/actions/home-layout";
-import { RESIDENT_TOOLS } from "@/components/tools/resident-tool-grid";
+import { RESIDENT_TOOLS, type ToolKey } from "@/lib/resident-tools";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PendingFeedback } from "@/components/ui/pending-feedback";
 import { Select } from "@/components/ui/select";
-import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
+import type { FeatureFlagState } from "@/lib/feature-flags";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
-type ToolSetting = { key: FeatureFlagKey; showOnHome: boolean; position: number; state: FeatureFlagState };
+type ToolSetting = { key: ToolKey; showOnHome: boolean; position: number; state: FeatureFlagState };
 
 export function HomeToolEditor({ initialTools, initialDensity }: { initialTools: ToolSetting[]; initialDensity: "minimal" | "compact" }) {
   const [tools, setTools] = useState(() => [...initialTools].sort((a, b) => a.position - b.position));

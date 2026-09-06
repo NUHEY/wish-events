@@ -191,7 +191,8 @@ export type HomeLayoutSectionKey =
   | "popular_events"
   | "friends_events"
   | "resident_events"
-  | "tools";
+  | "tools"
+  | "latest_events";
 export type HomeAccentKey = "wine" | "gold" | "teal" | "forest" | null;
 
 export interface HomeLayoutSectionRow {
@@ -483,6 +484,7 @@ export interface SiteSettingsRow {
   cta_blur_px: number;
   cta_fade_height_px: number;
   cta_transition_ms: number;
+  home_tool_layout: { key: string; showOnHome: boolean }[] | null;
   home_tool_density: "minimal" | "compact";
   schedule_default_start_time: string;
   schedule_default_end_time: string;

@@ -79,10 +79,10 @@ export function DateTimePicker({
         onClick={() => setOpen((v) => !v)}
         aria-label={isJa ? "開催日時を選択" : "Select date and time"}
         aria-expanded={open}
-        className="flex min-h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-sm ring-offset-background transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-sm ring-offset-background transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn("min-w-0 flex-1 text-left", !displayLabel && "text-muted-foreground")}>
+        <span title={displayLabel ?? undefined} className={cn("min-w-0 flex-1 truncate text-left", !displayLabel && "text-muted-foreground")}>
           {displayLabel ?? (isJa ? "日付を選択" : "Select a date")}
         </span>
         <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{time}</span>

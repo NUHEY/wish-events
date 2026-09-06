@@ -77,6 +77,7 @@ export const HOME_SECTION_KEYS = [
   "friends_events",
   "resident_events",
   "tools",
+  "latest_events",
 ] as const;
 export type HomeSectionKey = (typeof HOME_SECTION_KEYS)[number];
 

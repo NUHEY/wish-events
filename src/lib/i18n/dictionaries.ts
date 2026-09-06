@@ -663,6 +663,7 @@ const ja = {
     title: "ホーム画面のカスタマイズ",
     subtitle: "セクションの表示/非表示・並び順・アクセントカラー・タイトルを設定できます。",
     sectionNames: {
+      latest_events: "新着のイベント",
       week_events: "今週のイベント",
       floor_events: "あなたの階のイベント",
       announcements: "お知らせ",
@@ -1437,6 +1438,7 @@ const en: typeof ja = {
     title: "Customize the home page",
     subtitle: "Configure which sections show, their order, accent color, and title.",
     sectionNames: {
+      latest_events: "Recently published events",
       week_events: "This week's events",
       floor_events: "Your floor's events",
       announcements: "Announcements",

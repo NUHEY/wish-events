@@ -193,7 +193,7 @@ export default async function EventsPage({
               <p className="text-sm text-muted-foreground">
                 {dict.home.dateResultsCount.replace("{count}", String(dateEvents.length))}
               </p>
-              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {dateEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -218,7 +218,7 @@ export default async function EventsPage({
 
           {hasUpcoming && (
             <section className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -227,7 +227,7 @@ export default async function EventsPage({
           )}
 
           {hasPast && status === "past" && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {pastEvents.map((event) => (
                 <EventCard key={event.id} event={event} variant="muted" />
               ))}
@@ -240,7 +240,7 @@ export default async function EventsPage({
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
                 {dict.home.pastEventsToggle}（{pastEvents!.length}）
               </summary>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="mt-4 grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} variant="muted" />
                 ))}

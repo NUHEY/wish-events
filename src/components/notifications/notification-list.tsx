@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { isSafeNotificationLink } from "@/lib/notification-links";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useState, useTransition } from "react";
-import { Heart, Megaphone, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
+import { ExternalLink, Heart, Megaphone, MessageCircle, UserPlus, UserCheck, X } from "lucide-react";
 import { deleteNotification } from "@/actions/notifications";
 import type { NotificationType } from "@/types/database";
 import { useAutoAnimate } from "@/components/layout/use-motion-auto-animate";
@@ -108,6 +109,8 @@ export function NotificationList({ notifications }: { notifications: Notificatio
       {visible.map((notification) => {
         const { icon: Icon, className } = ICON_BY_TYPE[notification.type];
         const isUnread = !notification.read_at;
+        const href = isSafeNotificationLink(notification.link) ? notification.link : "/notifications";
+        const external = /^https?:\/\//i.test(href);
         return (
           <div
             key={notification.id}
@@ -115,7 +118,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
               isUnread ? "bg-primary/5" : ""
             }`}
           >
-            <Link href={notification.link} className="flex min-w-0 flex-1 items-center gap-3">
+            <Link href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="flex min-w-0 flex-1 items-center gap-3">
               <span className="relative shrink-0">
                 <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
                   {notification.type === "ra_broadcast" && !notification.actor ? (
@@ -146,6 +149,7 @@ export function NotificationList({ notifications }: { notifications: Notificatio
                 )}
                 <p className="mt-0.5 text-xs text-muted-foreground">{formatRelativeTime(notification.created_at)}</p>
               </span>
+              {external && <ExternalLink aria-label="外部サイト" className="h-4 w-4 shrink-0 text-muted-foreground" />}
               {isUnread && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
             </Link>
             <button

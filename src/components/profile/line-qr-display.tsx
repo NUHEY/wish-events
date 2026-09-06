@@ -27,14 +27,14 @@ export function LineQrDisplay({ src, name }: { src: string; name?: string | null
   }
 
   return (
-    <details className="group min-w-0 rounded-xl border border-border">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+    <details className="group w-fit max-w-full min-w-0 rounded-lg border border-border">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <QrCode aria-hidden="true" className="h-4 w-4 shrink-0 text-brand-line" />
-        <span className="min-w-0 flex-1">{dict.profile.lineLabel}</span>
+        <span className="min-w-0">{dict.profile.lineLabel}</span>
         <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
       <div className="space-y-2 px-3 pb-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="h-32 w-32 shrink-0 overflow-hidden rounded-md border border-border bg-white">
             <Image
               src={src}

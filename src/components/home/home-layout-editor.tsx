@@ -82,8 +82,8 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
 
   function applyOrder(preset: "events" | "life") {
     const order = preset === "events"
-      ? ["week_events", "featured_events", "announcements", "floor_events", "resident_events", "tools", "popular_events", "friends_events"]
-      : ["announcements", "tools", "floor_events", "resident_events", "week_events", "featured_events", "friends_events", "popular_events"];
+      ? ["latest_events", "week_events", "featured_events", "announcements", "floor_events", "resident_events", "tools", "popular_events", "friends_events"]
+      : ["announcements", "tools", "floor_events", "resident_events", "latest_events", "week_events", "featured_events", "friends_events", "popular_events"];
     setSections(current => [...current].sort((a, b) => order.indexOf(a.section_key) - order.indexOf(b.section_key)));
     markDirty();
   }

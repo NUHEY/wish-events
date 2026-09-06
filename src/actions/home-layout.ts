@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { homeLayoutSchema } from "@/lib/validations/home-layout";
 import { HOME_SECTION_KEYS } from "@/lib/constants";
-import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/feature-flags";
+import { RESIDENT_TOOLS, type ToolKey } from "@/lib/resident-tools";
 
 export type HomeLayoutActionResult = { error?: string; success?: boolean };
 
@@ -37,7 +37,7 @@ export async function saveHomeLayout(
     return { error: parsed.error.issues[0]?.message ?? "入力内容を確認してください" };
   }
 
-  // 念のため、フォームが3セクション全てを含んでいるか確認する
+  // 念のため、フォームが全セクションを含んでいるか確認する
   const gotKeys = new Set(parsed.data.sections.map((s) => s.section_key));
   if (HOME_SECTION_KEYS.some((k) => !gotKeys.has(k))) {
     return { error: "セクション情報が不足しています" };
@@ -54,7 +54,7 @@ export async function saveHomeLayout(
         title_ja: s.title_ja || null,
         title_en: s.title_en || null,
       })
-      .eq("section_key", s.section_key);
+      .eq("section_key", s.section_key).select("section_key").single();
 
     if (error) {
       return { error: `保存に失敗しました: ${error.message}` };
@@ -66,34 +66,25 @@ export async function saveHomeLayout(
   return { success: true };
 }
 
-export async function saveHomeToolSettings(input: { key: FeatureFlagKey; showOnHome: boolean; position: number }[], density: "minimal" | "compact") {
+export async function saveHomeToolSettings(input: { key: ToolKey; showOnHome: boolean; position: number }[], density: "minimal" | "compact") {
   const profile = await requireManagement("home");
-  await requireManagement("features");
   await requireManagement("settings");
-  const allowed = new Set<FeatureFlagKey>([
-    "availability_matching",
-    "lets_chat_booking",
-    "unit_room_sessions",
-    "ra_link_hub",
-    "wish_knowledge",
-    "resident_events",
-  ]);
-  if (input.length !== allowed.size || input.some((item) => !FEATURE_FLAG_KEYS.includes(item.key) || !allowed.has(item.key))) {
-    return { error: "ツール設定が不足しています。" };
+  const allowed = new Set(RESIDENT_TOOLS.map(tool => tool.key));
+  if (!Array.isArray(input) || input.length !== allowed.size || input.some(item => !item || !allowed.has(item.key) || typeof item.showOnHome !== "boolean")) {
+    return { error: "ツール設定が不足しています。画面を再読み込みしてください。" };
   }
-  const keys = new Set(input.map((item) => item.key));
-  if (keys.size !== allowed.size) return { error: "同じツールが重複しています。" };
+  if (new Set(input.map(item => item.key)).size !== allowed.size) return { error: "同じツールが重複しています。" };
+  if (density !== "compact" && density !== "minimal") return { error: "表示の大きさを選び直してください。" };
 
+  // Layout and density are one update. Public/hidden feature flags remain independent.
   const supabase = await createClient();
-  const results = await Promise.all(input.map((item, index) => supabase.from("feature_flags").update({
-    show_on_home: item.showOnHome,
-    home_position: index + 1,
+  const { error } = await supabase.from("site_settings").update({
+    home_tool_layout: input.map(item => ({ key: item.key, showOnHome: item.showOnHome })),
+    home_tool_density: density,
     updated_by: profile.id,
     updated_at: new Date().toISOString(),
-  }).eq("key", item.key)));
-  if (results.some((result) => result.error)) return { error: "保存できませんでした。20260828のSQLを適用してください。" };
-  const { error: densityError } = await supabase.from("site_settings").update({ home_tool_density: density === "compact" ? "compact" : "minimal", updated_by: profile.id, updated_at: new Date().toISOString() }).eq("id", 1);
-  if (densityError) return { error: "大きさを保存できませんでした。最新のSQLを適用してください。" };
+  }).eq("id", 1).select("id").single();
+  if (error) return { error: "ホームのツール設定を保存できませんでした。時間をおいて再度お試しください。" };
   revalidatePath("/");
   revalidatePath("/dashboard/home-layout");
   return { success: true };

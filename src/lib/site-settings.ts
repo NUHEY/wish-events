@@ -1,3 +1,4 @@
+import { RESIDENT_TOOLS, type HomeToolPreference } from "@/lib/resident-tools";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { hexToHsl } from "@/lib/utils";
@@ -34,6 +35,7 @@ export type SiteSettings = {
   ctaBlurPx: number;
   ctaFadeHeightPx: number;
   ctaTransitionMs: number;
+  homeToolLayout: HomeToolPreference[] | null;
   homeToolDensity: "minimal" | "compact";
   scheduleDefaultStartTime: string;
   scheduleDefaultEndTime: string;
@@ -85,6 +87,7 @@ export const SITE_SETTINGS_DEFAULTS: SiteSettings = {
   ctaBlurPx: 16,
   ctaFadeHeightPx: 64,
   ctaTransitionMs: 200,
+  homeToolLayout: null,
   homeToolDensity: "minimal",
   scheduleDefaultStartTime: "09:00",
   scheduleDefaultEndTime: "21:00",
@@ -152,6 +155,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       ctaBlurPx: numberSetting(row.cta_blur_px, SITE_SETTINGS_DEFAULTS.ctaBlurPx, 0, 32),
       ctaFadeHeightPx: numberSetting(row.cta_fade_height_px, SITE_SETTINGS_DEFAULTS.ctaFadeHeightPx, 32, 128),
       ctaTransitionMs: numberSetting(row.cta_transition_ms, SITE_SETTINGS_DEFAULTS.ctaTransitionMs, 100, 600),
+      homeToolLayout: Array.isArray(row.home_tool_layout) ? row.home_tool_layout.filter((item): item is HomeToolPreference => !!item && typeof item === "object" && RESIDENT_TOOLS.some(tool => tool.key === item.key) && typeof item.showOnHome === "boolean") : null,
       homeToolDensity: row.home_tool_density === "compact" ? "compact" : "minimal",
       scheduleDefaultStartTime: typeof row.schedule_default_start_time === "string" ? row.schedule_default_start_time.slice(0, 5) : SITE_SETTINGS_DEFAULTS.scheduleDefaultStartTime,
       scheduleDefaultEndTime: typeof row.schedule_default_end_time === "string" ? row.schedule_default_end_time.slice(0, 5) : SITE_SETTINGS_DEFAULTS.scheduleDefaultEndTime,

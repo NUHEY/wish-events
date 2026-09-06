@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { getManagementAccess } from "@/lib/management-access";
+import { canManage } from "@/lib/management-permissions";
 import { ChevronRight, Plus, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { EventCard, type EventCardFriend } from "@/components/events/event-card";
-import { RESIDENT_TOOLS, ResidentToolGrid } from "@/components/tools/resident-tool-grid";
+import { ResidentToolGrid } from "@/components/tools/resident-tool-grid";
+import { RESIDENT_TOOLS, resolveHomeTools, type ToolKey } from "@/lib/resident-tools";
 import { buttonVariants } from "@/components/ui/button";
 import { getLocale, getDictionary } from "@/lib/i18n";
 import { endOfThisWeek, EVENT_CARD_COLUMNS } from "@/lib/utils";
@@ -22,6 +25,7 @@ const FALLBACK_SECTIONS: HomeLayoutSectionRow[] = [
   { id: "popular_events", section_key: "popular_events", visible: true, position: 5, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "friends_events", section_key: "friends_events", visible: true, position: 6, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "resident_events", section_key: "resident_events", visible: true, position: 7, accent: null, title_ja: null, title_en: null, updated_at: "" },
+  { id: "latest_events", section_key: "latest_events", visible: true, position: 9, accent: null, title_ja: null, title_en: null, updated_at: "" },
   { id: "tools", section_key: "tools", visible: true, position: 8, accent: null, title_ja: null, title_en: null, updated_at: "" },
 ];
 
@@ -35,7 +39,7 @@ function EventScroller({
   friendsByEventId?: Map<string, EventCardFriend[]>;
 }) {
   return (
-    <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pr-4 pb-1 scroll-pl-1 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:pr-0 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pr-4 pb-1 scroll-pl-1 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:pr-0 lg:grid-cols-5">
       {events.map((event) => (
         <div key={event.id} className="w-40 shrink-0 snap-start sm:w-auto">
           <EventCard event={event} attendingFriends={friendsByEventId?.get(event.id)} />
@@ -77,6 +81,8 @@ export default async function HomePage() {
     { data: friendsRowsDataRaw },
     { data: residentEventsRaw },
     { data: homeToolRowsRaw },
+    { data: latestPublishedRaw },
+    { data: latestImmediateRaw },
     homeSettings,
   ] = await Promise.all([
     supabase.from("home_layout_sections").select("*").order("position", { ascending: true }),
@@ -128,7 +134,14 @@ export default async function HomePage() {
       .gte("event_date", now.toISOString())
       .order("event_date", { ascending: true })
       .limit(10),
-    supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.map((tool) => tool.key)).order("home_position", { ascending: true }),
+    supabase.from("feature_flags").select("key,state,show_on_home,home_position").in("key", RESIDENT_TOOLS.flatMap(tool => tool.featureKey ? [tool.featureKey] : [])).order("home_position", { ascending: true }),
+    // The top ten from both publication modes gives the exact combined top ten.
+    supabase.from("events").select(EVENT_CARD_COLUMNS)
+      .gte("event_date", now.toISOString()).lte("publish_at", now.toISOString())
+      .order("publish_at", { ascending: false }).order("created_at", { ascending: false }).limit(10),
+    supabase.from("events").select(EVENT_CARD_COLUMNS)
+      .gte("event_date", now.toISOString()).is("publish_at", null)
+      .order("created_at", { ascending: false }).limit(10),
     getSiteSettings(),
   ]);
   const layoutRows = layoutRowsRaw as HomeLayoutSectionRow[] | null;
@@ -139,8 +152,13 @@ export default async function HomePage() {
   const friendsRows = (friendsRowsDataRaw as { event_id: string; friend_id: string }[] | null) ?? [];
   const residentEvents = (residentEventsRaw as EventCardData[] | null) ?? [];
   const homeToolRows = (homeToolRowsRaw ?? []) as { key: FeatureFlagKey; state: FeatureFlagState; show_on_home: boolean; home_position: number }[];
-  const visibleHomeToolKeys = homeToolRows.filter((row) => row.show_on_home && row.state !== "hidden").map((row) => row.key);
-  const homeToolStates = Object.fromEntries(homeToolRows.map((row) => [row.key, row.state])) as Partial<Record<FeatureFlagKey, FeatureFlagState>>;
+  const managementAccess = profile.account_kind === "resident" ? null : await getManagementAccess();
+  const homeTools = resolveHomeTools(homeSettings.homeToolLayout, homeToolRows);
+  const visibleHomeToolKeys = homeTools.filter(tool => tool.showOnHome && tool.state !== "hidden" && (profile.account_kind === "resident" || (tool.key !== "resident_events" || canManage(managementAccess!, "events")) && (tool.key !== "availability_matching" || canManage(managementAccess!, "schedules")))).map(tool => tool.key);
+  const homeToolStates = Object.fromEntries(homeTools.map(tool => [tool.key, tool.state])) as Partial<Record<ToolKey, FeatureFlagState>>;
+  const latestEvents = [...(latestPublishedRaw ?? []), ...(latestImmediateRaw ?? [])]
+    .sort((a, b) => new Date(b.publish_at ?? b.created_at).getTime() - new Date(a.publish_at ?? a.created_at).getTime())
+    .slice(0, 10);
 
   // 上のfriends_attending_events / popular_upcoming_eventsはevent_id（と登録数/friend_id）
   // しか返さないため、必要なイベント本体・友達プロフィールをここでまとめて取得する。
@@ -239,6 +257,15 @@ export default async function HomePage() {
       {sections
         .filter((s) => s.visible)
         .map((s) => {
+          if (s.section_key === "latest_events") {
+            return (
+              <section key={s.id} className="flex flex-col gap-3">
+                <SectionHeading s={s} title={sectionTitle(s, dict.homeLayout.sectionNames.latest_events)} />
+                {latestEvents.length > 0 ? <EventScroller events={latestEvents} /> : <EmptyNote>{isEn ? "No upcoming events have been published yet." : "新しく公開された開催予定のイベントはありません"}</EmptyNote>}
+              </section>
+            );
+          }
+
           if (s.section_key === "week_events") {
             return (
               <section key={s.id} className="flex flex-col gap-3">

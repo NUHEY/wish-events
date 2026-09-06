@@ -15,6 +15,8 @@ import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { TeamPicker } from "@/components/team/team-picker";
+import { EventImagePreview } from "@/components/events/event-image-preview";
+import { EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
 import { ImageDropzone } from "@/components/ui/image-dropzone";
 import { MarkdownHelpButton } from "@/components/ui/markdown-help-button";
 import { EVENT_CATEGORIES, FLOORS, SURVEY_TYPES } from "@/lib/constants";
@@ -216,13 +218,14 @@ export function EventForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <p className="text-xs font-semibold">一覧セル用サムネイル</p>
-            <ImageDropzone value={thumbnailUrl} onFile={(file) => handleMediaFile(file, "thumbnail")} disabled={uploading} label="サムネイルを追加" hint="推奨 16:10・1200×742px／10MB以下" previewClassName="object-cover" className="min-h-40 aspect-[1.618/1]" />
+            <ImageDropzone value={thumbnailUrl} onFile={(file) => handleMediaFile(file, "thumbnail")} disabled={uploading} label="サムネイルを追加" hint="16:10・1200×750px推奨／10MB以下" compact />
           </div>
           <div className="space-y-1.5">
             <p className="text-xs font-semibold">詳細ページ用 A4ポスター</p>
-            <ImageDropzone value={posterUrl} onFile={(file) => handleMediaFile(file, "poster")} disabled={uploading} label="A4ポスターを追加" hint="推奨 A4縦・1240×1754px／10MB以下" className="min-h-56 aspect-[1/1.414]" />
+            <ImageDropzone value={posterUrl} onFile={(file) => handleMediaFile(file, "poster")} disabled={uploading} label="A4ポスターを追加" hint="A4縦・1240×1754px推奨／10MB以下" compact />
           </div>
         </div>
+        <EventImagePreview thumbnailUrl={thumbnailUrl} posterUrl={posterUrl} />
         <div>
           <p className="mb-2 text-xs font-semibold text-muted-foreground">画像がない場合のデザイン</p>
           <div className="grid grid-cols-4 gap-2">
@@ -231,7 +234,7 @@ export function EventForm({
               return (
                 <button key={preset.id} type="button" onClick={() => { setThumbnailUrl(preset.url); setPosterUrl(preset.url); markDirty(); }} className={cn("overflow-hidden rounded-xl border-2 bg-secondary/30 text-left transition-transform active:scale-[0.97]", selected ? "border-primary ring-2 ring-primary/15" : "border-transparent")} aria-pressed={selected}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preset.url} alt="" className="aspect-[1.618/1] w-full object-cover" />
+                  <img src={preset.url} alt="" className={cn(EVENT_CARD_RATIO_CLASS, "w-full object-cover")} />
                   <span className="block truncate px-2 py-1.5 text-[10px] font-semibold">{preset.label}</span>
                 </button>
               );
@@ -477,8 +480,8 @@ export function EventForm({
                 onChange={(event) => setCapacity(event.target.value)}
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-2">
+            <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+              <div className="grid content-start gap-2 sm:row-span-3 sm:grid-rows-subgrid">
                 <Label>{dict.eventForm.registrationOpensLabel}</Label>
                 <DateTimePicker
                   name="registration_opens_at"
@@ -490,7 +493,7 @@ export function EventForm({
                 />
                 <p className="text-xs text-muted-foreground">{dict.eventForm.registrationOpensHint}</p>
               </div>
-              <div className="grid gap-2">
+              <div className="grid content-start gap-2 sm:row-span-3 sm:grid-rows-subgrid">
                 <Label>{dict.eventForm.registrationClosesLabel}</Label>
                 <DateTimePicker
                   name="registration_closes_at"

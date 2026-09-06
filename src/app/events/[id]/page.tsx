@@ -140,7 +140,7 @@ export default async function EventDetailPage({
         src={event.poster_url ?? event.thumbnail_url}
         alt={title}
         emptyLabel={dict.event.noImage}
-        className="max-h-[70vh] rounded-lg"
+        className="mx-auto max-w-[min(100%,49.5vh)] rounded-lg"
         priority
       />
 

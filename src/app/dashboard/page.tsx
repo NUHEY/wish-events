@@ -36,23 +36,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     <div className="flex flex-col gap-6">
         {!managesEvents && <p className="rounded-xl border border-border bg-card p-4 text-sm leading-relaxed text-muted-foreground">{locale === "en" ? "Your available management features are in the menu above." : "上の管理メニューに、利用できる機能が表示されています。"}</p>}
         {managesEvents && <>
-        <div className={`grid grid-cols-2 gap-3 ${residentCount !== null ? "sm:grid-cols-3" : ""}`}>
+        <div className={`grid min-w-0 gap-2 sm:gap-3 ${residentCount !== null ? "grid-cols-3" : "grid-cols-2"}`}>
           {residentCount !== null && <Card>
-            <CardContent className="p-4 text-center">
+            <CardContent className="min-w-0 px-1 py-3 text-center sm:p-4">
               <p className="text-2xl font-bold">{residentCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">{dict.dashboard.statsResidents}</p>
+              <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">{dict.dashboard.statsResidents}</p>
             </CardContent>
           </Card>}
           <Card>
-            <CardContent className="p-4 text-center">
+            <CardContent className="min-w-0 px-1 py-3 text-center sm:p-4">
               <p className="text-2xl font-bold">{totalEvents}</p>
-              <p className="text-xs text-muted-foreground">{dict.dashboard.statsEvents}</p>
+              <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">{dict.dashboard.statsEvents}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
+            <CardContent className="min-w-0 px-1 py-3 text-center sm:p-4">
               <p className="text-2xl font-bold">{upcomingCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">{dict.dashboard.statsUpcoming}</p>
+              <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">{dict.dashboard.statsUpcoming}</p>
             </CardContent>
           </Card>
         </div>
@@ -75,7 +75,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
                       <Badge variant="secondary">{categoryLabel}</Badge>
                       {event.creator_type === "resident" && <Badge variant="outline">寮生企画</Badge>}
                       {event.requires_registration && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">
                           {dict.dashboard.registrationCount} {count}/{event.capacity}
                           {dict.event.peopleUnit}
                         </span>
