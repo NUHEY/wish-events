@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
+import { EVENT_CARD_FRAME_CLASS, EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,21 +13,23 @@ import type { EventCardData } from "@/types/database";
 
 export type EventCardFriend = { id: string; full_name: string | null; avatar_url: string | null };
 
-const FRIEND_AVATAR_MAX_VISIBLE = 4;
+const FRIEND_AVATAR_MAX_VISIBLE = 2;
 
-/** カード左下に、参加している友達のアイコンを少し重ねて表示する（ホームの「友達が参加するイベント」用）。 */
-function FriendAvatarStack({ friends }: { friends: EventCardFriend[] }) {
+/** 写真の左下に友達を重ね、右下の料金ラベルとは重ならない幅に収める。 */
+function FriendAvatarStack({ friends, locale }: { friends: EventCardFriend[]; locale: string }) {
   const visible = friends.slice(0, FRIEND_AVATAR_MAX_VISIBLE);
   const overflow = friends.length - visible.length;
+  const names = friends.map((friend) => friend.full_name || (locale === "en" ? "Friend" : "友達")).join(locale === "en" ? ", " : "、");
+  const label = locale === "en" ? `Attending: ${names}` : `${names}が参加予定`;
   return (
-    <div className="absolute bottom-2 left-2 flex items-center -space-x-2">
-      {visible.map((f) => (
-        <span key={f.id} className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-secondary text-[8px] font-semibold text-secondary-foreground ring-2 ring-card">
-          <Image src={f.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={20} height={20} className="h-full w-full object-cover" />
+    <div role="img" aria-label={label} title={label} className="absolute bottom-2 left-2 flex items-center -space-x-2 drop-shadow-sm">
+      {visible.map((friend) => (
+        <span key={friend.id} className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-white">
+          <Image src={friend.avatar_url || DEFAULT_AVATAR_IMAGE_URL} alt="" width={28} height={28} className="h-full w-full object-cover" />
         </span>
       ))}
       {overflow > 0 && (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[7px] font-semibold text-muted-foreground ring-2 ring-card">
+        <span className="relative flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-card px-1 text-[9px] font-semibold tabular-nums text-foreground ring-2 ring-white">
           +{overflow}
         </span>
       )}
@@ -79,6 +81,7 @@ export async function EventCard({
     <Link href={`/events/${event.id}`} prefetch={false} className="group block h-full w-full min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
       <Card
         className={cn(
+          EVENT_CARD_FRAME_CLASS,
           // WebKitではfilter/transformを持つ子をoverflow-hiddenだけで丸めると
           // 角から描画が漏れるため、カード自身をstacking contextにして直接clipする。
           "relative z-0 flex h-full w-full flex-col min-w-0 overflow-hidden rounded-xl transition-all duration-200",
@@ -112,7 +115,7 @@ export async function EventCard({
           ) : !isResidentEvent && !event.fee_amount && event.show_free_tag !== false && settings.eventShowFreeLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-success px-2 py-1 text-[10px] font-semibold text-success-foreground shadow-sm">{dict.event.freeLabel}</span>
           ) : null}
-          {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} />}
+          {attendingFriends && attendingFriends.length > 0 && <FriendAvatarStack friends={attendingFriends} locale={locale} />}
         </div>
         {/* タイトルの行数をそろえ、本文の高さは内容に合わせ、日時を省略せず折り返す。 */}
         <CardContent className={cn("flex flex-1 flex-col", contentSpacingClass)}>

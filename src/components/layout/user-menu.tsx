@@ -4,13 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_AVATAR_IMAGE_URL } from "@/lib/media-defaults";
 import { useRouter } from "next/navigation";
-import { Settings2, CircleHelp, DoorOpen, IdCard, LayoutDashboard, LogOut, Menu, Sparkles, UserRound, Users } from "lucide-react";
+import { Settings2, ChevronRight, LayoutDashboard, LogOut, Menu } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -19,12 +18,7 @@ import { formatRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
 import type { UserAccountKind, UserRole } from "@/types/database";
 
-/**
- * ヘッダー右端のアバターボタン。以前は「プロフィール編集」リンク・RA用の
- * ダッシュボードアイコン・「ログアウト」ボタンが常時横並びで表示されていたが、
- * 頻度の低い操作が常に目に入り煩雑だったため、すべてこのドロップダウンに
- * まとめている。右上にはアバターを表示し、言語やテーマの変更は「自分の設定」にまとめる。
- */
+/** 頻繁に使うプロフィールへの入口と、設定・管理・ログアウトをまとめる。 */
 export function UserMenu({
   userId,
   fullName,
@@ -85,9 +79,10 @@ export function UserMenu({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-[15rem] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto">
-        <Link href={`/directory/${userId}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-accent">
+        <DropdownMenuItem asChild>
+        <Link href={`/directory/${userId}`} aria-label={dict.header.viewMyPage} className="gap-2.5">
           <Image src={avatarUrl || DEFAULT_AVATAR_IMAGE_URL} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
-          <span className="flex min-w-0 flex-col">
+          <span className="flex min-w-0 flex-1 flex-col">
             <span className="break-words text-sm font-semibold leading-relaxed text-foreground">
               {fullName ?? dict.common.notRegistered}
             </span>
@@ -99,42 +94,11 @@ export function UserMenu({
               </span>}
             </span>
           </span>
+          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild><Link href="/settings"><Settings2 className="h-4 w-4" />{locale === "en" ? "Your settings" : "自分の設定"}</Link></DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>{locale === "ja" ? "プロフィール" : "Profile"}</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link href={`/directory/${userId}`} className="cursor-pointer">
-            <IdCard className="h-4 w-4" />
-            {dict.header.viewMyPage}
-          </Link>
-        </DropdownMenuItem>
-        {accountKind === "resident" && <DropdownMenuItem asChild>
-          <Link href="/profile/edit" className="cursor-pointer"><UserRound className="h-4 w-4" />{dict.header.editProfile}</Link>
-        </DropdownMenuItem>}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>{locale === "ja" ? "寮生活・ヘルプ" : "Dorm life & help"}</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link href="/directory" className="cursor-pointer">
-            <Users className="h-4 w-4" />
-            {dict.nav.directory}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/tools" className="cursor-pointer">
-            <Sparkles className="h-4 w-4" />
-            {dict.nav.tools}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/onboarding" className="cursor-pointer">
-            <CircleHelp className="h-4 w-4" />
-            {locale === "en" ? "Quick guide" : "使い方ガイド"}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>{locale === "ja" ? "アカウント・管理" : "Account & management"}</DropdownMenuLabel>
         {(role === "ra" || canAccessManagement) && (
           <DropdownMenuItem asChild>
             <Link href="/dashboard" className="cursor-pointer">
@@ -143,9 +107,6 @@ export function UserMenu({
             </Link>
           </DropdownMenuItem>
         )}
-        {accountKind === "resident" && <DropdownMenuItem asChild>
-          <Link href="/move-out" className="cursor-pointer"><DoorOpen className="h-4 w-4" />{dict.moveOut.navMenuLabel}</Link>
-        </DropdownMenuItem>}
         <DropdownMenuSeparator />
         <DropdownMenuItem destructive onSelect={handleSignOut}>
           <LogOut className="h-4 w-4" />

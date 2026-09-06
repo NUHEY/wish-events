@@ -9,11 +9,7 @@ import { signalNavigation } from "@/lib/navigation-signal";
 const STATUSES = ["all", "upcoming", "past"] as const;
 export type EventStatus = (typeof STATUSES)[number];
 
-/**
- * 開催状況（すべて/開催予定/過去）を切り替えるセグメントボタン。
- * 以前は<select>のプルダウンだったが、選択肢が3つだけなのに毎回開閉が必要で
- * 分かりにくかったため、カテゴリpiと同じ見た目のボタン列に統一した。
- */
+/** Compact status choices with a thin underline; touch targets remain 44px high. */
 export function EventStatusFilter() {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,7 +49,7 @@ export function EventStatusFilter() {
       role="group"
       aria-label={locale === "ja" ? "開催状況" : "Event status"}
       className={cn(
-        "flex w-full max-w-sm items-center gap-0.5 rounded-full border border-border bg-secondary/50 p-0.5 transition-opacity",
+        "inline-flex max-w-full items-center gap-3 border-b border-border transition-opacity",
         pending && "opacity-60"
       )}
     >
@@ -65,10 +61,10 @@ export function EventStatusFilter() {
           disabled={pending}
           onClick={() => setStatus(status)}
           className={cn(
-            "min-h-11 min-w-0 flex-1 rounded-full px-2 py-1.5 whitespace-nowrap text-xs sm:text-sm font-medium transition-colors",
+            "min-h-11 min-w-0 border-b-2 px-1 py-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             active === status
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
           {labels[status]}

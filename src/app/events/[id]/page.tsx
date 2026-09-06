@@ -201,7 +201,7 @@ export default async function EventDetailPage({
             </div>
           )}
         </dl>
-        {(event.all_ra_members || (teamRows ?? []).length > 0) && <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground"><TeamAvatars members={teamRows ?? []} allRa={event.all_ra_members} /><span>企画</span></div>}
+        {(event.all_ra_members || (teamRows ?? []).length > 0) && <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground"><TeamAvatars members={teamRows ?? []} allRa={event.all_ra_members} /><span>{event.all_ra_members ? (locale === "en" ? "RA team" : "RAチーム") : (locale === "en" ? "Organizers" : "企画")}</span></div>}
       </div>
 
       {event.payment_info && (

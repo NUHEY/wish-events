@@ -224,9 +224,9 @@ export default async function HomePage() {
   function SectionHeading({ s, title }: { s: HomeLayoutSectionRow; title: string }) {
     const accent = accentHex(s);
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-3">
         <span
-          className="h-6 w-1.5 rounded-full bg-primary"
+          className="h-6 w-1 shrink-0 rounded-full bg-primary"
           style={accent ? { backgroundColor: accent } : undefined}
         />
         <h2 className="text-lg font-bold">{title}</h2>
@@ -257,104 +257,37 @@ export default async function HomePage() {
       {sections
         .filter((s) => s.visible)
         .map((s) => {
-          if (s.section_key === "latest_events") {
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <SectionHeading s={s} title={sectionTitle(s, dict.homeLayout.sectionNames.latest_events)} />
-                {latestEvents.length > 0 ? <EventScroller events={latestEvents} /> : <EmptyNote>{isEn ? "No upcoming events have been published yet." : "新しく公開された開催予定のイベントはありません"}</EmptyNote>}
-              </section>
-            );
-          }
-
-          if (s.section_key === "week_events") {
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.weekEvents.title)} />
-                </div>
-                {weekEvents && weekEvents.length > 0 ? (
-                  <EventScroller events={weekEvents} />
-                ) : (
-                  <EmptyNote>{dict.homePortal.weekEvents.empty}</EmptyNote>
-                )}
-              </section>
-            );
-          }
-
-          if (s.section_key === "floor_events") {
-            const defaultTitle =
-              profile.floor_number != null
+          const eventSections: Partial<Record<HomeLayoutSectionRow["section_key"], { events: EventCardData[]; title: string }>> = {
+            latest_events: { events: latestEvents, title: dict.homeLayout.sectionNames.latest_events },
+            week_events: { events: weekEvents ?? [], title: dict.homePortal.weekEvents.title },
+            floor_events: {
+              events: floorEvents,
+              title: profile.floor_number != null
                 ? dict.homePortal.floorEvents.title.replace("{floor}", String(profile.floor_number))
-                : dict.homePortal.floorEvents.titleNoFloor;
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <SectionHeading s={s} title={sectionTitle(s, defaultTitle)} />
-                {profile.floor_number == null ? (
-                  <EmptyNote>{dict.homePortal.floorEvents.noFloorNote}</EmptyNote>
-                ) : floorEvents.length > 0 ? (
-                  <EventScroller events={floorEvents} />
-                ) : (
-                  <EmptyNote>{dict.homePortal.floorEvents.empty}</EmptyNote>
-                )}
-              </section>
-            );
-          }
+                : dict.homePortal.floorEvents.titleNoFloor,
+            },
+            featured_events: { events: pinnedEvents, title: dict.homePortal.featuredEvents.title },
+            popular_events: { events: popularEvents, title: dict.homePortal.popularEvents.title },
+            friends_events: { events: friendsEvents, title: dict.homePortal.friendsEvents.title },
+            resident_events: { events: residentEvents, title: isEn ? "From the WISH community" : "みんなからの募集" },
+          };
+          const eventSection = eventSections[s.section_key];
 
-          if (s.section_key === "featured_events") {
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.featuredEvents.title)} />
-                {pinnedEvents.length > 0 ? (
-                  <EventScroller events={pinnedEvents} />
-                ) : (
-                  <EmptyNote>{dict.homePortal.featuredEvents.empty}</EmptyNote>
-                )}
-              </section>
-            );
-          }
-
-          if (s.section_key === "popular_events") {
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.popularEvents.title)} />
-                {popularEvents.length > 0 ? (
-                  <EventScroller events={popularEvents} />
-                ) : (
-                  <EmptyNote>{dict.homePortal.popularEvents.empty}</EmptyNote>
-                )}
-              </section>
-            );
-          }
-
-          if (s.section_key === "friends_events") {
-            return (
-              <section key={s.id} className="flex flex-col gap-3">
-                <SectionHeading s={s} title={sectionTitle(s, dict.homePortal.friendsEvents.title)} />
-                {friendsEvents.length > 0 ? (
-                  <EventScroller events={friendsEvents} friendsByEventId={friendsByEventId} />
-                ) : (
-                  <EmptyNote>{dict.homePortal.friendsEvents.empty}</EmptyNote>
-                )}
-              </section>
-            );
-          }
-
-          if (s.section_key === "resident_events") {
-            // 非公開中もRAは公開前の見た目を確認できる。一般寮生にはセクション自体を出さない。
-            if (!isRa && homeToolStates.resident_events === "hidden") return null;
+          if (eventSection) {
+            // RAの表示設定は維持し、対象イベントがあるときだけ欄を表示する。
+            if (eventSection.events.length === 0) return null;
+            if (s.section_key === "resident_events" && !isRa && homeToolStates.resident_events === "hidden") return null;
             return (
               <section key={s.id} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <SectionHeading s={s} title={sectionTitle(s, isEn ? "From the WISH community" : "みんなからの募集")} />
-                  <Link href="/events/community" className="text-xs font-semibold text-primary">
-                    {isEn ? "View all" : "すべて見る"}
-                  </Link>
+                  <SectionHeading s={s} title={sectionTitle(s, eventSection.title)} />
+                  {s.section_key === "resident_events" && (
+                    <Link href="/events/community" className="shrink-0 text-xs font-semibold text-primary">
+                      {isEn ? "View all" : "すべて見る"}
+                    </Link>
+                  )}
                 </div>
-                {residentEvents.length > 0 ? (
-                  <EventScroller events={residentEvents} />
-                ) : (
-                  <EmptyNote>{isEn ? "There are no open invitations yet." : "現在募集中の企画はありません"}</EmptyNote>
-                )}
+                <EventScroller events={eventSection.events} friendsByEventId={s.section_key === "friends_events" ? friendsByEventId : undefined} />
               </section>
             );
           }

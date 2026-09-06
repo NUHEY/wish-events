@@ -8,7 +8,7 @@ import { findLabel, LANGUAGES, COUNTRIES } from "@/lib/i18n/profile-options";
 import { getLineQrSignedUrl } from "@/actions/line-qr";
 import { buildAccentBackgroundGradient, cn, formatEventDateTime, formatRoomNumber } from "@/lib/utils";
 import { Award, CalendarDays, GraduationCap, Instagram, Languages as LanguagesIcon, MessageCircle, QrCode, Sparkles, SquarePen, UsersRound } from "lucide-react";
-import { EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
+import { EVENT_CARD_FRAME_CLASS, EVENT_CARD_RATIO_CLASS } from "@/lib/event-media";
 import { directoryFilterHref, type DirectoryField } from "@/components/directory/directory-filters";
 import { EventPoster } from "@/components/events/event-poster";
 import { Badge } from "@/components/ui/badge";
@@ -217,6 +217,15 @@ export default async function DirectoryProfilePage({
               {isSelf && <span className="text-xs font-normal text-muted-foreground">({dict.raRooms.you})</span>}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">{roomText}</p>
+            {isSelf && viewer.account_kind === "resident" && (
+              <Link
+                href="/profile/edit"
+                className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3 min-h-11 w-fit gap-2" })}
+              >
+                <SquarePen aria-hidden="true" className="h-4 w-4" />
+                {dict.directory.editYourProfile}
+              </Link>
+            )}
           </div>
 
           <dl className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-secondary/20 py-3 text-center">
@@ -331,7 +340,7 @@ export default async function DirectoryProfilePage({
               <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarDays aria-hidden="true" className="h-4 w-4 text-rose-600 dark:text-rose-300" />{dict.directory.pastEventsTitle}</h3>
               <div role="region" aria-label={dict.directory.pastEventsTitle} tabIndex={0} className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain p-1 pb-2 scroll-px-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {pastEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`} prefetch={false} className="group flex w-36 shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-colors hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40">
+                  <Link key={event.id} href={`/events/${event.id}`} prefetch={false} className={cn(EVENT_CARD_FRAME_CLASS, "group flex w-36 shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-colors hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40")}>
                     <EventPoster
                       src={event.thumbnail_url ?? event.poster_url}
                       alt={(locale === "en" && event.title_en) || event.title}
@@ -355,15 +364,6 @@ export default async function DirectoryProfilePage({
           )}
 
           <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-            {isSelf && (
-              <Link
-                href="/profile/edit"
-                className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit gap-1.5" })}
-              >
-                <SquarePen className="h-3.5 w-3.5" />
-                {dict.directory.editYourProfile}
-              </Link>
-            )}
             <ProfileShareButton
               profileId={target.id}
               fullName={target.full_name}

@@ -11,7 +11,7 @@ import { useDict } from "@/lib/i18n/locale-provider";
 import { isImportantTag } from "@/lib/utils";
 import type { AnnouncementRow } from "@/types/database";
 
-/** お知らせ一覧の1行。「セル」感を避け、パディングを抑えたリスト行として表示する。 */
+/** お知らせ一覧の1行。「セル」感を避け、見出しと枠線の間に余白を確保したリスト行として表示する。 */
 export function AnnouncementCard({
   announcement,
   isRa,
@@ -33,8 +33,8 @@ export function AnnouncementCard({
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-secondary/40">
-      <Link href={`/announcements/${announcement.id}`} className="flex min-w-0 flex-1 flex-col gap-1">
+    <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 transition-colors hover:bg-secondary/40">
+      <Link href={`/announcements/${announcement.id}`} className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           {announcement.pinned && (
             <Badge variant="default" className="gap-1 border-0">
@@ -55,7 +55,7 @@ export function AnnouncementCard({
             <span className="text-xs text-muted-foreground">{announcement.category_label}</span>
           )}
         </div>
-        <span className="line-clamp-1 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary">
+        <span className="line-clamp-2 text-sm font-semibold leading-relaxed sm:line-clamp-1 text-foreground transition-colors hover:text-primary">
           {announcement.title}
         </span>
       </Link>

@@ -58,7 +58,7 @@ export function MobileTabBar({ hasUnreadTalk = false }: { hasUnreadTalk?: boolea
         <TabLink href="/" icon={Home} label={dict.nav.home} active={pathname === "/"} />
         <TabLink href="/events" icon={CalendarDays} label={dict.nav.events} active={pathname.startsWith("/events")} />
         <TabLink href="/talks" icon={MessageCircle} label={dict.nav.talks} badge={hasUnreadTalk} active={pathname.startsWith("/talks")} />
-        <TabLink href="/tools" icon={Sparkles} label={dict.nav.tools} active={["/tools", "/questions", "/links", "/wisdom"].some((path) => pathname === path || pathname.startsWith(`${path}/`))} />
+        <TabLink href="/tools" icon={Sparkles} label={dict.nav.tools} active={["/tools", "/directory", "/questions", "/links", "/wisdom"].some((path) => pathname === path || pathname.startsWith(`${path}/`))} />
       </div>
     </nav>
   );

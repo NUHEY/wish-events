@@ -41,8 +41,10 @@ export function LocaleToggle({ className }: { className?: string }) {
 
   return (
     <div
+      role="group"
+      aria-label="言語 / Language"
       className={cn(
-        "inline-flex items-center rounded-full border border-border bg-secondary p-0.5 text-xs font-medium transition-opacity",
+        "inline-flex max-w-full items-center gap-1 border-b border-border text-sm transition-opacity",
         pending && "opacity-70",
         className
       )}
@@ -55,13 +57,13 @@ export function LocaleToggle({ className }: { className?: string }) {
           aria-pressed={locale === l}
           disabled={pending}
           className={cn(
-            "min-h-11 min-w-11 rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "-mb-px min-h-11 min-w-11 whitespace-nowrap border-b-2 px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             locale === l
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
+              ? "border-primary font-medium text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          {l === "ja" ? "日本語" : "EN"}
+          {l === "ja" ? "日本語" : "English"}
         </button>
       ))}
     </div>

@@ -1,7 +1,7 @@
 import { CalendarClock, CalendarPlus, Lightbulb, Link2, MessagesSquare, UsersRound, QrCode, Calculator, Shuffle, Globe2 } from "lucide-react";
 import type { FeatureFlagKey, FeatureFlagState } from "@/lib/feature-flags";
 
-export type ToolKey = FeatureFlagKey | "share_qr" | "split_bill" | "group_shuffle" | "world_clock";
+export type ToolKey = FeatureFlagKey | "share_qr" | "split_bill" | "group_shuffle" | "world_clock" | "resident_directory";
 export type HomeToolPreference = { key: ToolKey; showOnHome: boolean };
 
 export const RESIDENT_TOOLS: {
@@ -20,6 +20,7 @@ export const RESIDENT_TOOLS: {
   raCreates: boolean;
 }[] = [
   { key: "resident_events", featureKey: "resident_events", createHref: "/events/community", residentHref: "/events/community", title: "イベントを募集", titleEn: "Create a meetup", description: "ご飯や外出の仲間を気軽に募集", descriptionEn: "Invite others to dinner, outings, and more", icon: CalendarPlus, accent: "from-pink-400/15 to-violet-300/5 text-pink-700 dark:text-pink-300", raCreates: false },
+  { key: "resident_directory", createHref: "/directory", residentHref: "/directory", title: "寮生ディレクトリ", titleEn: "Resident directory", description: "共通の言語や関心から友達を探す", descriptionEn: "Find people through shared languages and interests", icon: UsersRound, accent: "from-teal-500/15 to-sky-400/5 text-teal-700 dark:text-teal-300", raCreates: false },
   { key: "availability_matching", featureKey: "availability_matching", createHref: "/tools/schedule/new?mode=general", residentHref: "/tools/schedule/new?mode=general", title: "みんなの日程調整", titleEn: "Find a time together", description: "2人以上の空き時間を重ねて確認", descriptionEn: "Compare availability for two or more people", icon: CalendarClock, accent: "from-sky-500/15 to-cyan-400/5 text-sky-700 dark:text-sky-300", raCreates: false },
   { key: "lets_chat_booking", featureKey: "lets_chat_booking", createHref: "/tools/schedule/new?mode=lets_chat", residentHref: "/tools#active-schedules", title: "Let's Chat!", titleEn: "Let's Chat!", description: "フロアRAの予約ページを作成", descriptionEn: "Create booking slots for your floor", residentDescription: "フロアRAが公開した時間から予約", residentDescriptionEn: "Book a time published by your floor RA", icon: MessagesSquare, accent: "from-rose-500/15 to-orange-400/5 text-rose-700 dark:text-rose-300", raCreates: true },
   { key: "unit_room_sessions", featureKey: "unit_room_sessions", createHref: "/tools/schedule/new?mode=urs", residentHref: "/tools#active-schedules", title: "URS 日程調整", titleEn: "Schedule a URS", description: "ルームメイトとRAの日程ページを作成", descriptionEn: "Coordinate a room session with roommates and an RA", residentDescription: "RAが公開したページに予定を入力", residentDescriptionEn: "Enter your availability on the RA's page", icon: UsersRound, accent: "from-violet-500/15 to-fuchsia-400/5 text-violet-700 dark:text-violet-300", raCreates: true },

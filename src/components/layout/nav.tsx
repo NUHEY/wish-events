@@ -18,7 +18,7 @@ function NavLink({
 }) {
   const pathname = usePathname();
   const isActive =
-    href === "/" || exact ? pathname === href : pathname.startsWith(href);
+    href === "/" || exact ? pathname === href : href === "/tools" ? ["/tools", "/directory", "/links", "/wisdom"].some(path => pathname === path || pathname.startsWith(`${path}/`)) : pathname.startsWith(href);
 
   return (
     <Link
@@ -39,7 +39,7 @@ function NavLink({
  * RA向けの管理系リンク（イベント作成・管理ダッシュボード・RA管理・寮生管理）は
  * あえてこのグローバルナビには出さない。RAは代わりにアバターメニューから
  * 管理ダッシュボードに入り、そこから各管理画面へ遷移する。
- * 寮生ディレクトリはメイン機能ではないため、ここではなくアバターメニューに
+ * 寮生ディレクトリはメイン機能ではないため、ここではなくツール画面に
  * 格納している。モバイル幅ではこのナビ自体を隠し、下部タブバーに置き換える。
  */
 export function Nav({ role: _role, hasUnreadTalk = false }: { role: UserRole; hasUnreadTalk?: boolean }) {
