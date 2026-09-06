@@ -46,3 +46,29 @@ test('both shared settings forms reject callers without site appearance permissi
   await assert.rejects(h.actions.updateEventDisplaySettings({}, new FormData()), /denied/);
   assert.equal(h.updates.length, 0);
 });
+
+test('brand settings persist off/on, style and bounded interval without changing unrelated fields', async () => {
+  const h=harness(); const form=new FormData();
+  form.set('brand_animation_style','shine'); form.set('brand_animation_interval_seconds','5'); form.set('dark_accent_color','#8BB8D8');
+  assert.equal((await h.actions.updateSiteSettings({},form)).success,true);
+  assert.equal(h.updates[0].brand_animation_enabled,false);
+  assert.equal(h.updates[0].brand_animation_style,'shine');
+  assert.equal(h.updates[0].brand_animation_interval_seconds,20);
+  assert.equal(h.updates[0].dark_accent_color,'#8BB8D8');
+  form.set('brand_animation_enabled','on');form.set('brand_animation_interval_seconds','45');
+  await h.actions.updateSiteSettings({},form);
+  assert.equal(h.updates[1].brand_animation_enabled,true);
+  assert.equal(h.updates[1].brand_animation_interval_seconds,45);
+});
+test('invalid brand styles and dark colors cannot be saved', async () => {
+  const h=harness(); const form=new FormData();form.set('brand_animation_style','unknown');
+  assert.ok((await h.actions.updateSiteSettings({},form)).error);
+  form.set('brand_animation_style','lift');form.set('dark_accent_color','bad-color');
+  assert.ok((await h.actions.updateSiteSettings({},form)).error);
+  assert.equal(h.updates.length,0);
+});
+test('older site settings forms preserve saved brand configuration', async () => {
+  const h=harness();await h.actions.updateSiteSettings({},new FormData());
+  assert.equal('brand_animation_enabled' in h.updates[0],false);
+  assert.equal('dark_accent_color' in h.updates[0],false);
+});

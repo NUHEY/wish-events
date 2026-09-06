@@ -13,12 +13,12 @@ export default async function SiteSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">サイトの表示・操作</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          サイト全体の見え方を目的別に調整できます。ホームの掲載順は「ホームの編集」、自分だけの言語・明るさは「自分の設定」で変更します。
+          サイト全体の見え方を目的別に調整できます。ホームの掲載順は「ホームの編集」、自分だけの言語・テーマは「自分の設定」で変更します。
         </p>
       </div>
       <nav aria-label="設定する内容" className="grid grid-cols-2 gap-2">{[
         ["#site-icons", "アイコン"], ["#site-sharing", "共有時の画像"], ["#site-appearance", "名前・色"],
-        ["#site-interaction", "スマホの操作感"], ["#event-appearance", "イベント一覧"], ["#schedule-defaults", "日程の初期設定"],
+        ["#brand-motion", "タイトルの動き"], ["#site-interaction", "スマホの操作感"], ["#event-appearance", "イベント一覧"], ["#schedule-defaults", "日程の初期設定"],
       ].map(([href, label]) => <a key={href} href={href} className="flex min-h-11 items-center rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-secondary">{label}</a>)}</nav>
       <SiteSettingsForm
         initialTitle={settings.ogTitle ?? ""}
@@ -31,6 +31,10 @@ export default async function SiteSettingsPage() {
         defaultTitle={SITE_DEFAULT_TITLE}
         defaultDescription={SITE_DEFAULT_DESCRIPTION}
         initialAccentColor={settings.accentColor}
+        initialDarkAccentColor={settings.darkAccentColor}
+        brandAnimationEnabled={settings.brandAnimationEnabled}
+        brandAnimationStyle={settings.brandAnimationStyle}
+        brandAnimationIntervalSeconds={settings.brandAnimationIntervalSeconds}
         initialColorfulStatus={settings.colorfulStatus}
         defaultAccentColor={SITE_DEFAULT_ACCENT_COLOR}
         navigationLockEnabled={settings.navigationLockEnabled}

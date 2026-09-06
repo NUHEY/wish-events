@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BrandTitle } from "@/components/layout/brand-title";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getManagementAccess } from "@/lib/management-access";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/nav";
@@ -37,10 +39,11 @@ export async function Header() {
   const accountKind = configuredAccountKind ?? profile.account_kind;
   const fullName = configuredAccountKind ? institutionalDisplayName(configuredAccountKind) : profile.full_name;
   const avatarUrl = configuredAccountKind ? institutionalAvatarUrl(configuredAccountKind) : profile.avatar_url;
-  const [{ data: hasUnreadEventTalk }, friendThreads, { data: hasUnreadNotifications }] = await Promise.all([
+  const [{ data: hasUnreadEventTalk }, friendThreads, { data: hasUnreadNotifications }, settings] = await Promise.all([
     supabase.rpc("has_unread_event_talk"),
     getFriendDmThreads(),
     supabase.rpc("has_unread_notifications"),
+    getSiteSettings(),
   ]);
   const access = await getManagementAccess();
   const hasUnreadTalk = !!hasUnreadEventTalk || friendThreads.some((t) => t.unread);
@@ -60,7 +63,7 @@ export async function Header() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground shadow-sm">
                 W
               </span>
-              <span className="text-lg font-bold tracking-tight">WISH Events</span>
+              <BrandTitle animation={settings.brandAnimationEnabled ? settings.brandAnimationStyle : "none"} intervalSeconds={settings.brandAnimationIntervalSeconds} />
             </Link>
             <Nav role={profile.role} hasUnreadTalk={hasUnreadTalk} />
           </div>

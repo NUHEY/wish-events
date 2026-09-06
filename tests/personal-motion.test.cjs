@@ -22,7 +22,7 @@ test('motion setting immediately updates browser state, persists and stops runni
  const motion=load('src/lib/motion.ts');const saved=[],events=[];let stopped=0;
  const document={documentElement:{dataset:{}},getAnimations:()=>[{cancel(){stopped++}}]};
  const {ThemeProvider}=load('src/components/layout/theme-provider.tsx',{
-  react:{createContext:()=>({Provider:'Provider'}),useState:value=>[value,()=>{}],useEffect(){},useCallback:fn=>fn},
+  react:{createContext:()=>({Provider:'Provider'}),useState:value=>[value,()=>{}],useEffect(){},useRef: value=>({current:value}),useCallback:fn=>fn},
   'react/jsx-runtime':{jsx:(type,props)=>({type,props})},'@/lib/theme':{THEME_STORAGE_KEY:'theme'},'@/lib/motion':motion
  },{document,localStorage:{setItem:(...args)=>saved.push(args)},window:{dispatchEvent:event=>events.push(event.type)},Event});
  const view=ThemeProvider({children:null});view.props.value.setReducedMotion(true);

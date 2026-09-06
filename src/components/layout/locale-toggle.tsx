@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { SettingSelect } from "@/components/settings/setting-select";
 import { useLocale, useSetLocale } from "@/lib/i18n/locale-provider";
 import { LOCALE_COOKIE_NAME } from "@/lib/i18n/locales";
 import type { Locale } from "@/lib/i18n/locales";
@@ -40,32 +40,15 @@ export function LocaleToggle({ className }: { className?: string }) {
   }
 
   return (
-    <div
-      role="group"
+    <SettingSelect
       aria-label="言語 / Language"
-      className={cn(
-        "inline-flex max-w-full items-center gap-1 border-b border-border text-sm transition-opacity",
-        pending && "opacity-70",
-        className
-      )}
+      className={className}
+      value={locale}
+      disabled={pending}
+      onChange={(event) => switchTo(event.target.value as Locale)}
     >
-      {(["ja", "en"] as Locale[]).map((l) => (
-        <button
-          key={l}
-          type="button"
-          onClick={() => switchTo(l)}
-          aria-pressed={locale === l}
-          disabled={pending}
-          className={cn(
-            "-mb-px min-h-11 min-w-11 whitespace-nowrap border-b-2 px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            locale === l
-              ? "border-primary font-medium text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {l === "ja" ? "日本語" : "English"}
-        </button>
-      ))}
-    </div>
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+    </SettingSelect>
   );
 }

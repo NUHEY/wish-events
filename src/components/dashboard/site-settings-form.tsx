@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { BrandMotionSettings } from "@/components/dashboard/brand-motion-settings";
 import { useFormState, useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import { ImagePlus, Trash2 } from "lucide-react";
@@ -67,6 +68,10 @@ export function SiteSettingsForm({
   defaultTitle,
   defaultDescription,
   initialAccentColor,
+  initialDarkAccentColor,
+  brandAnimationEnabled,
+  brandAnimationStyle,
+  brandAnimationIntervalSeconds,
   initialColorfulStatus,
   defaultAccentColor,
   navigationLockEnabled,
@@ -88,6 +93,10 @@ export function SiteSettingsForm({
   defaultTitle: string;
   defaultDescription: string;
   initialAccentColor: string;
+  initialDarkAccentColor: string;
+  brandAnimationEnabled: boolean;
+  brandAnimationStyle: "shine" | "underline" | "lift";
+  brandAnimationIntervalSeconds: number;
   initialColorfulStatus: boolean;
   defaultAccentColor: string;
   navigationLockEnabled: boolean;
@@ -100,6 +109,7 @@ export function SiteSettingsForm({
   ctaTransitionMs: number;
 }) {
   const [accentColor, setAccentColor] = useState(initialAccentColor);
+  const [darkAccentColor, setDarkAccentColor] = useState(initialDarkAccentColor);
   const { formRef, isDirty, markDirty, reset } = useDirtyForm();
   useUnsavedChangesGuard(isDirty, "保存していないサイト設定の変更を破棄しますか？");
   const [interaction, setInteraction] = useState({ navigationLockEnabled, navigationStallSeconds, mobileTouchFeedbackEnabled, mobileTouchFeedbackMs, motionLevel, ctaBlurPx, ctaFadeHeightPx, ctaTransitionMs });
@@ -252,6 +262,11 @@ export function SiteSettingsForm({
               早稲田カラーに戻す
             </Button>
           </div>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="dark_accent_color">ダークテーマのアクセント</Label>
+            <div className="flex flex-wrap items-center gap-3"><input id="dark_accent_color" type="color" name="dark_accent_color" value={darkAccentColor} onChange={event => setDarkAccentColor(event.target.value)} className="h-11 w-16 shrink-0 cursor-pointer rounded-md border border-border bg-card p-1" /><span className="text-sm text-muted-foreground">{darkAccentColor}</span><Button type="button" variant="ghost" size="sm" onClick={() => { setDarkAccentColor("#8BB8D8"); markDirty(); }}>標準のブルーに戻す</Button></div>
+            <p className="text-xs text-muted-foreground">暗い背景では、文字とボタンが読みやすい明るさに調整します。</p>
+          </div>
           <label className="mt-4 flex items-start gap-2 text-sm">
             <input type="checkbox" name="colorful_status" defaultChecked={initialColorfulStatus} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
             <span>
@@ -260,6 +275,7 @@ export function SiteSettingsForm({
             </span>
           </label>
         </div>
+        <BrandMotionSettings enabled={brandAnimationEnabled} style={brandAnimationStyle} interval={brandAnimationIntervalSeconds} />
         <section id="site-interaction" className="scroll-mt-24 space-y-3 border-t border-border pt-4">
           <div><h2 className="font-bold">スマホの操作感</h2><p className="mt-1 text-sm text-muted-foreground">迷ったら「スマホ向け標準」。動きを抑えたい時は「動きを控えめに」を選べます。</p></div>
           <div className="grid gap-2 sm:grid-cols-2"><Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal py-3" onClick={() => applyPreset("mobile")}>スマホ向け標準</Button><Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal py-3" onClick={() => applyPreset("calm")}>動きを控えめに</Button></div>

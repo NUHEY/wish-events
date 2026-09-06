@@ -460,6 +460,10 @@ export interface SiteSettingsRow {
   app_short_name: string;
   theme_color: string;
   accent_color: string | null;
+  dark_accent_color: string;
+  brand_animation_enabled: boolean;
+  brand_animation_style: "shine" | "underline" | "lift";
+  brand_animation_interval_seconds: number;
   colorful_status: boolean;
   event_label_rotation_enabled: boolean;
   event_label_duration_ms: number;

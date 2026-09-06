@@ -165,14 +165,14 @@
   }
 
   .dark {
-    --background: 0 0% 10%;
+    --background: 218 18% 10%;
     --foreground: 0 0% 92%;
-    --card: 0 0% 12%;
+    --card: 218 16% 13%;
     --card-foreground: 0 0% 92%;
 
-    --primary: 351 78% 58%;
-    --primary-hover: 351 80% 64%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 205 50% 70%;
+    --primary-hover: 205 50% 77%;
+    --primary-foreground: 215 30% 12%;
 
     --secondary: 0 0% 18%;
     --secondary-foreground: 0 0% 90%;
@@ -184,7 +184,7 @@
     --destructive-foreground: 0 0% 10%;
     --border: 0 0% 23%;
     --input: 0 0% 28%;
-    --ring: 351 78% 58%;
+    --ring: 205 50% 70%;
     --chat-surface: 0 0% 10%;
     --chat-gradient-start: 0 0% 17%;
     --chat-gradient-middle: 0 0% 15%;
@@ -197,8 +197,8 @@
     --instagram-middle: 337 69% 58%;
     --instagram-end: 236 65% 68%;
     --line-brand: 142 75% 46%;
-    --profile-pop-pink: 344 32% 19%;
-    --profile-pop-pink-foreground: 344 78% 78%;
+    --profile-pop-pink: 205 26% 19%;
+    --profile-pop-pink-foreground: 205 60% 78%;
     --profile-pop-blue: 203 31% 19%;
     --profile-pop-blue-foreground: 203 78% 76%;
     --profile-pop-mint: 154 28% 18%;
@@ -360,4 +360,31 @@ html[data-motion="reduce"] [class*="active:scale"]:active,
 html[data-motion="reduce"] [class*="hover:scale"]:hover,
 html[data-motion="reduce"] [class*="hover:-translate"]:hover {
   transform: none !important;
+}
+
+@layer base {
+  html[data-text-size="large"] { font-size: 112.5%; }
+}
+
+.wish-brand-title { position: relative; display: inline-block; white-space: nowrap; }
+.wish-brand-title[data-brand-animation="underline"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 1.5px; background: hsl(var(--primary)); border-radius: 2px;
+  transform: scaleX(0); transform-origin: left;
+  animation: wish-brand-underline var(--brand-interval, 45s) ease-in-out var(--brand-delay, 8s) infinite;
+}
+.wish-brand-title[data-brand-animation="shine"] {
+  background: linear-gradient(110deg, hsl(var(--foreground)) 35%, hsl(var(--primary)) 50%, hsl(var(--foreground)) 65%);
+  background-size: 300% 100%; background-position: 100% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: wish-brand-shine var(--brand-interval, 45s) ease-in-out var(--brand-delay, 8s) infinite;
+}
+.wish-brand-title[data-brand-animation="lift"] { animation: wish-brand-lift var(--brand-interval, 45s) ease-in-out var(--brand-delay, 8s) infinite; }
+@keyframes wish-brand-underline { 0%, 4%, 100% { transform: scaleX(0); } 1.5%, 2.5% { transform: scaleX(1); } }
+@keyframes wish-brand-shine { 0%, 100% { background-position: 100% 0; } 4%, 99.99% { background-position: 0% 0; } }
+@keyframes wish-brand-lift { 0%, 4%, 100% { transform: translateY(0); } 2% { transform: translateY(-2px); } }
+html[data-motion="reduce"] .wish-brand-title,
+html[data-motion="reduce"] .wish-brand-title::after { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .wish-brand-title, .wish-brand-title::after { animation: none !important; }
 }

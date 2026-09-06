@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, LayoutList, Save, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +33,7 @@ function SubmitButton({ label, savingLabel }: { label: string; savingLabel: stri
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Save aria-hidden="true" className="h-4 w-4" />
       {pending ? savingLabel : label}
     </Button>
   );
@@ -99,68 +99,46 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
       action={formAction}
       onInput={markDirty}
       onChange={markDirty}
-      className="flex flex-col gap-4"
+      id="home-sections"
+      className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card"
     >
       <EditableFields>
-      <section className="space-y-3 rounded-2xl border border-border bg-secondary/30 p-4">
-        <div><h2 className="font-bold">{en ? "1. Choose the order" : "1. ホームの並び順"}</h2><p className="mt-1 text-sm text-muted-foreground">{en ? "Start with a suggested order, or use the arrows below. Changes apply when saved." : "おすすめの並び順から選ぶか、下の矢印で調整できます。変更は保存後に反映されます。"}</p></div>
-        <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => applyOrder("events")}>{en ? "Events first" : "イベントを先に"}</Button><Button type="button" variant="outline" onClick={() => applyOrder("life")}>{en ? "Dorm information first" : "生活情報を先に"}</Button></div>
-        <p className="text-xs text-muted-foreground">{en ? "Suggested orders keep your visibility, titles and colors." : "おすすめを選んでも、表示・非表示や見出し・色は変わりません。"}</p>
-        <ol aria-label={en ? "Visible sections in order" : "表示するセクションの順番"} className="flex flex-wrap gap-2">{sections.filter(s => s.visible).map((s, index) => <li key={s.section_key} className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs leading-relaxed"><span className="mr-1.5 text-muted-foreground">{index + 1}</span>{(en ? s.title_en : s.title_ja) || dict.homeLayout.sectionNames[s.section_key]}</li>)}</ol>
-        <p className="text-xs text-muted-foreground">{en ? "Sections without content may not appear on the actual home page." : "実際のホームでは、表示する内容がないセクションは省略される場合があります。"}</p>
-      </section>
+      <div className="space-y-3 px-4 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex min-w-0 items-center gap-2 font-bold"><LayoutList aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />{en ? "Home sections" : "ホームのセクション"}</h2>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{sections.filter(s => s.visible).length}/{sections.length} {en ? "shown" : "表示"}</span>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">{en ? "Check to show, use arrows to reorder. Empty event sections appear when events are available." : "チェックで表示、矢印で並べ替え。イベントがない欄は自動で省略されます。"}</p>
+        <details className="text-sm">
+          <summary className="w-fit cursor-pointer py-2 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{en ? "Use a suggested order" : "おすすめの並び順を使う"}</summary>
+          <div className="flex flex-wrap gap-2 pb-2"><Button type="button" size="sm" variant="outline" onClick={() => applyOrder("events")}>{en ? "Events first" : "イベントを先に"}</Button><Button type="button" size="sm" variant="outline" onClick={() => applyOrder("life")}>{en ? "Dorm information first" : "生活情報を先に"}</Button></div>
+        </details>
+      </div>
+      <ol aria-label={en ? "Home sections in display order" : "ホームの表示順"} className="divide-y divide-border border-t border-border">
       {sections.map((s, index) => (
-        <Card key={s.section_key} className={cn("rounded-2xl", !s.visible && "opacity-60")}>
-          <CardContent className="flex flex-col gap-3.5 p-4">
+        <li key={s.section_key} className={cn("min-w-0 px-3 py-2 sm:px-4", !s.visible && "bg-secondary/20")}>
             <input type="hidden" name="section_key" value={s.section_key} />
             <input type="hidden" name={`accent__${s.section_key}`} value={s.accent} />
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="w-5 shrink-0 text-center text-sm tabular-nums text-muted-foreground">{index + 1}</span>
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-11 w-11 p-0"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    aria-label={`${dict.homeLayout.sectionNames[s.section_key]}: ${dict.homeLayout.moveUp}`}
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-11 w-11 p-0"
-                    disabled={index === sections.length - 1}
-                    onClick={() => move(index, 1)}
-                    aria-label={`${dict.homeLayout.sectionNames[s.section_key]}: ${dict.homeLayout.moveDown}`}
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <p className="min-w-0 break-words text-sm font-semibold leading-relaxed">{dict.homeLayout.sectionNames[s.section_key]}</p>
-              </div>
-              <label className="flex min-h-11 shrink-0 items-center gap-2 text-sm">
-                <Checkbox
-                  checked={s.visible}
-                  onCheckedChange={(checked) => updateSection(s.section_key, { visible: checked === true })}
-                />
-                <input
-                  type="hidden"
-                  name={`visible__${s.section_key}`}
-                  value={s.visible ? "on" : "off"}
-                />
-                {dict.homeLayout.visibleLabel}
+            <div className="flex items-center gap-2">
+              <span className="w-4 shrink-0 text-center text-xs tabular-nums text-muted-foreground">{index + 1}</span>
+              <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2">
+                <Checkbox checked={s.visible} onCheckedChange={(checked) => updateSection(s.section_key, { visible: checked === true })} aria-label={`${dict.homeLayout.sectionNames[s.section_key]}: ${dict.homeLayout.visibleLabel}`} />
+                <input type="hidden" name={`visible__${s.section_key}`} value={s.visible ? "on" : "off"} />
+                <span className={cn("min-w-0 break-words text-sm font-medium leading-snug", !s.visible && "text-muted-foreground")}>
+                  {(en ? s.title_en : s.title_ja) || dict.homeLayout.sectionNames[s.section_key]}
+                  {(en ? s.title_en : s.title_ja) && <span className="mt-1 block text-[11px] font-normal text-muted-foreground">{dict.homeLayout.sectionNames[s.section_key]}</span>}
+                </span>
               </label>
+              <div className="flex shrink-0">
+                <Button type="button" variant="ghost" size="sm" className="h-11 w-10 p-0" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`${dict.homeLayout.sectionNames[s.section_key]}: ${dict.homeLayout.moveUp}`}><ArrowUp aria-hidden="true" className="h-3.5 w-3.5" /></Button>
+                <Button type="button" variant="ghost" size="sm" className="h-11 w-10 p-0" disabled={index === sections.length - 1} onClick={() => move(index, 1)} aria-label={`${dict.homeLayout.sectionNames[s.section_key]}: ${dict.homeLayout.moveDown}`}><ArrowDown aria-hidden="true" className="h-3.5 w-3.5" /></Button>
+              </div>
             </div>
 
-            <details className="rounded-xl border border-border/70">
-            <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{en ? "Title and color" : "見出し・色を調整"}</summary>
-            <div className="space-y-4 px-3 pb-4">
+            <details className="group/details min-w-0">
+            <summary className="ml-6 flex min-h-9 w-fit cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"><SlidersHorizontal aria-hidden="true" className="h-3 w-3" />{en ? "Title and color" : "見出し・色"}<span className="group-open/details:hidden" aria-hidden="true">＋</span><span className="hidden group-open/details:inline" aria-hidden="true">−</span></summary>
+            <div className="space-y-4 rounded-lg bg-secondary/30 p-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor={`title_ja__${s.section_key}`}>{dict.homeLayout.titleOverrideLabel}</Label>
@@ -222,17 +200,18 @@ export function HomeLayoutEditor({ initialSections }: { initialSections: HomeLay
               </div>
             </div>
             </div></details>
-          </CardContent>
-        </Card>
+        </li>
       ))}
-
+      </ol>
       </EditableFields>
+      <div className="flex flex-col gap-3 border-t border-border p-4">
       {isDirty && <p role="status" className="text-sm font-medium text-primary">{en ? "You have unsaved changes." : "保存していない変更があります。"}</p>}
       {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
       {state?.success && !isDirty && <p role="status" className="text-sm text-primary">{dict.homeLayout.saved}</p>}
 
       <div>
-        <SubmitButton label={dict.homeLayout.saveButton} savingLabel={dict.homeLayout.saving} />
+        <SubmitButton label={en ? "Save home sections" : "セクションの設定を保存"} savingLabel={dict.homeLayout.saving} />
+      </div>
       </div>
     </form>
   );

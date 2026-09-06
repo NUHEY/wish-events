@@ -12,6 +12,10 @@ export type SiteSettings = {
   appShortName: string;
   themeColor: string;
   accentColor: string;
+  darkAccentColor: string;
+  brandAnimationEnabled: boolean;
+  brandAnimationStyle: "shine" | "underline" | "lift";
+  brandAnimationIntervalSeconds: number;
   colorfulStatus: boolean;
   eventLabelRotationEnabled: boolean;
   eventLabelDurationMs: number;
@@ -64,6 +68,10 @@ export const SITE_SETTINGS_DEFAULTS: SiteSettings = {
   appShortName: "WISH",
   themeColor: "#8E1728",
   accentColor: SITE_DEFAULT_ACCENT_COLOR,
+  darkAccentColor: "#8BB8D8",
+  brandAnimationEnabled: true,
+  brandAnimationStyle: "underline",
+  brandAnimationIntervalSeconds: 45,
   colorfulStatus: false,
   eventLabelRotationEnabled: true,
   eventLabelDurationMs: 3600,
@@ -132,6 +140,10 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       appShortName: typeof row.app_short_name === "string" && row.app_short_name.trim() ? row.app_short_name.trim().slice(0, 20) : SITE_SETTINGS_DEFAULTS.appShortName,
       themeColor: typeof row.theme_color === "string" && HEX_PATTERN.test(row.theme_color) ? row.theme_color : SITE_SETTINGS_DEFAULTS.themeColor,
       accentColor,
+      darkAccentColor: typeof row.dark_accent_color === "string" && HEX_PATTERN.test(row.dark_accent_color) ? row.dark_accent_color : SITE_SETTINGS_DEFAULTS.darkAccentColor,
+      brandAnimationEnabled: booleanSetting(row.brand_animation_enabled, SITE_SETTINGS_DEFAULTS.brandAnimationEnabled),
+      brandAnimationStyle: row.brand_animation_style === "shine" || row.brand_animation_style === "lift" ? row.brand_animation_style : "underline",
+      brandAnimationIntervalSeconds: numberSetting(row.brand_animation_interval_seconds, 45, 20, 120),
       colorfulStatus: booleanSetting(row.colorful_status, SITE_SETTINGS_DEFAULTS.colorfulStatus),
       eventLabelRotationEnabled: booleanSetting(row.event_label_rotation_enabled, SITE_SETTINGS_DEFAULTS.eventLabelRotationEnabled),
       eventLabelDurationMs: numberSetting(row.event_label_duration_ms, SITE_SETTINGS_DEFAULTS.eventLabelDurationMs, 1800, 12000),
@@ -204,8 +216,11 @@ const COLORFUL_STATUS_CSS = `
  */
 export function buildSiteThemeStyle(settings: SiteSettings): string {
   const accent = buildAccentPalette(settings.accentColor);
+  const dark = hexToHsl(settings.darkAccentColor || SITE_SETTINGS_DEFAULTS.darkAccentColor);
+  const darkPrimary = `${dark.h} ${clampPct(dark.s, 25, 75)}% ${clampPct(dark.l, 60, 78)}%`;
+  const darkHover = `${dark.h} ${clampPct(dark.s, 25, 75)}% ${clampPct(dark.l + 7, 67, 85)}%`;
   const motionDistance = settings.motionLevel === "subtle" ? 2 : settings.motionLevel === "lively" ? 7 : 5;
   return `:root{--primary:${accent.light};--primary-hover:${accent.lightHover};--ring:${accent.light};--mobile-touch-duration:${settings.mobileTouchFeedbackMs}ms;--mobile-touch-animation:${settings.mobileTouchFeedbackEnabled ? "mobile-touch-feedback" : "none"};--motion-distance:${motionDistance}px;--cta-blur:${settings.ctaBlurPx}px;--cta-fade-height:${settings.ctaFadeHeightPx}px;--cta-transition-duration:${settings.ctaTransitionMs}ms;}
-.dark{--primary:${accent.dark};--primary-hover:${accent.darkHover};--ring:${accent.dark};}
+.dark{--primary:${darkPrimary};--primary-hover:${darkHover};--primary-foreground:215 30% 12%;--ring:${darkPrimary};}
 ${settings.colorfulStatus ? COLORFUL_STATUS_CSS : ""}`;
 }

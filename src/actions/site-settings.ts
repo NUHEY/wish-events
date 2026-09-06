@@ -32,6 +32,10 @@ export async function updateSiteSettings(
   const ogTitle = String(formData.get("og_title") ?? "").trim();
   const ogDescription = String(formData.get("og_description") ?? "").trim();
   const accentColorRaw = String(formData.get("accent_color") ?? "").trim();
+  const darkAccentRaw = String(formData.get("dark_accent_color") ?? "").trim();
+  const brandStyle = String(formData.get("brand_animation_style") ?? "underline");
+  if (darkAccentRaw && !HEX_COLOR_PATTERN.test(darkAccentRaw)) return { error: "ダークテーマの色の形式が正しくありません。" };
+  if (!["shine", "underline", "lift"].includes(brandStyle)) return { error: "タイトルのアニメーションを選び直してください。" };
   const themeColorRaw = String(formData.get("theme_color") ?? "").trim();
   const appShortName = String(formData.get("app_short_name") ?? "WISH").trim().slice(0, 20);
   if (accentColorRaw && !HEX_COLOR_PATTERN.test(accentColorRaw)) {
@@ -50,6 +54,12 @@ export async function updateSiteSettings(
       og_description: ogDescription || null,
       ...(accentColorRaw ? { accent_color: accentColorRaw } : {}),
       colorful_status: colorfulStatus,
+      ...(darkAccentRaw ? { dark_accent_color: darkAccentRaw } : {}),
+      ...(formData.has("brand_animation_style") ? {
+        brand_animation_enabled: formData.get("brand_animation_enabled") === "on",
+        brand_animation_style: brandStyle as "shine" | "underline" | "lift",
+        brand_animation_interval_seconds: intFromForm(formData, "brand_animation_interval_seconds", 20, 120, 45),
+      } : {}),
       app_short_name: appShortName || "WISH",
       ...(themeColorRaw ? { theme_color: themeColorRaw } : {}),
       navigation_lock_enabled: formData.get("navigation_lock_enabled") === "on",
