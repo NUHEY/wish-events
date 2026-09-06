@@ -42,7 +42,7 @@ function Content({ variant }: { variant: LoadingVariant }) {
     case "tools":
       return <><Heading /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, key) => <div key={key} className="flex flex-col items-start gap-3 rounded-xl border border-border p-5"><Block className="h-10 w-10 rounded-xl" /><Block className="h-4 w-24 max-w-full" /></div>)}</div></>;
     case "talks":
-      return <div className="mx-auto max-w-3xl space-y-4"><Heading /><div className="grid grid-cols-3 gap-2"><Block className="h-10" /><Block className="h-10" /><Block className="h-10" /></div><Rows avatar /></div>;
+      return <div className="mx-auto max-w-3xl space-y-4"><Block className="h-8 w-24" />{Array.from({ length: 5 }, (_, key) => <div key={key} className="flex items-center gap-3 px-1 py-3 sm:px-3"><Block className="h-14 w-14 shrink-0 rounded-full" /><div className="min-w-0 flex-1 space-y-2"><Block className="h-4 w-1/2" /><Block className="h-3 w-3/4" /></div></div>)}</div>;
     case "chat":
       return <div className="mx-auto flex min-h-[65svh] max-w-3xl flex-col gap-5"><div className="flex items-center gap-3"><Block className="h-10 w-10 rounded-full" /><Block className="h-5 w-36" /></div><Block className="h-16 w-2/3 rounded-2xl" /><Block className="ml-auto h-12 w-1/2 rounded-2xl" /><Block className="h-20 w-3/5 rounded-2xl" /><Block className="mt-auto h-12 rounded-xl" /></div>;
     case "directory":
