@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatRoomNumber } from "@/lib/utils";
 import { useDict, useLocale } from "@/lib/i18n/locale-provider";
@@ -44,8 +45,13 @@ export function UserMenu({
   const dict = useDict();
   const locale = useLocale();
   const router = useRouter();
+  const confirm = useConfirm();
 
   async function handleSignOut() {
+    if (!(await confirm({
+      message: locale === "en" ? "Are you sure you want to log out?" : "ログアウトしますか？",
+      confirmLabel: dict.header.signOut,
+    }))) return;
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

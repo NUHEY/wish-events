@@ -238,9 +238,7 @@ export default async function HomePage() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {isEn ? "Discover life at WISH" : "WISHの今日を、ここから。"}
-          </h1>
+          <h1 className="sr-only">{isEn ? "Home" : "ホーム"}</h1>
           <p className="text-sm text-muted-foreground">{dict.homePortal.subtitle}</p>
         </div>
         {isRa && (
